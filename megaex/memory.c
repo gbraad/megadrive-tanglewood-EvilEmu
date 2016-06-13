@@ -43,10 +43,6 @@ THE SOFTWARE.
 #define VSRAM_SIZE			(80)
 #define CARTRAM_SIZE		(32*1024)		/* this is probably too big - 8k on most carts aparantly */
 
-#define DMA_FILLMODE_VRAM  0x1
-#define DMA_FILLMODE_CRAM  0x3
-#define DMA_FILLMODE_VSRAM 0x5
-
 typedef U8 (*MEM_ReadMap)(U32 upper24,U32 lower16);
 typedef void (*MEM_WriteMap)(U32 upper24,U32 lower16,U8 byte);
 
@@ -1156,8 +1152,7 @@ void VDP_DataModeStart()
 			}
 			else
 			{
-				U32 fillMode = (IdCode & 0x1F);
-				if (fillMode != DMA_FILLMODE_VRAM && fillMode != DMA_FILLMODE_VSRAM && fillMode != DMA_FILLMODE_CRAM)	/* FILL mode...  */
+				if ((IdCode&0x1F)!=1)	/* FILL mode...  */
 				{
 					DEB_PauseEmulation(DEB_Mode_68000,"unsupported setting in fill mode.. probably stuffed something up");
 					return;
