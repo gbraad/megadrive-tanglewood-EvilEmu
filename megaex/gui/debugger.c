@@ -1356,7 +1356,7 @@ int UpdateDebugger()
 		}
 	}
 
-	if (CheckKey(GLFW_KEY_PAGEUP))
+	if (CheckKey(GLFW_KEY_PAGE_UP))
 		g_pause=!g_pause;
 
 	if (CheckKey(GLFW_KEY_KP_0))
@@ -1578,7 +1578,7 @@ int UpdateDebugger()
 	}
 	ClearKey(GLFW_KEY_KP_0);
 	ClearKey(GLFW_KEY_KP_MULTIPLY);
-	ClearKey(GLFW_KEY_PAGEUP);
+	ClearKey(GLFW_KEY_PAGE_UP);
 
 	return g_pause;
 }

@@ -1,0 +1,59 @@
+SubDir bigevilcorp megaex ;
+
+ApplyIonDefines megaex ;
+ApplyIonIncludes megaex ;
+ApplyIonCore megaex ;
+ApplyIonIo megaex ;
+ApplyIonRenderer megaex : opengl ;
+ApplyIonGameKit megaex ;
+ApplyOpenALSDK megaex ;
+
+local SRC = 
+	audio/lj_ym2612.c
+	audio/lj_ym2612.h
+	audio/psg.c
+	audio/psg.h
+	cpu/m68k/cpu.c
+	cpu/m68k/cpu.h
+	cpu/m68k/cpu_dis.c
+	cpu/m68k/cpu_dis.h
+	cpu/m68k/cpu_ops.c
+	cpu/m68k/cpu_ops.h
+	cpu/sh2/sh2.c
+	cpu/sh2/sh2.h
+	cpu/sh2/sh2_dis.c
+	cpu/sh2/sh2_dis.h
+	cpu/sh2/sh2_ioregisters.c
+	cpu/sh2/sh2_ioregisters.h
+	cpu/sh2/sh2_memory.c
+	cpu/sh2/sh2_memory.h
+	cpu/sh2/sh2_ops.c
+	cpu/sh2/sh2_ops.h
+	cpu/z80/z80.c
+	cpu/z80/z80.h
+	cpu/z80/z80_dis.c
+	cpu/z80/z80_dis.h
+	cpu/z80/z80_ops.c
+	cpu/z80/z80_ops.h
+	gui/debugger.c
+	gui/debugger.h
+	gui/font.h
+	config.h
+	memory.c
+	memory.h
+	mgmain.c
+	mytypes.h
+	platform.h
+	;
+
+C.IncludeDirectories megaex : . ;
+C.IncludeDirectories megaex : ./audio ;
+C.IncludeDirectories megaex : ./cpu ;
+C.IncludeDirectories megaex : ./cpu/m68k ;
+C.IncludeDirectories megaex : ./cpu/sh2 ;
+C.IncludeDirectories megaex : ./cpu/z80 ;
+C.IncludeDirectories megaex : ./gui ;
+
+AutoSourceGroup megaex : $(SRC) ;
+C.RuntimeType megaex : static ;
+C.Application megaex : $(SRC) ;

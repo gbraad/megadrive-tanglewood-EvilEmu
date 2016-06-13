@@ -34,8 +34,8 @@ THE SOFTWARE.
 
 #include <GL/GL.h>
 
-#include "include/GL/glext.h"
-#include "include/GL/glfw.h"
+#include "GL/glext.h"
+#include "GL/glfw3.h"
 
 #include"al.h"
 #include"alc.h"

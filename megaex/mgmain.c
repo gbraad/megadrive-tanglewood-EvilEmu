@@ -1032,7 +1032,7 @@ void ClearKey(int key)
 	keyArray[key*3+2]=0;
 }
 
-void GLFWCALL kbHandler( int key, int action )
+void kbHandler( int key, int action )
 {
 	keyArray[key*3 + 0]=keyArray[key*3+1];
 	keyArray[key*3 + 1]=action;
@@ -1162,14 +1162,15 @@ int main(int argc,char **argv)
 	/* Initialize GLFW  */
 	glfwInit(); 
 	/* Open an OpenGL window  */
-	if( !glfwOpenWindow( LINE_LENGTH, HEIGHT, 0,0,0,0,0,0, GLFW_WINDOW ) ) 
+	GLFWwindow* window = glfwCreateWindow(LINE_LENGTH, HEIGHT, "megaex", NULL, NULL);
+	if(!window)
 	{ 
 		glfwTerminate(); 
 		return 1; 
 	} 
 	
-	glfwSetWindowTitle("Mega");
-	glfwSetWindowPos(300,300);
+	glfwSetWindowTitle(window, "Mega");
+	glfwSetWindowPos(window, 300, 300);
 	
 	setupGL(LINE_LENGTH,HEIGHT);	
 
@@ -1251,12 +1252,14 @@ int main(int argc,char **argv)
 #endif
 	Z80_Reset();
 
-	glfwSetKeyCallback(kbHandler);
+	glfwSetKeyCallback(window, kbHandler);
 
+#if DEBUG_BREAK_ON_BOOT
 #if ENABLE_32X_MODE
 	DEB_PauseEmulation(DEB_Mode_SH2_Master,"BOOT");
 #else
 	DEB_PauseEmulation(DEB_Mode_68000,"BOOT");
+#endif
 #endif
 
 	while (running)
@@ -1430,7 +1433,7 @@ int main(int argc,char **argv)
 			{
 				double now,remain;
 				DrawScreen();
-				glfwSwapBuffers();
+				glfwSwapBuffers(window);
 				now=glfwGetTime();
 			
 				remain = now-atStart;
@@ -1514,7 +1517,7 @@ int main(int argc,char **argv)
 		}
 		
 		/* Check if ESC key was pressed or window was closed */
-		running = /*!glfwGetKey( GLFW_KEY_ESC ) && */glfwGetWindowParam( GLFW_OPENED ); 
+		running = /*!glfwGetKey( GLFW_KEY_ESC ) && */!glfwWindowShouldClose(window);
 	}
 
 	if (SRAM)

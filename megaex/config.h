@@ -39,6 +39,7 @@ THE SOFTWARE.
 #define PAL_PRETEND					0
 
 #define ENABLE_DEBUGGER			1
+#define DEBUG_BREAK_ON_BOOT		0
 
 #define	ENABLE_32X_MODE			0
 
