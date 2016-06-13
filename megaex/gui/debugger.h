@@ -23,6 +23,10 @@ THE SOFTWARE.
 
  */
 
+#pragma once
+
+#include "mytypes.h"
+
 #define DEB_Mode_68000				(0)
 #define DEB_Mode_Z80					(3)
 #define DEB_Mode_SH2_Master		(6)
@@ -30,8 +34,8 @@ THE SOFTWARE.
 
 #if ENABLE_DEBUGGER
 
-void DisplayDebugger();
-int UpdateDebugger();
+ION_C_API void DisplayDebugger();
+ION_C_API int UpdateDebugger();
 
 void DEB_PauseEmulation(int mode,char *reason);
 

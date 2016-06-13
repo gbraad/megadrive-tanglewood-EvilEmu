@@ -149,7 +149,7 @@ U16 PSG_Output()
 	return sample;
 }
 
-void _AudioAddData(int channel,S16 dacValue);		/* Externally defined route to sound player */
+ION_C_API void _AudioAddData(int channel, S16 dacValue);		/* Externally defined route to sound player */
 
 void PSG_Update()
 {

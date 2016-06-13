@@ -30,9 +30,9 @@ THE SOFTWARE.
 #include <stdarg.h>
 
 #include "config.h"
-
 #include "platform.h"
-
+#include "callbacks.h"
+#include "globals.h"
 #include "cpu.h"
 #include "cpu_dis.h"
 #include "z80.h"
@@ -51,8 +51,6 @@ extern U8 *vRam;
 extern U8 *vsRam;
 
 extern U8 VDP_Registers[0x20];
-void doPixel(int x,int y,U8 colHi,U8 colLo);
-void doPixel32(int x,int y,U32 colour);
 
 extern U8 CRAM[0x200];
 
@@ -65,8 +63,6 @@ int numBps=0;
 int Z80_numBps=0;
 
 int copNum=0;
-
-void doPixelClipped(int x,int y,U8 colHi,U8 colLo);
 
 void DrawChar(U32 x,U32 y, char c,int cMask1,int cMask2)
 {
@@ -449,14 +445,8 @@ U32 DissasembleAddress(U32 x,U32 y,U32 address,int cursor)
 	return insCount+2;
 }
 
-extern int g_newScreenNotify;
-
 int g_pause=0;
 U32 stageCheck=0;
-
-
-int CheckKey(int key);
-void ClearKey(int key);
 
 void DisplayHelp()
 {
@@ -2083,8 +2073,6 @@ void DrawSpritesForLine(int curLine,U8 zValue)
 		}
 	}
 }
-
-U32* pixelPosition(int x,int y);
 
 #if ENABLE_32X_MODE
 

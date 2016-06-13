@@ -74,6 +74,8 @@ THE SOFTWARE.
 #include "sh2.h"
 #endif
 
+#include "callbacks.h"
+#include "globals.h"
 #include "gui/debugger.h"
 
 U8	inHBlank=0;
@@ -936,8 +938,6 @@ void doPixelClipped(int x,int y,U8 colHi,U8 colLo)
 	*pixmem32 = colour;
 }
 
-extern int g_pause;
-
 void DrawScreen() 
 {
 	glBindTexture(GL_TEXTURE_RECTANGLE_NV, 1);
@@ -1032,7 +1032,7 @@ void ClearKey(int key)
 	keyArray[key*3+2]=0;
 }
 
-void kbHandler( int key, int action )
+void kbHandler(GLFWwindow* window, int key, int scancode, int action, int modifiers)
 {
 	keyArray[key*3 + 0]=keyArray[key*3+1];
 	keyArray[key*3 + 1]=action;
@@ -1050,12 +1050,12 @@ void UpdateAudio();
 U32 lineNo=0;
 U32 colNo=0;
 
-extern U8 VDP_Registers[0x20];
+ION_C_API U8 VDP_Registers[0x20];
 
 U32 LineCounter=0xFF;
 U32 _32XLineCounter=0xFF;
 
-void VID_DrawScreen(int lineNo);
+ION_C_API void VID_DrawScreen(int lineNo);
 void DisplaySprites();
 void DisplayApproximationOfScreen(int x,int y,int winNumber);
 
@@ -1099,7 +1099,7 @@ void UpdateFPS()
   }
 }
 
-void FM_Update();
+ION_C_API void FM_Update();
 
 #ifdef _WIN32
 #define BASE_PATH	"g:\\"
@@ -1122,7 +1122,7 @@ extern unsigned char *smsBios;
 #if SMS_MODE
 extern U8 SMS_VDP_Status;
 #endif
-void PSG_Update();
+ION_C_API void PSG_Update();
 
 U32 PSG_OutOn=1;
 U32 YM_OutOn=1;

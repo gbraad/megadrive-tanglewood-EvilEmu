@@ -25,22 +25,22 @@ THE SOFTWARE.
 
 #include "mytypes.h"
 
-U8 Z80_MEM_getByte(U16 address);
-void Z80_MEM_setByte(U16 address,U8 data);
+ION_C_API U8 Z80_MEM_getByte(U16 address);
+ION_C_API void Z80_MEM_setByte(U16 address, U8 data);
 
-U8 Z80_IO_getByte(U16 address);
-void Z80_IO_setByte(U16 address,U8 data);
+ION_C_API U8 Z80_IO_getByte(U16 address);
+ION_C_API void Z80_IO_setByte(U16 address, U8 data);
 
-void MEM_SaveState(FILE *outStream);
-void MEM_LoadState(FILE *inStream);
+ION_C_API void MEM_SaveState(FILE *outStream);
+ION_C_API void MEM_LoadState(FILE *inStream);
 
-void MEM_Initialise(unsigned char *_romPtr,unsigned int num64Banks);
+ION_C_API void MEM_Initialise(unsigned char *_romPtr, unsigned int num64Banks);
 
-void MEM_MapKickstartLow(int yes);
+ION_C_API void MEM_MapKickstartLow(int yes);
 
-U8	MEM_getByte(U32 address);
-void		MEM_setByte(U32 address,U8 byte);
-U16	MEM_getWord(U32 address);
-void		MEM_setWord(U32 address,U16 word);
-U32	MEM_getLong(U32 address);
-void		MEM_setLong(U32 address,U32 dword);
+ION_C_API U8	MEM_getByte(U32 address);
+ION_C_API void	MEM_setByte(U32 address,U8 byte);
+ION_C_API U16	MEM_getWord(U32 address);
+ION_C_API void	MEM_setWord(U32 address,U16 word);
+ION_C_API U32	MEM_getLong(U32 address);
+ION_C_API void	MEM_setLong(U32 address,U32 dword);

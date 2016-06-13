@@ -41,7 +41,7 @@ local SRC =
 	config.h
 	memory.c
 	memory.h
-	mgmain.c
+	mgmain.cpp
 	mytypes.h
 	platform.h
 	;

@@ -26,6 +26,12 @@ THE SOFTWARE.
 #ifndef __MYTYPES_H
 #define __MYTYPES_H
 
+#if defined __cplusplus
+#define ION_C_API extern "C"
+#else
+#define ION_C_API
+#endif
+
 #define SOFT_BREAK	{ char* bob=0; 	*bob=0; }
 
 #include <stdint.h>

@@ -28,7 +28,7 @@ THE SOFTWARE.
 #include <string.h>
 
 #include "config.h"
-
+#include "globals.h"
 #include "z80.h"
 #include "memory.h"
 #include "psg.h"
@@ -50,13 +50,6 @@ THE SOFTWARE.
 typedef U8 (*MEM_ReadMap)(U32 upper24,U32 lower16);
 typedef void (*MEM_WriteMap)(U32 upper24,U32 lower16,U8 byte);
 
-extern unsigned char *SRAM;
-extern U32 SRAM_Size;
-extern U32 SRAM_StartAddress;
-extern U32 SRAM_EndAddress;
-extern U32 SRAM_OddAccess;
-extern U32 SRAM_EvenAccess;
-
 unsigned char *vRam;
 unsigned char *cRam;
 unsigned char *vsRam;
@@ -71,8 +64,6 @@ MEM_WriteMap	mem_write[256];
 
 U8	VDP_Registers[0x20];						/* May as well */
 
-extern U32 lineNo;
-extern U32 colNo;
 /*
 
  Z80 Address Space		- In Genesis mode
@@ -134,8 +125,6 @@ void WriteRawByte(U16 data)
 		fclose(bob);
 	}
 }
-
-void _AudioAddData(int channel,S16 dacValue);
 
 /* 30h ch1 op 1 */
 /* 31h ch2 op 1 */
@@ -825,9 +814,6 @@ U8 VDP_StatusRegisterHI()
 */
 	return 0x36;		/* 0011 01   Fifo Empty set, fifo full clear  (TODO implement FIFO) */
 }
-
-extern U8 inHBlank;
-extern U8 inVBlank;
 
 U8 VDP_StatusRegisterLO()
 {
@@ -1601,8 +1587,6 @@ void IO_GetRegisterContents(U16 offset,char *buffer)
 	offset+=1;
 	sprintf(buffer,"%s : %02X",IO_DumpRegisterName(offset),ioRegisters[offset]);
 }
-
-extern U16 keyStatusJoyA;
 
 #if ENABLE_32X_MODE
 

@@ -104,14 +104,14 @@ extern Z80_Ins		*Z80_Information[256];
 
 extern Z80_Regs Z80_regs;
 
-void Z80_BuildTable();
+ION_C_API void Z80_BuildTable();
 
-void Z80_Reset();
+ION_C_API void Z80_Reset();
 
-void Z80_Step();
-int Z80_Cycle_Step();						/* Entry always assumed to be stage==0 */
+ION_C_API void Z80_Step();
+ION_C_API int Z80_Cycle_Step();						/* Entry always assumed to be stage==0 */
 
-void Z80_SignalInterrupt(S8 level);
+ION_C_API void Z80_SignalInterrupt(S8 level);
 
-void Z80_SaveState(FILE *outStream);
-void Z80_LoadState(FILE *inStream);
+ION_C_API void Z80_SaveState(FILE *outStream);
+ION_C_API void Z80_LoadState(FILE *inStream);

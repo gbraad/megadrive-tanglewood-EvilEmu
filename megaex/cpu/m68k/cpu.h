@@ -97,16 +97,16 @@ extern CPU_Ins		*CPU_Information[65536];
 
 extern CPU_Regs cpu_regs;
 
-void CPU_BuildTable();
+ION_C_API void CPU_BuildTable();
 
-void CPU_Reset();
+ION_C_API void CPU_Reset();
 
-void CPU_Step();
+ION_C_API void CPU_Step();
 
-void CPU_SignalInterrupt(S8 level);
+ION_C_API void CPU_SignalInterrupt(S8 level);
 
-void CPU_SaveState(FILE *outStream);
-void CPU_LoadState(FILE *inStream);
+ION_C_API void CPU_SaveState(FILE *outStream);
+ION_C_API void CPU_LoadState(FILE *inStream);
 
 #endif/*__CPU_H*/
 
