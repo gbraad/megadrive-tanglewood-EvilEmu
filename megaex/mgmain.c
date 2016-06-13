@@ -1434,6 +1434,7 @@ int main(int argc,char **argv)
 				double now,remain;
 				DrawScreen();
 				glfwSwapBuffers(window);
+				glfwPollEvents();
 				now=glfwGetTime();
 			
 				remain = now-atStart;
