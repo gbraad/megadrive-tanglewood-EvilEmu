@@ -78,8 +78,27 @@ THE SOFTWARE.
 #include "globals.h"
 #include "gui/debugger.h"
 
+#include <ion/renderer/Renderer.h>
+#include <ion/renderer/Window.h>
+#include <ion/renderer/Viewport.h>
+#include <ion/renderer/Texture.h>
+#include <ion/renderer/Shader.h>
+#include <ion/renderer/Material.h>
+#include <ion/renderer/Primitive.h>
+#include <ion/renderer/Camera.h>
+
 U8	inHBlank=0;
 U8	inVBlank=0;
+
+ion::render::Renderer* g_renderer = NULL;
+ion::render::Window* g_window = NULL;
+ion::render::Viewport* g_viewport = NULL;
+ion::render::Texture* g_canvas = NULL;
+ion::render::Shader* g_vertexShader = NULL;
+ion::render::Shader* g_pixelShader = NULL;
+ion::render::Material* g_material = NULL;
+ion::render::Quad* g_unitQuad = NULL;
+ion::render::Camera* g_camera = NULL;
 
 #if ENABLE_32X_MODE
 /*------------------------------------*/
@@ -940,79 +959,90 @@ void doPixelClipped(int x,int y,U8 colHi,U8 colLo)
 
 void DrawScreen() 
 {
-	glBindTexture(GL_TEXTURE_RECTANGLE_NV, 1);
-	
-	/* glTexSubImage2D is faster when not using a texture range */
-	glTexSubImage2D(GL_TEXTURE_RECTANGLE_NV, 0, 0, 0, LINE_LENGTH, HEIGHT, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, videoMemory);
-	glBegin(GL_QUADS);
+	g_renderer->BeginFrame(*g_viewport, g_window->GetDeviceContext());
+	g_renderer->SetDepthTest(ion::render::Renderer::eAlways);
+	g_renderer->ClearColour();
+	g_renderer->ClearDepth();
+	g_canvas->SetPixels(ion::render::Texture::eRGB, videoMemory);
+	g_material->Bind(ion::Matrix4(), g_camera->GetTransform().GetInverse(), g_renderer->GetProjectionMatrix());
+	g_renderer->DrawVertexBuffer(g_unitQuad->GetVertexBuffer(), g_unitQuad->GetIndexBuffer());
+	g_material->Unbind();
+	g_renderer->SwapBuffers();
+	g_renderer->EndFrame();
 
-#if ENABLE_DEBUGGER
-	if (g_pause)
-#else
-	if (0)
-#endif
-	{
-		glTexCoord2f(0.0f, 0.0f);
-		glVertex2f(-1.0f, 1.0f);
+	//glBindTexture(GL_TEXTURE_RECTANGLE_NV, 1);
+	//
+	///* glTexSubImage2D is faster when not using a texture range */
+	//glTexSubImage2D(GL_TEXTURE_RECTANGLE_NV, 0, 0, 0, LINE_LENGTH, HEIGHT, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, videoMemory);
+	//glBegin(GL_QUADS);
 
-		glTexCoord2f(0.0f, HEIGHT);
-		glVertex2f(-1.0f, -1.0f);
-
-		glTexCoord2f(LINE_LENGTH, HEIGHT);
-		glVertex2f(1.0f, -1.0f);
-
-		glTexCoord2f(LINE_LENGTH, 0.0f);
-		glVertex2f(1.0f, 1.0f);
-	}
-	else
-	{
-		glTexCoord2f(0.0f, 0.0f);
-		glVertex2f(-1.24f, 1.75f);
-
-		glTexCoord2f(0.0f, HEIGHT);
-		glVertex2f(-1.24f, -2.25f);
-
-		glTexCoord2f(LINE_LENGTH, HEIGHT);
-		glVertex2f(2.74f, -2.25f);
-
-		glTexCoord2f(LINE_LENGTH, 0.0f);
-		glVertex2f(2.74f, 1.75f);
-	}
-	glEnd();
-	
-	glFlush();
+	//#if ENABLE_DEBUGGER
+	//	if (g_pause)
+	//#else
+	//	if (0)
+	//#endif
+	//{
+	//	glTexCoord2f(0.0f, 0.0f);
+	//	glVertex2f(-1.0f, 1.0f);
+	//
+	//	glTexCoord2f(0.0f, HEIGHT);
+	//	glVertex2f(-1.0f, -1.0f);
+	//
+	//	glTexCoord2f(LINE_LENGTH, HEIGHT);
+	//	glVertex2f(1.0f, -1.0f);
+	//
+	//	glTexCoord2f(LINE_LENGTH, 0.0f);
+	//	glVertex2f(1.0f, 1.0f);
+	//}
+	//else
+	//{
+	//	glTexCoord2f(0.0f, 0.0f);
+	//	glVertex2f(-1.24f, 1.75f);
+	//
+	//	glTexCoord2f(0.0f, HEIGHT);
+	//	glVertex2f(-1.24f, -2.25f);
+	//
+	//	glTexCoord2f(LINE_LENGTH, HEIGHT);
+	//	glVertex2f(2.74f, -2.25f);
+	//
+	//	glTexCoord2f(LINE_LENGTH, 0.0f);
+	//	glVertex2f(2.74f, 1.75f);
+	//}
+	//glEnd();
+	//
+	//glFlush();
 }
 
 void setupGL(int w, int h) 
 {
     /*Tell OpenGL how to convert from coordinates to pixel values */
-    glViewport(0, 0, w, h);
-	
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	glClearColor(1.0f, 0.f, 1.0f, 1.0f);
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	
-	glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-	
-	glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity(); 
-	
-	glDisable(GL_TEXTURE_2D);
-	glEnable(GL_TEXTURE_RECTANGLE_NV);
-	glBindTexture(GL_TEXTURE_RECTANGLE_NV, 1);
-	
-	glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-	
-	glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, LINE_LENGTH,
-				 HEIGHT, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, videoMemory);
-	
-	glDisable(GL_DEPTH_TEST);
+    //glViewport(0, 0, w, h);
+	//
+	//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	//glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	//glClearColor(1.0f, 0.f, 1.0f, 1.0f);
+	//glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	//
+	//glMatrixMode(GL_PROJECTION);
+    //glLoadIdentity();
+	//
+	//glMatrixMode(GL_MODELVIEW);
+    //glLoadIdentity(); 
+	//
+	//glDisable(GL_TEXTURE_2D);
+	//glEnable(GL_TEXTURE_RECTANGLE_NV);
+	//glBindTexture(GL_TEXTURE_RECTANGLE_NV, 1);
+	//
+	//glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	//glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	//glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	//
+	//glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, LINE_LENGTH,
+	//			 HEIGHT, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, videoMemory);
+	//
+	//glDisable(GL_DEPTH_TEST);
 }
 
 U8 keyArray[512*3];
@@ -1130,6 +1160,12 @@ U32 YM_OutOn=1;
 char tmpRomName[1024];
 char tmpRomSave[1024];
 
+void Shutdown()
+{
+	//TODO: Cleanup
+	exit(0);
+}
+
 int main(int argc,char **argv)
 {
 	unsigned int numBlocks;
@@ -1153,6 +1189,38 @@ int main(int argc,char **argv)
 	{
 		keyArray[a]=0;
 	}
+
+	g_window = ion::render::Window::Create("megaEx", LINE_LENGTH, HEIGHT, false);
+	g_renderer = ion::render::Renderer::Create(g_window->GetDeviceContext());
+	g_viewport = new ion::render::Viewport(LINE_LENGTH, HEIGHT, ion::render::Viewport::eOrtho2DAbsolute);
+	g_canvas = ion::render::Texture::Create(LINE_LENGTH, HEIGHT, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
+	g_vertexShader = ion::render::Shader::Create();
+	g_pixelShader = ion::render::Shader::Create();
+	g_material = new ion::render::Material();
+	g_unitQuad = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(LINE_LENGTH, HEIGHT));
+	g_camera = new ion::render::Camera();
+
+	g_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
+	g_camera->SetPosition(ion::Vector3(-g_viewport->GetWidth() / 2.0f, -g_viewport->GetHeight() / 2.0f, 0.1f));
+
+	//Load shaders
+	if(!g_vertexShader->Load("shaders/flattextured_v.ion.shader"))
+	{
+		printf("Failed to load vertex shader\n");
+		Shutdown();
+	}
+
+	if(!g_pixelShader->Load("shaders/flattextured_p.ion.shader"))
+	{
+		printf("Failed to load pixel shader\n");
+		Shutdown();
+	}
+
+	//Setup material
+	g_material->AddDiffuseMap(g_canvas);
+	g_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+	g_material->SetVertexShader(g_vertexShader);
+	g_material->SetPixelShader(g_pixelShader);
 	
 #if OPENAL_SUPPORT
     
@@ -1162,19 +1230,19 @@ int main(int argc,char **argv)
 	/* Initialize GLFW  */
 	glfwInit(); 
 	/* Open an OpenGL window  */
-	GLFWwindow* window = glfwCreateWindow(LINE_LENGTH, HEIGHT, "megaex", NULL, NULL);
-	if(!window)
-	{ 
-		glfwTerminate(); 
-		return 1; 
-	} 
+	//GLFWwindow* window = glfwCreateWindow(LINE_LENGTH, HEIGHT, "megaex", NULL, NULL);
+	//if(!window)
+	//{ 
+	//	glfwTerminate(); 
+	//	return 1; 
+	//} 
 	
-	glfwSetWindowTitle(window, "Mega");
-	glfwSetWindowPos(window, 300, 300);
+	//glfwSetWindowTitle(window, "Mega");
+	//glfwSetWindowPos(window, 300, 300);
 	
-	setupGL(LINE_LENGTH,HEIGHT);	
+	//setupGL(LINE_LENGTH,HEIGHT);	
 
-	glfwSwapInterval(0);			/* Disable VSYNC */
+	//glfwSwapInterval(0);			/* Disable VSYNC */
 
 #if SMS_MODE
 	smsBios=load_rom(BASE_PATH "bios.sms",&numBlocks);
@@ -1252,7 +1320,7 @@ int main(int argc,char **argv)
 #endif
 	Z80_Reset();
 
-	glfwSetKeyCallback(window, kbHandler);
+	//glfwSetKeyCallback(window, kbHandler);
 
 #if DEBUG_BREAK_ON_BOOT
 #if ENABLE_32X_MODE
@@ -1433,8 +1501,8 @@ int main(int argc,char **argv)
 			{
 				double now,remain;
 				DrawScreen();
-				glfwSwapBuffers(window);
-				glfwPollEvents();
+				//glfwSwapBuffers(window);
+				//glfwPollEvents();
 				now=glfwGetTime();
 			
 				remain = now-atStart;
@@ -1516,9 +1584,11 @@ int main(int argc,char **argv)
 				ClearKey('5');
 			}
 		}
+
+		g_renderer->Update(0.001f);
 		
 		/* Check if ESC key was pressed or window was closed */
-		running = /*!glfwGetKey( GLFW_KEY_ESC ) && */!glfwWindowShouldClose(window);
+		running = /*!glfwGetKey( GLFW_KEY_ESC ) && */ /*!glfwWindowShouldClose(window) &&*/ g_window->Update();
 	}
 
 	if (SRAM)
