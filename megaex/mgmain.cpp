@@ -78,6 +78,8 @@ THE SOFTWARE.
 #include "globals.h"
 #include "gui/debugger.h"
 
+#include <ion/core/time/Time.h>
+#include <ion/core/debug/Debug.h>
 #include <ion/renderer/Renderer.h>
 #include <ion/renderer/Window.h>
 #include <ion/renderer/Viewport.h>
@@ -86,6 +88,9 @@ THE SOFTWARE.
 #include <ion/renderer/Material.h>
 #include <ion/renderer/Primitive.h>
 #include <ion/renderer/Camera.h>
+#include <ion/input/Keyboard.h>
+#include <ion/input/Mouse.h>
+#include <ion/input/Gamepad.h>
 
 U8	inHBlank=0;
 U8	inVBlank=0;
@@ -99,6 +104,9 @@ ion::render::Shader* g_pixelShader = NULL;
 ion::render::Material* g_material = NULL;
 ion::render::Quad* g_unitQuad = NULL;
 ion::render::Camera* g_camera = NULL;
+ion::input::Keyboard* g_keyboard = NULL;
+ion::input::Mouse* g_mouse = NULL;
+ion::input::Gamepad* g_gamepad = NULL;
 
 #if ENABLE_32X_MODE
 /*------------------------------------*/
@@ -1099,7 +1107,7 @@ float GetGameTime()
 {
   float time;
  
-  time=(float)glfwGetTime();
+  time = ion::time::TicksToSeconds(ion::time::GetSystemTicks());
   time -= timeAtGameStart;
   return time;
 }
@@ -1160,9 +1168,111 @@ U32 YM_OutOn=1;
 char tmpRomName[1024];
 char tmpRomSave[1024];
 
+bool InitialiseRenderer()
+{
+	g_window = ion::render::Window::Create("megaEx", LINE_LENGTH, HEIGHT, false);
+	g_renderer = ion::render::Renderer::Create(g_window->GetDeviceContext());
+	g_viewport = new ion::render::Viewport(LINE_LENGTH, HEIGHT, ion::render::Viewport::eOrtho2DAbsolute);
+	g_canvas = ion::render::Texture::Create(LINE_LENGTH, HEIGHT, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
+	g_vertexShader = ion::render::Shader::Create();
+	g_pixelShader = ion::render::Shader::Create();
+	g_material = new ion::render::Material();
+	g_unitQuad = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(LINE_LENGTH, HEIGHT));
+	g_camera = new ion::render::Camera();
+
+	g_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
+	g_camera->SetPosition(ion::Vector3(-g_viewport->GetWidth() / 2.0f, -g_viewport->GetHeight() / 2.0f, 0.1f));
+
+	//Load shaders
+	if(!g_vertexShader->Load("shaders/flattextured_v.ion.shader"))
+	{
+		ion::debug::Error("Failed to load vertex shader\n");
+		return false;
+	}
+
+	if(!g_pixelShader->Load("shaders/flattextured_p.ion.shader"))
+	{
+		ion::debug::Error("Failed to load pixel shader\n");
+		return false;
+	}
+
+	//Setup material
+	g_material->AddDiffuseMap(g_canvas);
+	g_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+	g_material->SetVertexShader(g_vertexShader);
+	g_material->SetPixelShader(g_pixelShader);
+}
+
+void ShutdownRenderer()
+{
+	if(g_camera)
+		delete g_camera;
+
+	if(g_unitQuad)
+		delete g_unitQuad;
+
+	if(g_material)
+		delete g_material;
+
+	if(g_pixelShader)
+		delete g_pixelShader;
+
+	if(g_vertexShader)
+		delete g_vertexShader;
+
+	if(g_canvas)
+		delete g_canvas;
+
+	if(g_viewport)
+		delete g_viewport;
+
+	if(g_renderer)
+		delete g_renderer;
+
+	if(g_window)
+		delete g_window;
+}
+
+bool UpdateRenderer()
+{
+	g_renderer->Update(0.001f);
+	return g_window->Update();
+}
+
+bool InitialiseInput()
+{
+	g_keyboard = new ion::input::Keyboard();
+	g_mouse = new ion::input::Mouse();
+	g_gamepad = new ion::input::Gamepad();
+	return true;
+}
+
+void ShutdownInput()
+{
+	if(g_gamepad)
+		delete g_gamepad;
+
+	if(g_mouse)
+		delete g_mouse;
+
+	if(g_keyboard)
+		delete g_keyboard;
+}
+
+bool UpdateInput()
+{
+	g_keyboard->Update();
+	g_mouse->Update();
+	g_gamepad->Update();
+
+	return !g_keyboard->KeyDown(DIK_ESCAPE);
+}
+
 void Shutdown()
 {
-	//TODO: Cleanup
+	ShutdownInput();
+	ShutdownRenderer();
+
 	exit(0);
 }
 
@@ -1190,66 +1300,28 @@ int main(int argc,char **argv)
 		keyArray[a]=0;
 	}
 
-	g_window = ion::render::Window::Create("megaEx", LINE_LENGTH, HEIGHT, false);
-	g_renderer = ion::render::Renderer::Create(g_window->GetDeviceContext());
-	g_viewport = new ion::render::Viewport(LINE_LENGTH, HEIGHT, ion::render::Viewport::eOrtho2DAbsolute);
-	g_canvas = ion::render::Texture::Create(LINE_LENGTH, HEIGHT, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
-	g_vertexShader = ion::render::Shader::Create();
-	g_pixelShader = ion::render::Shader::Create();
-	g_material = new ion::render::Material();
-	g_unitQuad = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(LINE_LENGTH, HEIGHT));
-	g_camera = new ion::render::Camera();
-
-	g_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
-	g_camera->SetPosition(ion::Vector3(-g_viewport->GetWidth() / 2.0f, -g_viewport->GetHeight() / 2.0f, 0.1f));
-
-	//Load shaders
-	if(!g_vertexShader->Load("shaders/flattextured_v.ion.shader"))
+	if(!InitialiseRenderer())
 	{
-		printf("Failed to load vertex shader\n");
 		Shutdown();
 	}
 
-	if(!g_pixelShader->Load("shaders/flattextured_p.ion.shader"))
+	if(!InitialiseInput())
 	{
-		printf("Failed to load pixel shader\n");
 		Shutdown();
 	}
-
-	//Setup material
-	g_material->AddDiffuseMap(g_canvas);
-	g_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
-	g_material->SetVertexShader(g_vertexShader);
-	g_material->SetPixelShader(g_pixelShader);
 	
 #if OPENAL_SUPPORT
     
 	AudioInitialise();
 	
 #endif
-	/* Initialize GLFW  */
-	glfwInit(); 
-	/* Open an OpenGL window  */
-	//GLFWwindow* window = glfwCreateWindow(LINE_LENGTH, HEIGHT, "megaex", NULL, NULL);
-	//if(!window)
-	//{ 
-	//	glfwTerminate(); 
-	//	return 1; 
-	//} 
-	
-	//glfwSetWindowTitle(window, "Mega");
-	//glfwSetWindowPos(window, 300, 300);
-	
-	//setupGL(LINE_LENGTH,HEIGHT);	
-
-	//glfwSwapInterval(0);			/* Disable VSYNC */
 
 #if SMS_MODE
 	smsBios=load_rom(BASE_PATH "bios.sms",&numBlocks);
 	if (!smsBios)
 	{
 		printf("[ERR] Failed to load sms bios\n");
-		glfwTerminate();
+		Shutdown()
 		return 1;
 	}
 #endif
@@ -1259,7 +1331,7 @@ int main(int argc,char **argv)
 	if (!cpu68kbios)
 	{
 		printf("[ERR] Failed to load genesis bios\n");
-		glfwTerminate();
+		Shutdown()
 		return 1;
 	}
 	cpu68kbiosSize=romSize;
@@ -1268,7 +1340,7 @@ int main(int argc,char **argv)
 	if (!masterbios)
 	{
 		printf("[ERR] Failed to load master bios\n");
-		glfwTerminate();
+		Shutdown()
 		return 1;
 	}
 	masterbiosSize=romSize;
@@ -1276,7 +1348,7 @@ int main(int argc,char **argv)
 	if (!slavebios)
 	{
 		printf("[ERR] Failed to load slave bios\n");
-		glfwTerminate();
+		Shutdown()
 		return 1;
 	}
 	slavebiosSize=romSize;
@@ -1287,7 +1359,7 @@ int main(int argc,char **argv)
 	if (!romPtr)
 	{
 		printf("[ERR] Failed to load rom image\n");
-		glfwTerminate(); 
+		Shutdown();
 		return 1; 
   }
 
@@ -1319,8 +1391,6 @@ int main(int argc,char **argv)
 	CPU_Reset();
 #endif
 	Z80_Reset();
-
-	//glfwSetKeyCallback(window, kbHandler);
 
 #if DEBUG_BREAK_ON_BOOT
 #if ENABLE_32X_MODE
@@ -1501,20 +1571,19 @@ int main(int argc,char **argv)
 			{
 				double now,remain;
 				DrawScreen();
-				//glfwSwapBuffers(window);
-				//glfwPollEvents();
-				now=glfwGetTime();
+
+				now = (double)ion::time::TicksToSeconds(ion::time::GetSystemTicks());
 			
 				remain = now-atStart;
 				while ((remain<(1.0f/FRAMES_PER_SECOND)) && lockFrameRate)
 				{
-					now=glfwGetTime();
+					now = (double)ion::time::TicksToSeconds(ion::time::GetSystemTicks());
 
 					remain = now-atStart;
 					/*Sleep(20-remain);*/
 				}
 			}
-			atStart=glfwGetTime();
+			atStart = (double)ion::time::TicksToSeconds(ion::time::GetSystemTicks());
 			
 			UpdateFPS();
 
@@ -1523,41 +1592,41 @@ int main(int argc,char **argv)
 			keyStatusJoyA=0;
 			SMS_KeyJoyA=0;
 
-			if (KeyDown('S'))
+			if (g_keyboard->KeyDown(DIK_S)) //'S'))
 			{
 				keyStatusJoyA|=0x2000;
 				SMS_KeyJoyA|=0x10;
 			}
-			if (KeyDown('D'))
+			if(g_keyboard->KeyDown(DIK_D)) //KeyDown('D'))
 			{
 				keyStatusJoyA|=0x1000;
 				SMS_KeyJoyA|=0x20;
 			}
-			if (KeyDown(GLFW_KEY_RIGHT))
+			if(g_keyboard->KeyDown(DIK_RIGHT)) //KeyDown(GLFW_KEY_RIGHT))
 			{
 				keyStatusJoyA|=0x0800;
 				SMS_KeyJoyA|=0x08;
 			}
-			if (KeyDown(GLFW_KEY_LEFT))
+			if(g_keyboard->KeyDown(DIK_LEFT)) //KeyDown(GLFW_KEY_LEFT))
 			{
 				keyStatusJoyA|=0x0400;
 				SMS_KeyJoyA|=0x04;
 			}
-			if (KeyDown(GLFW_KEY_DOWN))
+			if(g_keyboard->KeyDown(DIK_DOWN)) //KeyDown(GLFW_KEY_DOWN))
 			{
 				keyStatusJoyA|=0x0202;
 				SMS_KeyJoyA|=0x02;
 			}
-			if (KeyDown(GLFW_KEY_UP))
+			if(g_keyboard->KeyDown(DIK_UP)) //KeyDown(GLFW_KEY_UP))
 			{
 				keyStatusJoyA|=0x0101;
 				SMS_KeyJoyA|=0x01;
 			}
-			if (KeyDown(GLFW_KEY_ENTER))
+			if(g_keyboard->KeyDown(DIK_RETURN)) //KeyDown(GLFW_KEY_ENTER))
 			{
 				keyStatusJoyA|=0x0020;
 			}
-			if (KeyDown('A'))
+			if(g_keyboard->KeyDown(DIK_A)) //KeyDown('A'))
 			{
 				keyStatusJoyA|=0x0010;
 			}
@@ -1585,10 +1654,8 @@ int main(int argc,char **argv)
 			}
 		}
 
-		g_renderer->Update(0.001f);
-		
-		/* Check if ESC key was pressed or window was closed */
-		running = /*!glfwGetKey( GLFW_KEY_ESC ) && */ /*!glfwWindowShouldClose(window) &&*/ g_window->Update();
+		//Run until ESC key pressed or window closed
+		running = UpdateRenderer() && UpdateInput();
 	}
 
 	if (SRAM)
@@ -1596,8 +1663,7 @@ int main(int argc,char **argv)
 		SaveSRAM(saveName);
 	}
 
-	/* Close window and terminate GLFW */
-	glfwTerminate();
+	Shutdown();
 
 #if OPENAL_SUPPORT
 	AudioKill(); 

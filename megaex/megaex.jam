@@ -4,6 +4,7 @@ ApplyIonDefines megaex ;
 ApplyIonIncludes megaex ;
 ApplyIonCore megaex ;
 ApplyIonIo megaex ;
+ApplyIonInput megaex ;
 ApplyIonRenderer megaex : opengl ;
 ApplyIonGameKit megaex ;
 ApplyOpenALSDK megaex ;
