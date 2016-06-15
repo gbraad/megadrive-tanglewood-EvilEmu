@@ -108,6 +108,11 @@ ion::input::Keyboard* g_keyboard = NULL;
 ion::input::Mouse* g_mouse = NULL;
 ion::input::Gamepad* g_gamepad = NULL;
 
+u64 g_cpuTicks = 0;
+u64 g_fpsCountTicks = 0;
+u64 g_fpsUpdateCounter = 0;
+u64 g_fpsUpdateInterval = 100;
+
 #if ENABLE_32X_MODE
 /*------------------------------------*/
 
@@ -1057,7 +1062,7 @@ void UpdateFPS()
   {
     fps = numFrames / (currentUpdate - lastUpdate);
 	char windowText[2048];
-	sprintf(windowText, "megaEx :: FPS: %.1f\n",fps);
+	sprintf(windowText, "megaEx :: FPS: %.1f CPU ticks: %llu\n", fps, g_cpuTicks);
 	g_window->SetTitle(windowText);
     lastUpdate = currentUpdate;
     numFrames = 0;
@@ -1081,7 +1086,7 @@ ROM("vdptest",".bin")
 #endif
 
 double					atStart;
-int lockFrameRate = 1;
+int lockFrameRate = 0;
 
 extern unsigned char *smsBios;
 #if SMS_MODE
@@ -1374,9 +1379,10 @@ int main(int argc,char **argv)
 #endif
 #endif
 
+	int g_frameTickCount = 0;
+
 	while (running)
 	{
-		static int massiveHack=0;
 		int debuggerRunning=UpdateDebugger();
 
 		if (!debuggerRunning)
@@ -1399,7 +1405,8 @@ int main(int argc,char **argv)
 				PSG_Update();
 				Z80_Step();				/* will be stepping way too quick at present */
 			}
-			massiveHack++;
+			g_frameTickCount++;
+			g_cpuTicks++;
 
 /*
 			//
@@ -1412,8 +1419,8 @@ int main(int argc,char **argv)
 			// Approximation of screen to cpu timings (so I can get the irqs firing)
 */
 			{
-				lineNo= massiveHack/CYCLES_PER_LINE;
-				colNo = massiveHack%CYCLES_PER_LINE;
+				lineNo= g_frameTickCount/CYCLES_PER_LINE;
+				colNo = g_frameTickCount%CYCLES_PER_LINE;
 
 				if (lineNo>223)
 				{
@@ -1534,11 +1541,11 @@ int main(int argc,char **argv)
 
 		/* ~(450/2) ticks per line		(312 lines per screen @50hz) - */
 
-		if ((massiveHack>=CYCLES_PER_FRAME) || g_newScreenNotify)
+		if ((g_frameTickCount>=CYCLES_PER_FRAME) || g_newScreenNotify)
 		{
-			if (massiveHack>=CYCLES_PER_FRAME)
+			if (g_frameTickCount>=CYCLES_PER_FRAME)
 			{
-				massiveHack=0;
+				g_frameTickCount=0;
 			}
 			
 			/*if (debuggerRunning)*/
