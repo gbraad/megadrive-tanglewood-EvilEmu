@@ -26,11 +26,16 @@ THE SOFTWARE.
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
+#define VDP_SCREEN_WIDTH	320
+#define VDP_SCREEN_HEIGHT	224
 #define LINE_LENGTH			((228)*4)					/* 228 / 227 alternating */
-#define WIDTH 					(LINE_LENGTH)
-#define HEIGHT 					(262*2)
-#define BPP							(4)
-#define DEPTH						(32)
+#define WIDTH 				(LINE_LENGTH)
+#define HEIGHT 				(262*2)
+#define BPP					(4)
+#define DEPTH				(32)
+
+#define DEFAULT_SCREEN_WIDTH	VDP_SCREEN_WIDTH*2
+#define DEFAULT_SCREEN_HEIGHT	VDP_SCREEN_HEIGHT*2
 
 #define CYCLES_PER_LINE			(450/2)
 #define CYCLES_PER_FRAME		(CYCLES_PER_LINE*312)

@@ -965,7 +965,7 @@ void doPixelClipped(int x,int y,U8 colHi,U8 colLo)
 	*pixmem32 = colour;
 }
 
-void DrawScreen() 
+void DrawScreen()
 {
 	g_renderer->BeginFrame(*g_viewport, g_window->GetDeviceContext());
 	g_renderer->ClearColour();
@@ -1095,20 +1095,60 @@ U32 YM_OutOn=1;
 char tmpRomName[1024];
 char tmpRomSave[1024];
 
+// -glTexCoord2f(0.0f, 0.0f);
+// -glVertex2f(-1.24f, 1.75f);
+// -
+// -glTexCoord2f(0.0f, HEIGHT);
+// -glVertex2f(-1.24f, -2.25f);
+// -
+// -glTexCoord2f(LINE_LENGTH, HEIGHT);
+// -glVertex2f(2.74f, -2.25f);
+// -
+// -glTexCoord2f(LINE_LENGTH, 0.0f);
+// -glVertex2f(2.74f, 1.75f);
+
+static const int g_top = 128;
+static const int g_bottom = 128 + 224;
+static const int g_left = 128;
+static const int g_right = 128 + (40 * 8);
+static const float g_borderTop = (1.0f / HEIGHT) * (float)g_top;
+static const float g_borderBottom = (1.0f / HEIGHT) * (float)(HEIGHT - g_bottom);
+static const float g_borderLeft = (1.0f / WIDTH) * (float)g_left;
+static const float g_borderRight = (1.0f / WIDTH) * (float)(WIDTH - g_right);
+
+// if (x<128 || x>128+40*8 || y<128 || y>128+224)
+
+ion::render::TexCoord g_texCoordsGame[4] =
+{
+	ion::Vector2(g_borderLeft, g_borderTop),
+	ion::Vector2(g_borderLeft, 1.0f - g_borderBottom),
+	ion::Vector2(1.0f - g_borderRight, 1.0f - g_borderBottom),
+	ion::Vector2(1.0f - g_borderRight, g_borderTop)
+};
+
+ion::render::TexCoord g_texCoordsDebugger[4] =
+{
+	ion::Vector2(0.0f, 0.0f),
+	ion::Vector2(0.0f, 1.0f),
+	ion::Vector2(1.0f, 1.0f),
+	ion::Vector2(1.0f, 0.0f)
+};
+
 bool InitialiseRenderer()
 {
-	g_window = ion::render::Window::Create("megaEx", LINE_LENGTH, HEIGHT, false);
+	g_window = ion::render::Window::Create("megaEx", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, false);
 	g_renderer = ion::render::Renderer::Create(g_window->GetDeviceContext());
-	g_viewport = new ion::render::Viewport(LINE_LENGTH, HEIGHT, ion::render::Viewport::eOrtho2DAbsolute);
-	g_renderTexture = ion::render::Texture::Create(LINE_LENGTH, HEIGHT, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
+	g_viewport = new ion::render::Viewport(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, ion::render::Viewport::eOrtho2DAbsolute);
+	g_renderTexture = ion::render::Texture::Create(WIDTH, HEIGHT, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
 	g_vertexShader = ion::render::Shader::Create();
 	g_pixelShader = ion::render::Shader::Create();
 	g_material = new ion::render::Material();
-	g_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(LINE_LENGTH, HEIGHT));
+	g_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(DEFAULT_SCREEN_WIDTH / 2, DEFAULT_SCREEN_HEIGHT / 2));
 	g_camera = new ion::render::Camera();
 
+	g_quadPrimitive->SetTexCoords(g_texCoordsGame);
 	g_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
-	g_camera->SetPosition(ion::Vector3(-g_viewport->GetWidth() / 2.0f, -g_viewport->GetHeight() / 2.0f, 0.1f));
+	g_camera->SetPosition(ion::Vector3(-DEFAULT_SCREEN_WIDTH / 2.0f, -DEFAULT_SCREEN_HEIGHT / 2.0f, 0.1f));
 
 	//Load shaders
 	if(!g_vertexShader->Load("shaders/flattextured_v.ion.shader"))
@@ -1128,6 +1168,13 @@ bool InitialiseRenderer()
 	g_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
 	g_material->SetVertexShader(g_vertexShader);
 	g_material->SetPixelShader(g_pixelShader);
+
+	//Setup texture filtering
+	g_renderTexture->SetMinifyFilter(ion::render::Texture::eFilterNearest);
+	g_renderTexture->SetMagnifyFilter(ion::render::Texture::eFilterNearest);
+	g_renderTexture->SetWrapping(ion::render::Texture::eWrapClamp);
+
+	return true;
 }
 
 void ShutdownRenderer()
