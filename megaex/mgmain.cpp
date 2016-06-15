@@ -98,11 +98,11 @@ U8	inVBlank=0;
 ion::render::Renderer* g_renderer = NULL;
 ion::render::Window* g_window = NULL;
 ion::render::Viewport* g_viewport = NULL;
-ion::render::Texture* g_canvas = NULL;
+ion::render::Texture* g_renderTexture = NULL;
 ion::render::Shader* g_vertexShader = NULL;
 ion::render::Shader* g_pixelShader = NULL;
 ion::render::Material* g_material = NULL;
-ion::render::Quad* g_unitQuad = NULL;
+ion::render::Quad* g_quadPrimitive = NULL;
 ion::render::Camera* g_camera = NULL;
 ion::input::Keyboard* g_keyboard = NULL;
 ion::input::Mouse* g_mouse = NULL;
@@ -968,89 +968,14 @@ void doPixelClipped(int x,int y,U8 colHi,U8 colLo)
 void DrawScreen() 
 {
 	g_renderer->BeginFrame(*g_viewport, g_window->GetDeviceContext());
-	g_renderer->SetDepthTest(ion::render::Renderer::eAlways);
 	g_renderer->ClearColour();
 	g_renderer->ClearDepth();
-	g_canvas->SetPixels(ion::render::Texture::eRGB, videoMemory);
+	g_renderTexture->SetPixels(ion::render::Texture::eBGRA, videoMemory);
 	g_material->Bind(ion::Matrix4(), g_camera->GetTransform().GetInverse(), g_renderer->GetProjectionMatrix());
-	g_renderer->DrawVertexBuffer(g_unitQuad->GetVertexBuffer(), g_unitQuad->GetIndexBuffer());
+	g_renderer->DrawVertexBuffer(g_quadPrimitive->GetVertexBuffer(), g_quadPrimitive->GetIndexBuffer());
 	g_material->Unbind();
 	g_renderer->SwapBuffers();
 	g_renderer->EndFrame();
-
-	//glBindTexture(GL_TEXTURE_RECTANGLE_NV, 1);
-	//
-	///* glTexSubImage2D is faster when not using a texture range */
-	//glTexSubImage2D(GL_TEXTURE_RECTANGLE_NV, 0, 0, 0, LINE_LENGTH, HEIGHT, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, videoMemory);
-	//glBegin(GL_QUADS);
-
-	//#if ENABLE_DEBUGGER
-	//	if (g_pause)
-	//#else
-	//	if (0)
-	//#endif
-	//{
-	//	glTexCoord2f(0.0f, 0.0f);
-	//	glVertex2f(-1.0f, 1.0f);
-	//
-	//	glTexCoord2f(0.0f, HEIGHT);
-	//	glVertex2f(-1.0f, -1.0f);
-	//
-	//	glTexCoord2f(LINE_LENGTH, HEIGHT);
-	//	glVertex2f(1.0f, -1.0f);
-	//
-	//	glTexCoord2f(LINE_LENGTH, 0.0f);
-	//	glVertex2f(1.0f, 1.0f);
-	//}
-	//else
-	//{
-	//	glTexCoord2f(0.0f, 0.0f);
-	//	glVertex2f(-1.24f, 1.75f);
-	//
-	//	glTexCoord2f(0.0f, HEIGHT);
-	//	glVertex2f(-1.24f, -2.25f);
-	//
-	//	glTexCoord2f(LINE_LENGTH, HEIGHT);
-	//	glVertex2f(2.74f, -2.25f);
-	//
-	//	glTexCoord2f(LINE_LENGTH, 0.0f);
-	//	glVertex2f(2.74f, 1.75f);
-	//}
-	//glEnd();
-	//
-	//glFlush();
-}
-
-void setupGL(int w, int h) 
-{
-    /*Tell OpenGL how to convert from coordinates to pixel values */
-    //glViewport(0, 0, w, h);
-	//
-	//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	//glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	//glClearColor(1.0f, 0.f, 1.0f, 1.0f);
-	//glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	//
-	//glMatrixMode(GL_PROJECTION);
-    //glLoadIdentity();
-	//
-	//glMatrixMode(GL_MODELVIEW);
-    //glLoadIdentity(); 
-	//
-	//glDisable(GL_TEXTURE_2D);
-	//glEnable(GL_TEXTURE_RECTANGLE_NV);
-	//glBindTexture(GL_TEXTURE_RECTANGLE_NV, 1);
-	//
-	//glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	//glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	//glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-	//
-	//glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, LINE_LENGTH,
-	//			 HEIGHT, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, videoMemory);
-	//
-	//glDisable(GL_DEPTH_TEST);
 }
 
 U8 keyArray[512*3];
@@ -1131,7 +1056,9 @@ void UpdateFPS()
   if( currentUpdate - lastUpdate > fpsUpdateInterval )
   {
     fps = numFrames / (currentUpdate - lastUpdate);
-		printf("fps %f\n",fps);
+	char windowText[2048];
+	sprintf(windowText, "megaEx :: FPS: %.1f\n",fps);
+	g_window->SetTitle(windowText);
     lastUpdate = currentUpdate;
     numFrames = 0;
   }
@@ -1173,11 +1100,11 @@ bool InitialiseRenderer()
 	g_window = ion::render::Window::Create("megaEx", LINE_LENGTH, HEIGHT, false);
 	g_renderer = ion::render::Renderer::Create(g_window->GetDeviceContext());
 	g_viewport = new ion::render::Viewport(LINE_LENGTH, HEIGHT, ion::render::Viewport::eOrtho2DAbsolute);
-	g_canvas = ion::render::Texture::Create(LINE_LENGTH, HEIGHT, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
+	g_renderTexture = ion::render::Texture::Create(LINE_LENGTH, HEIGHT, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
 	g_vertexShader = ion::render::Shader::Create();
 	g_pixelShader = ion::render::Shader::Create();
 	g_material = new ion::render::Material();
-	g_unitQuad = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(LINE_LENGTH, HEIGHT));
+	g_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(LINE_LENGTH, HEIGHT));
 	g_camera = new ion::render::Camera();
 
 	g_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
@@ -1197,7 +1124,7 @@ bool InitialiseRenderer()
 	}
 
 	//Setup material
-	g_material->AddDiffuseMap(g_canvas);
+	g_material->AddDiffuseMap(g_renderTexture);
 	g_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
 	g_material->SetVertexShader(g_vertexShader);
 	g_material->SetPixelShader(g_pixelShader);
@@ -1208,8 +1135,8 @@ void ShutdownRenderer()
 	if(g_camera)
 		delete g_camera;
 
-	if(g_unitQuad)
-		delete g_unitQuad;
+	if(g_quadPrimitive)
+		delete g_quadPrimitive;
 
 	if(g_material)
 		delete g_material;
@@ -1220,8 +1147,8 @@ void ShutdownRenderer()
 	if(g_vertexShader)
 		delete g_vertexShader;
 
-	if(g_canvas)
-		delete g_canvas;
+	if(g_renderTexture)
+		delete g_renderTexture;
 
 	if(g_viewport)
 		delete g_viewport;
