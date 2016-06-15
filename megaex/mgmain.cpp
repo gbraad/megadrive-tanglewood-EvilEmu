@@ -64,7 +64,7 @@ THE SOFTWARE.
 
 
 #include "config.h"
-
+#include "emulator.h"
 #include "platform.h"
 
 #include "cpu.h"
@@ -79,39 +79,17 @@ THE SOFTWARE.
 #include "gui/debugger.h"
 
 #include <ion/core/time/Time.h>
-#include <ion/core/debug/Debug.h>
-#include <ion/renderer/Renderer.h>
-#include <ion/renderer/Window.h>
-#include <ion/renderer/Viewport.h>
-#include <ion/renderer/Texture.h>
-#include <ion/renderer/Shader.h>
-#include <ion/renderer/Material.h>
-#include <ion/renderer/Primitive.h>
-#include <ion/renderer/Camera.h>
-#include <ion/input/Keyboard.h>
-#include <ion/input/Mouse.h>
-#include <ion/input/Gamepad.h>
 
 U8	inHBlank=0;
 U8	inVBlank=0;
 
-ion::render::Renderer* g_renderer = NULL;
-ion::render::Window* g_window = NULL;
-ion::render::Viewport* g_viewport = NULL;
-ion::render::Texture* g_renderTexture = NULL;
-ion::render::Shader* g_vertexShader = NULL;
-ion::render::Shader* g_pixelShader = NULL;
-ion::render::Material* g_material = NULL;
-ion::render::Quad* g_quadPrimitive = NULL;
-ion::render::Camera* g_camera = NULL;
-ion::input::Keyboard* g_keyboard = NULL;
-ion::input::Mouse* g_mouse = NULL;
-ion::input::Gamepad* g_gamepad = NULL;
-
+u32 g_frameTickCount = 0;
 u64 g_cpuTicks = 0;
 u64 g_fpsCountTicks = 0;
 u64 g_fpsUpdateCounter = 0;
 u64 g_fpsUpdateInterval = 100;
+
+char g_romTitle[128] = {};
 
 #if ENABLE_32X_MODE
 /*------------------------------------*/
@@ -743,6 +721,7 @@ void ParseRomHeader(unsigned char *header)
 	memcpy(tmpBuffer,header,48);
 	tmpBuffer[48]=0;
 	printf("Domestic Name : %s\n",tmpBuffer);
+	strcpy(g_romTitle, tmpBuffer);
 	header+=48;
 	memcpy(tmpBuffer,header,48);
 	tmpBuffer[48]=0;
@@ -972,15 +951,7 @@ void doPixelClipped(int x,int y,U8 colHi,U8 colLo)
 
 void DrawScreen()
 {
-	g_renderer->BeginFrame(*g_viewport, g_window->GetDeviceContext());
-	g_renderer->ClearColour();
-	g_renderer->ClearDepth();
-	g_renderTexture->SetPixels(ion::render::Texture::eBGRA, videoMemory);
-	g_material->Bind(ion::Matrix4(), g_camera->GetTransform().GetInverse(), g_renderer->GetProjectionMatrix());
-	g_renderer->DrawVertexBuffer(g_quadPrimitive->GetVertexBuffer(), g_quadPrimitive->GetIndexBuffer());
-	g_material->Unbind();
-	g_renderer->SwapBuffers();
-	g_renderer->EndFrame();
+
 }
 
 U8 keyArray[512*3];
@@ -1063,7 +1034,7 @@ void UpdateFPS()
     fps = numFrames / (currentUpdate - lastUpdate);
 	char windowText[2048];
 	sprintf(windowText, "megaEx :: FPS: %.1f CPU ticks: %llu\n", fps, g_cpuTicks);
-	g_window->SetTitle(windowText);
+	//m_window->SetTitle(windowText);
     lastUpdate = currentUpdate;
     numFrames = 0;
   }
@@ -1100,199 +1071,177 @@ U32 YM_OutOn=1;
 char tmpRomName[1024];
 char tmpRomSave[1024];
 
-// -glTexCoord2f(0.0f, 0.0f);
-// -glVertex2f(-1.24f, 1.75f);
-// -
-// -glTexCoord2f(0.0f, HEIGHT);
-// -glVertex2f(-1.24f, -2.25f);
-// -
-// -glTexCoord2f(LINE_LENGTH, HEIGHT);
-// -glVertex2f(2.74f, -2.25f);
-// -
-// -glTexCoord2f(LINE_LENGTH, 0.0f);
-// -glVertex2f(2.74f, 1.75f);
-
-static const int g_top = 128;
-static const int g_bottom = 128 + 224;
-static const int g_left = 128;
-static const int g_right = 128 + (40 * 8);
-static const float g_borderTop = (1.0f / HEIGHT) * (float)g_top;
-static const float g_borderBottom = (1.0f / HEIGHT) * (float)(HEIGHT - g_bottom);
-static const float g_borderLeft = (1.0f / WIDTH) * (float)g_left;
-static const float g_borderRight = (1.0f / WIDTH) * (float)(WIDTH - g_right);
-
-// if (x<128 || x>128+40*8 || y<128 || y>128+224)
-
-ion::render::TexCoord g_texCoordsGame[4] =
-{
-	ion::Vector2(g_borderLeft, g_borderTop),
-	ion::Vector2(g_borderLeft, 1.0f - g_borderBottom),
-	ion::Vector2(1.0f - g_borderRight, 1.0f - g_borderBottom),
-	ion::Vector2(1.0f - g_borderRight, g_borderTop)
-};
-
-ion::render::TexCoord g_texCoordsDebugger[4] =
-{
-	ion::Vector2(0.0f, 0.0f),
-	ion::Vector2(0.0f, 1.0f),
-	ion::Vector2(1.0f, 1.0f),
-	ion::Vector2(1.0f, 0.0f)
-};
-
-bool InitialiseRenderer()
-{
-	g_window = ion::render::Window::Create("megaEx", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, false);
-	g_renderer = ion::render::Renderer::Create(g_window->GetDeviceContext());
-	g_viewport = new ion::render::Viewport(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, ion::render::Viewport::eOrtho2DAbsolute);
-	g_renderTexture = ion::render::Texture::Create(WIDTH, HEIGHT, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
-	g_vertexShader = ion::render::Shader::Create();
-	g_pixelShader = ion::render::Shader::Create();
-	g_material = new ion::render::Material();
-	g_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(DEFAULT_SCREEN_WIDTH / 2, DEFAULT_SCREEN_HEIGHT / 2));
-	g_camera = new ion::render::Camera();
-
-	g_quadPrimitive->SetTexCoords(g_texCoordsGame);
-	g_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
-	g_camera->SetPosition(ion::Vector3(-DEFAULT_SCREEN_WIDTH / 2.0f, -DEFAULT_SCREEN_HEIGHT / 2.0f, 0.1f));
-
-	//Load shaders
-	if(!g_vertexShader->Load("shaders/flattextured_v.ion.shader"))
-	{
-		ion::debug::Error("Failed to load vertex shader\n");
-		return false;
-	}
-
-	if(!g_pixelShader->Load("shaders/flattextured_p.ion.shader"))
-	{
-		ion::debug::Error("Failed to load pixel shader\n");
-		return false;
-	}
-
-	//Setup material
-	g_material->AddDiffuseMap(g_renderTexture);
-	g_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
-	g_material->SetVertexShader(g_vertexShader);
-	g_material->SetPixelShader(g_pixelShader);
-
-	//Setup texture filtering
-	g_renderTexture->SetMinifyFilter(ion::render::Texture::eFilterNearest);
-	g_renderTexture->SetMagnifyFilter(ion::render::Texture::eFilterNearest);
-	g_renderTexture->SetWrapping(ion::render::Texture::eWrapClamp);
-
-	return true;
-}
-
-void ShutdownRenderer()
-{
-	if(g_camera)
-		delete g_camera;
-
-	if(g_quadPrimitive)
-		delete g_quadPrimitive;
-
-	if(g_material)
-		delete g_material;
-
-	if(g_pixelShader)
-		delete g_pixelShader;
-
-	if(g_vertexShader)
-		delete g_vertexShader;
-
-	if(g_renderTexture)
-		delete g_renderTexture;
-
-	if(g_viewport)
-		delete g_viewport;
-
-	if(g_renderer)
-		delete g_renderer;
-
-	if(g_window)
-		delete g_window;
-}
-
-bool UpdateRenderer()
-{
-	g_renderer->Update(0.001f);
-	return g_window->Update();
-}
-
-bool InitialiseInput()
-{
-	g_keyboard = new ion::input::Keyboard();
-	g_mouse = new ion::input::Mouse();
-	g_gamepad = new ion::input::Gamepad();
-	return true;
-}
-
-void ShutdownInput()
-{
-	if(g_gamepad)
-		delete g_gamepad;
-
-	if(g_mouse)
-		delete g_mouse;
-
-	if(g_keyboard)
-		delete g_keyboard;
-}
-
-bool UpdateInput()
-{
-	g_keyboard->Update();
-	g_mouse->Update();
-	g_gamepad->Update();
-
-	return !g_keyboard->KeyDown(DIK_ESCAPE);
-}
-
+/*
 void Shutdown()
 {
 	ShutdownInput();
 	ShutdownRenderer();
 
 	exit(0);
-}
+}*/
 
-int main(int argc,char **argv)
+bool InitialiseEmulator(const char* rom)
 {
 	unsigned int numBlocks;
 	unsigned char *romPtr;
-	int running=1;
+	int running = 1;
 	int a;
 
-	if (argc==2)
+	if(rom)
 	{
-		strcpy(tmpRomName,argv[1]);
-		strcpy(tmpRomSave,argv[1]);
-		strcat(tmpRomSave,".srm");
-		romName=argv[1];
-		romNameExt=tmpRomName;
-		saveName=tmpRomSave;
+		strcpy(tmpRomName, rom);
+		strcpy(tmpRomSave, rom);
+		strcat(tmpRomSave, ".srm");
+		romName = (char*)rom;
+		romNameExt = tmpRomName;
+		saveName = tmpRomSave;
 	}
 
 	InitGameTime();
+	AudioInitialise();
+
+	romPtr = load_rom(romNameExt, &numBlocks);
+
+	if(!romPtr)
+	{
+		printf("[ERR] Failed to load rom image\n");
+		return false;
+	}
+
+	if(SRAM)
+	{
+		LoadSRAM(saveName);
+	}
+
+	CPU_BuildTable();
+	Z80_BuildTable();
+
+	MEM_Initialise(romPtr, numBlocks);
+
+	CPU_Reset();
+	Z80_Reset();
+
+	return true;
+}
+
+EmulatorState TickEmulator()
+{
+	int debuggerRunning = UpdateDebugger();
+
+	if(!debuggerRunning)
+	{
+		for(int i = 0; i < CYCLES_PER_FRAME; i++)
+		{
+			FM_Update();
+			CPU_Step();
+			PSG_Update();
+			Z80_Step();
+
+			g_frameTickCount++;
+			g_cpuTicks++;
+
+			lineNo = i / CYCLES_PER_LINE;
+			colNo = i % CYCLES_PER_LINE;
+
+			if(lineNo > 223)
+			{
+				inVBlank = 1;
+			}
+			else
+			{
+				inVBlank = 0;
+			}
+
+			if(colNo > ((CYCLES_PER_LINE * 3) / 4))
+			{
+				inHBlank = 1;
+			}
+			else
+			{
+				inHBlank = 0;
+			}
+
+			if(colNo == ((CYCLES_PER_LINE * 3) / 4))
+			{
+				U32 displaySizeY = (VDP_Registers[1] & 0x08) ? 30 * 8 : 28 * 8;			/* not quite true.. ntsc can never be 30! */
+
+				if(lineNo > 224)
+				{
+					LineCounter = VDP_Registers[0x0A];
+				}
+				else
+				{
+					LineCounter--;
+					if(LineCounter == 0xFFFFFFFF)
+					{
+						LineCounter = VDP_Registers[0x0A];
+						CPU_SignalInterrupt(4);
+					}
+				}
+
+				if(lineNo < displaySizeY)
+				{
+					VID_DrawScreen(lineNo);
+				}
+			}
+
+			if((lineNo == 225) && (colNo == 8))
+			{
+				CPU_SignalInterrupt(6);
+				Z80_SignalInterrupt(0);
+			}
+		}
+
+		DisplayDebugger();
+
+		UpdateAudio();
+	}
+
+	EmulatorState state = debuggerRunning ? eState_Debugger : eState_Running;
+	return state;
+}
+
+void ShutdownEmulator()
+{
+	if(SRAM)
+	{
+		SaveSRAM(saveName);
+	}
+
+	AudioKill();
+}
+
+void EmulatorButtonDown(EmulatorButton button)
+{
+	keyStatusJoyA |= button;
+}
+
+void EmulatorButtonUp(EmulatorButton button)
+{
+	keyStatusJoyA &= ~button;
+}
+
+const char* EmulatorGetROMTitle()
+{
+	return g_romTitle;
+}
+
+/*
+int main(int argc,char **argv)
+{
+
+
+	
 
 	for (a=0;a<512*3;a++)
 	{
 		keyArray[a]=0;
 	}
-
-	if(!InitialiseRenderer())
-	{
-		Shutdown();
-	}
-
-	if(!InitialiseInput())
-	{
-		Shutdown();
-	}
 	
 #if OPENAL_SUPPORT
-    
-	AudioInitialise();
+
 	
+
 #endif
 
 #if SMS_MODE
@@ -1333,24 +1282,7 @@ int main(int argc,char **argv)
 	slavebiosSize=romSize;
 #endif
 
-	romPtr=load_rom(romNameExt,&numBlocks);
 
-	if (!romPtr)
-	{
-		printf("[ERR] Failed to load rom image\n");
-		Shutdown();
-		return 1; 
-  }
-
-	if (SRAM)
-	{
-		LoadSRAM(saveName);
-	}
-
-	CPU_BuildTable();
-	Z80_BuildTable();
-	
-	MEM_Initialise(romPtr,numBlocks);
 
 #if SMS_MODE
 	LoadSRAM(saveName);
@@ -1366,10 +1298,7 @@ int main(int argc,char **argv)
 
 #endif
 
-#if !SMS_MODE
-	CPU_Reset();
-#endif
-	Z80_Reset();
+
 
 #if DEBUG_BREAK_ON_BOOT
 #if ENABLE_32X_MODE
@@ -1379,36 +1308,28 @@ int main(int argc,char **argv)
 #endif
 #endif
 
-	int g_frameTickCount = 0;
-
 	while (running)
 	{
-		int debuggerRunning=UpdateDebugger();
-
-		if (!debuggerRunning)
-		{
+		
 #if ENABLE_32X_MODE
 			for (a=0;a<3;a++)
 			{
 				VDP_32X_Tick();
-				SH2_Step(master);			/* 3 steps per 68000 */
+				SH2_Step(master);			/ * 3 steps per 68000 * /
 				SH2_Step(slave);
 			}
 #endif
 
 #if !SMS_MODE
-			FM_Update();
-			CPU_Step();
-#endif
-/*			if (massiveHack&1) */
-			{
-				PSG_Update();
-				Z80_Step();				/* will be stepping way too quick at present */
-			}
-			g_frameTickCount++;
-			g_cpuTicks++;
 
-/*
+#endif
+/ *			if (massiveHack&1) * /
+			{
+
+			}
+
+
+/ *
 			//
 			///////////////////////////////////////////////////////////////////////////
 			//
@@ -1417,200 +1338,14 @@ int main(int argc,char **argv)
 			//
 
 			// Approximation of screen to cpu timings (so I can get the irqs firing)
-*/
-			{
-				lineNo= g_frameTickCount/CYCLES_PER_LINE;
-				colNo = g_frameTickCount%CYCLES_PER_LINE;
-
-				if (lineNo>223)
-				{
-#if ENABLE_32X_MODE
-					_32XLineCounter=(SH2_HCountRegister&0xFF);
-					VDP_32X_ScreenFlipHack();
-#endif
-					inVBlank=1;
-				}
-				else
-				{
-#if ENABLE_32X_MODE
-						_32XLineCounter--;
-						if (_32XLineCounter==0xFFFFFFFF)
-						{
-							_32XLineCounter=(SH2_HCountRegister&0xFF);
-							if (SH2_Master_AdapterControlRegister&0x04)
-							{
-								SH2_Interrupt(master,11);
-							}
-							if (SH2_Slave_AdapterControlRegister&0x04)
-							{
-								SH2_Interrupt(slave,11);
-							}
-						}
-#endif
-					inVBlank=0;
-				}
-				if (colNo>((CYCLES_PER_LINE*3)/4))
-				{
-					inHBlank=1;
-				}
-				else
-				{
-					inHBlank=0;
-				}
-
-				if (colNo==((CYCLES_PER_LINE*3)/4))
-				{
-#if !SMS_MODE
-					U32 displaySizeY = (VDP_Registers[1]&0x08) ? 30*8 : 28*8;			/* not quite true.. ntsc can never be 30! */
-					
-					if (lineNo>224)
-					{
-						LineCounter=VDP_Registers[0x0A];
-					}
-					else
-					{
-						LineCounter--;
-						if (LineCounter==0xFFFFFFFF)
-						{
-							LineCounter=VDP_Registers[0x0A];
-							CPU_SignalInterrupt(4);
-						}
-					}
-#else
-					U32 displaySizeY = 192;
-
-					if (lineNo>192)
-					{
-						LineCounter=VDP_Registers[0x0A];
-					}
-					else
-					{
-						LineCounter--;
-						if (LineCounter==0xFFFFFFFF)
-						{
-							LineCounter=VDP_Registers[0x0A];
-							SMS_VDP_Status|=0x40;
-						}
-					}
-
-#endif
-					if (lineNo<displaySizeY)
-					{
-						VID_DrawScreen(lineNo);
-					}
-				}
-
-#if SMS_MODE
-				if ( ((SMS_VDP_Status&0x40) && (VDP_Registers[0x00]&0x10)) || ((SMS_VDP_Status&0x80) && (VDP_Registers[0x01]&0x20)) )
-				{	
-						Z80_SignalInterrupt(0);
-				}
-#endif
+* /
 
 
-#if !SMS_MODE
-				if ((lineNo == 225) && (colNo == 8))
-#else
-				if ((lineNo == 193) && (colNo == 0))
-#endif
-				{
-#if ENABLE_32X_MODE
-					if (SH2_Master_AdapterControlRegister&0x08)
-					{
-						SH2_Interrupt(master,15);
-					}
-					if (SH2_Slave_AdapterControlRegister&0x08)
-					{
-						SH2_Interrupt(slave,15);
-					}
-#endif
-#if !SMS_MODE
-					CPU_SignalInterrupt(6);
-					Z80_SignalInterrupt(0);
-#else
-					SMS_VDP_Status|=0x80;					/* TODO Check if megadrive expects a similar flag? */
-#endif
-				}
-			}
+
 
 
 		}
-		DisplayDebugger();
-		
-		UpdateAudio();
 
-		/* ~(450/2) ticks per line		(312 lines per screen @50hz) - */
-
-		if ((g_frameTickCount>=CYCLES_PER_FRAME) || g_newScreenNotify)
-		{
-			if (g_frameTickCount>=CYCLES_PER_FRAME)
-			{
-				g_frameTickCount=0;
-			}
-			
-			/*if (debuggerRunning)*/
-			{
-				double now,remain;
-				DrawScreen();
-
-				now = (double)ion::time::TicksToSeconds(ion::time::GetSystemTicks());
-			
-				remain = now-atStart;
-				while ((remain<(1.0f/FRAMES_PER_SECOND)) && lockFrameRate)
-				{
-					now = (double)ion::time::TicksToSeconds(ion::time::GetSystemTicks());
-
-					remain = now-atStart;
-					/*Sleep(20-remain);*/
-				}
-			}
-			atStart = (double)ion::time::TicksToSeconds(ion::time::GetSystemTicks());
-			
-			UpdateFPS();
-
-			g_newScreenNotify=0;
-
-			keyStatusJoyA=0;
-			SMS_KeyJoyA=0;
-
-			if (g_keyboard->KeyDown(DIK_S)) //'S'))
-			{
-				keyStatusJoyA|=0x2000;
-				SMS_KeyJoyA|=0x10;
-			}
-			if(g_keyboard->KeyDown(DIK_D)) //KeyDown('D'))
-			{
-				keyStatusJoyA|=0x1000;
-				SMS_KeyJoyA|=0x20;
-			}
-			if(g_keyboard->KeyDown(DIK_RIGHT)) //KeyDown(GLFW_KEY_RIGHT))
-			{
-				keyStatusJoyA|=0x0800;
-				SMS_KeyJoyA|=0x08;
-			}
-			if(g_keyboard->KeyDown(DIK_LEFT)) //KeyDown(GLFW_KEY_LEFT))
-			{
-				keyStatusJoyA|=0x0400;
-				SMS_KeyJoyA|=0x04;
-			}
-			if(g_keyboard->KeyDown(DIK_DOWN)) //KeyDown(GLFW_KEY_DOWN))
-			{
-				keyStatusJoyA|=0x0202;
-				SMS_KeyJoyA|=0x02;
-			}
-			if(g_keyboard->KeyDown(DIK_UP)) //KeyDown(GLFW_KEY_UP))
-			{
-				keyStatusJoyA|=0x0101;
-				SMS_KeyJoyA|=0x01;
-			}
-			if(g_keyboard->KeyDown(DIK_RETURN)) //KeyDown(GLFW_KEY_ENTER))
-			{
-				keyStatusJoyA|=0x0020;
-			}
-			if(g_keyboard->KeyDown(DIK_A)) //KeyDown('A'))
-			{
-				keyStatusJoyA|=0x0010;
-			}
 			if (CheckKey('.'))
 			{
 				lockFrameRate^=1;
@@ -1629,7 +1364,7 @@ int main(int argc,char **argv)
 			if (CheckKey('5'))
 			{
 #if ENABLE_32X_MODE
-				memset(SH2_68K_COMM_REGISTER,0,16);			/* MASSIVE HACK TO STARTUP SYNC ISSUE */
+				memset(SH2_68K_COMM_REGISTER,0,16);			/ * MASSIVE HACK TO STARTUP SYNC ISSUE * /
 #endif
 				ClearKey('5');
 			}
@@ -1650,10 +1385,11 @@ int main(int argc,char **argv)
 	AudioKill(); 
 #endif
 
-	/* Exit program */
+	/ * Exit program * /
 	return 0; 
-}
+}*/
 
+/*
 #ifdef _WIN32
 int WINAPI WinMain(      
 									 HINSTANCE hInstance,
@@ -1667,7 +1403,7 @@ int WINAPI WinMain(
 
 	main(0,0);
 }
-#endif
+#endif*/
 
 #if OPENAL_SUPPORT
 

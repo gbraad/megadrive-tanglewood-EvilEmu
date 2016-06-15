@@ -40,6 +40,11 @@ local SRC =
 	gui/debugger.h
 	gui/font.h
 	config.h
+	emulator.cpp
+	emulator.h
+	main.cpp
+	megaex.cpp
+	megaex.h
 	memory.c
 	memory.h
 	mgmain.cpp
