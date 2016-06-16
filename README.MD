@@ -8,7 +8,7 @@ Uses mega emulation code based on the work of Lee Hammerton and Jake Turner
 Matt Phillips
 http://www.bigevilcorporation.co.uk
 
-# Getting started
+# Getting Started
 
 megaEx (and all other ion::engine projects) use the JamPlus build system (see https://github.com/jamplus/jamplus).
 JamPlus includes support for XCode and other IDEs, but the .sh files need fetching from JamPlus source and I haven't
