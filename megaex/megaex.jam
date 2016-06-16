@@ -50,6 +50,12 @@ local SRC =
 	mgmain.cpp
 	mytypes.h
 	platform.h
+	states/StateGame.cpp
+	states/StateGame.h
+	states/StateControlsConfig.cpp
+	states/StateControlsConfig.h
+	states/StateMenu.cpp
+	states/StateMenu.h
 	;
 
 C.IncludeDirectories megaex : . ;

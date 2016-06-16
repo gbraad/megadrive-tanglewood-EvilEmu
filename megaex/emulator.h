@@ -1,7 +1,8 @@
 
 #include <ion/core/Types.h>
-
 #include "config.h"
+
+#pragma once
 
 extern U8 videoMemory[LINE_LENGTH*HEIGHT*sizeof(U32)];
 

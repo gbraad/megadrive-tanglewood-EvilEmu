@@ -21,8 +21,12 @@
 #include <ion/input/Keyboard.h>
 #include <ion/input/Mouse.h>
 #include <ion/input/Gamepad.h>
+#include <ion/io/Resourcemanager.h>
 
 #include "emulator.h"
+#include "states/StateControlsConfig.h"
+#include "states/StateGame.h"
+#include "states/StateMenu.h"
 
 class MegaEx : public ion::framework::Application
 {
@@ -47,18 +51,15 @@ private:
 	ion::render::Renderer* m_renderer;
 	ion::render::Window* m_window;
 	ion::render::Viewport* m_viewport;
-	ion::render::Texture* m_renderTexture;
-	ion::render::Shader* m_vertexShader;
-	ion::render::Shader* m_pixelShader;
-	ion::render::Material* m_material;
-	ion::render::Quad* m_quadPrimitive;
 	ion::render::Camera* m_camera;
 	ion::input::Keyboard* m_keyboard;
 	ion::input::Mouse* m_mouse;
 	ion::input::Gamepad* m_gamepad;
+	ion::io::ResourceManager* m_resourceManager;
 
-	EmulatorState m_prevEmulatorState;
-
-	static const ion::render::TexCoord s_texCoordsGame[4];
-	static const ion::render::TexCoord s_texCoordsDebugger[4];
+	//States
+	ion::gamekit::StateManager m_stateManager;
+	StateControlsConfig* m_stateControlsConfig;
+	StateGame* m_stateGame;
+	StateMenu* m_stateMenu;
 };
