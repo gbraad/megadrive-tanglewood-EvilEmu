@@ -136,17 +136,17 @@ bool MegaEx::InitialiseRenderer()
 {
 	m_window = ion::render::Window::Create("megaEx", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, false);
 	m_renderer = ion::render::Renderer::Create(m_window->GetDeviceContext());
-	m_viewport = new ion::render::Viewport(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, ion::render::Viewport::eOrtho2DAbsolute);
+	m_viewport = new ion::render::Viewport(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight(), ion::render::Viewport::eOrtho2DAbsolute);
 	m_renderTexture = ion::render::Texture::Create(WIDTH, HEIGHT, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
 	m_vertexShader = ion::render::Shader::Create();
 	m_pixelShader = ion::render::Shader::Create();
 	m_material = new ion::render::Material();
-	m_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(DEFAULT_SCREEN_WIDTH / 2, DEFAULT_SCREEN_HEIGHT / 2));
+	m_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(m_window->GetClientAreaWidth() / 2.0f, m_window->GetClientAreaHeight() / 2.0f));
 	m_camera = new ion::render::Camera();
 
 	m_quadPrimitive->SetTexCoords(s_texCoordsGame);
 	m_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
-	m_camera->SetPosition(ion::Vector3(-DEFAULT_SCREEN_WIDTH / 2.0f, -DEFAULT_SCREEN_HEIGHT / 2.0f, 0.1f));
+	m_camera->SetPosition(ion::Vector3(-(float)m_window->GetClientAreaWidth() / 2.0f, -(float)m_window->GetClientAreaHeight() / 2.0f, 0.1f));
 
 	//Load shaders
 	if(!m_vertexShader->Load("shaders/flattextured_v.ion.shader"))
@@ -231,45 +231,33 @@ bool MegaEx::UpdateInput()
 	m_mouse->Update();
 	m_gamepad->Update();
 
+	u16 buttonState = 0;
+
 	if(m_keyboard->KeyDown(DIK_UP))
-		EmulatorButtonDown(eBtn_Up);
-	else
-		EmulatorButtonUp(eBtn_Up);
+		buttonState |= eBtn_Up;
 
 	if(m_keyboard->KeyDown(DIK_DOWN))
-		EmulatorButtonDown(eBtn_Down);
-	else
-		EmulatorButtonUp(eBtn_Down);
+		buttonState |= eBtn_Down;
 
 	if(m_keyboard->KeyDown(DIK_LEFT))
-		EmulatorButtonDown(eBtn_Left);
-	else
-		EmulatorButtonUp(eBtn_Left);
+		buttonState |= eBtn_Left;
 
 	if(m_keyboard->KeyDown(DIK_RIGHT))
-		EmulatorButtonDown(eBtn_Right);
-	else
-		EmulatorButtonUp(eBtn_Right);
+		buttonState |= eBtn_Right;
 
 	if(m_keyboard->KeyDown(DIK_RETURN))
-		EmulatorButtonDown(eBtn_Start);
-	else
-		EmulatorButtonUp(eBtn_Start);
+		buttonState |= eBtn_Start;
 
 	if(m_keyboard->KeyDown(DIK_D))
-		EmulatorButtonDown(eBtn_A);
-	else
-		EmulatorButtonUp(eBtn_A);
+		buttonState |= eBtn_A;
 
 	if(m_keyboard->KeyDown(DIK_S))
-		EmulatorButtonDown(eBtn_B);
-	else
-		EmulatorButtonUp(eBtn_B);
+		buttonState |= eBtn_B;
 
 	if(m_keyboard->KeyDown(DIK_A))
-		EmulatorButtonDown(eBtn_C);
-	else
-		EmulatorButtonUp(eBtn_C);
+		buttonState |= eBtn_C;
+
+	EmulatorSetButtonState(buttonState);
 
 	return !m_keyboard->KeyDown(DIK_ESCAPE);
 }

@@ -1,4 +1,6 @@
 
+#include <ion/core/Types.h>
+
 #include "config.h"
 
 extern U8 videoMemory[LINE_LENGTH*HEIGHT*sizeof(U32)];
@@ -26,7 +28,5 @@ enum EmulatorState
 bool InitialiseEmulator(const char* rom);
 EmulatorState TickEmulator();
 void ShutdownEmulator();
-void EmulatorButtonDown(EmulatorButton button);
-void EmulatorButtonUp(EmulatorButton button);
-
+void EmulatorSetButtonState(u16 buttonState);
 const char* EmulatorGetROMTitle();

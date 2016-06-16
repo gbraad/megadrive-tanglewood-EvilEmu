@@ -1211,14 +1211,9 @@ void ShutdownEmulator()
 	AudioKill();
 }
 
-void EmulatorButtonDown(EmulatorButton button)
+void EmulatorSetButtonState(u16 buttonState)
 {
-	keyStatusJoyA |= button;
-}
-
-void EmulatorButtonUp(EmulatorButton button)
-{
-	keyStatusJoyA &= ~button;
+	keyStatusJoyA = buttonState;
 }
 
 const char* EmulatorGetROMTitle()
