@@ -25,10 +25,22 @@ MegaEx::MegaEx() : ion::framework::Application("megaEx")
 	m_stateControlsConfig = NULL;
 	m_stateGame = NULL;
 	m_stateMenu = NULL;
+
+	m_keymap[eBtn_Up] = DIK_UP;
+	m_keymap[eBtn_Down] = DIK_DOWN;
+	m_keymap[eBtn_Left] = DIK_LEFT;
+	m_keymap[eBtn_Right] = DIK_RIGHT;
+	m_keymap[eBtn_A] = DIK_A;
+	m_keymap[eBtn_B] = DIK_S;
+	m_keymap[eBtn_C] = DIK_D;
+	m_keymap[eBtn_Start] = DIK_RETURN;
 }
 
 bool MegaEx::Initialise()
 {
+	//Create resource manager
+	m_resourceManager = new ion::io::ResourceManager();
+
 	if(!InitialiseRenderer())
 	{
 		return false;
@@ -44,27 +56,22 @@ bool MegaEx::Initialise()
 		return false;
 	}
 
+	if(!InitialiseGameStates())
+	{
+		return false;
+	}
+
 	//Set window title
 	m_window->SetTitle(EmulatorGetROMTitle());
 
 	//ChangeWindowSize(ion::Vector2i(m_viewport->GetWidth() * 2, m_viewport->GetHeight() * 2));
-
-	//Create resource manager
-	m_resourceManager = new ion::io::ResourceManager();
-
-	//Create game states
-	m_stateControlsConfig = new StateControlsConfig(m_stateManager, *m_resourceManager);
-	m_stateGame = new StateGame(m_stateManager, *m_resourceManager, ion::Vector2i(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight()), ion::Vector2i(WIDTH, HEIGHT));
-	m_stateMenu = new StateMenu(m_stateManager, *m_resourceManager);
-
-	//Push first state
-	m_stateManager.PushState(*m_stateGame);
 
 	return true;
 }
 
 void MegaEx::Shutdown()
 {
+	ShutdownGameStates();
 	ShutdownInput();
 	ShutdownRenderer();
 }
@@ -72,15 +79,15 @@ void MegaEx::Shutdown()
 bool MegaEx::Update(float deltaTime)
 {
 	//Update input
-	bool inputQuit = !UpdateInput();
+	bool inputQuit = !UpdateInput(deltaTime);
 
 	//Update window
 	bool windowQuit = !m_window->Update();
 
 	//Update game state
-	m_stateManager.Update(deltaTime, m_keyboard, m_mouse, m_gamepad);
+	bool gameStateQuit = !UpdateGameStates(deltaTime);
 
-	return !windowQuit && !inputQuit;
+	return !windowQuit && !inputQuit && !gameStateQuit;
 }
 
 void MegaEx::Render()
@@ -144,7 +151,7 @@ void MegaEx::ShutdownInput()
 		delete m_keyboard;
 }
 
-bool MegaEx::UpdateInput()
+bool MegaEx::UpdateInput(float deltaTime)
 {
 	m_keyboard->Update();
 	m_mouse->Update();
@@ -152,33 +159,48 @@ bool MegaEx::UpdateInput()
 
 	u16 buttonState = 0;
 
-	if(m_keyboard->KeyDown(DIK_UP))
-		buttonState |= eBtn_Up;
-
-	if(m_keyboard->KeyDown(DIK_DOWN))
-		buttonState |= eBtn_Down;
-
-	if(m_keyboard->KeyDown(DIK_LEFT))
-		buttonState |= eBtn_Left;
-
-	if(m_keyboard->KeyDown(DIK_RIGHT))
-		buttonState |= eBtn_Right;
-
-	if(m_keyboard->KeyDown(DIK_RETURN))
-		buttonState |= eBtn_Start;
-
-	if(m_keyboard->KeyDown(DIK_D))
-		buttonState |= eBtn_A;
-
-	if(m_keyboard->KeyDown(DIK_S))
-		buttonState |= eBtn_B;
-
-	if(m_keyboard->KeyDown(DIK_A))
-		buttonState |= eBtn_C;
+	for(int i = 0; i < eBtn_MAX; i++)
+	{
+		if(m_keyboard->KeyDown(m_keymap[i]))
+		{
+			buttonState |= g_emulatorButtonBits[i];
+		}
+	}
 
 	EmulatorSetButtonState(buttonState);
 
 	return !m_keyboard->KeyDown(DIK_ESCAPE);
+}
+
+bool MegaEx::InitialiseGameStates()
+{
+	//Create states
+	m_stateControlsConfig = new StateControlsConfig(m_stateManager, *m_resourceManager, m_keymap);
+	m_stateGame = new StateGame(m_stateManager, *m_resourceManager, ion::Vector2i(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight()), ion::Vector2i(WIDTH, HEIGHT));
+	m_stateMenu = new StateMenu(m_stateManager, *m_resourceManager, m_stateControlsConfig, m_stateGame);
+
+	//Push first state
+	m_stateManager.PushState(*m_stateMenu);
+
+	return true;
+}
+
+void MegaEx::ShutdownGameStates()
+{
+	if(m_stateMenu)
+		delete m_stateMenu;
+
+	if(m_stateGame)
+		delete m_stateGame;
+
+	if(m_stateControlsConfig)
+		delete m_stateControlsConfig;
+}
+
+bool MegaEx::UpdateGameStates(float deltaTime)
+{
+	m_stateManager.Update(deltaTime, m_keyboard, m_mouse, m_gamepad);
+	return true;
 }
 
 void MegaEx::ChangeWindowSize(const ion::Vector2i& size)

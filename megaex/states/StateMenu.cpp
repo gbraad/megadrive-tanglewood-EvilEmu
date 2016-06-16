@@ -16,8 +16,10 @@
 
 #include "StateMenu.h"
 
-StateMenu::StateMenu(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager)
+StateMenu::StateMenu(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, ion::gamekit::State* stateControlsConfig, ion::gamekit::State* stateGame)
 	: ion::gamekit::State(stateManager, resourceManager)
+	, m_stateControlsConfig(stateControlsConfig)
+	, m_stateGame(stateGame)
 {
 
 }
@@ -44,11 +46,18 @@ void StateMenu::OnResumeState()
 
 void StateMenu::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad)
 {
+	if(keyboard->KeyPressedThisFrame(DIK_K))
+	{
+		m_stateManager.PushState(*m_stateControlsConfig);
+	}
 
+	if(keyboard->KeyPressedThisFrame(DIK_G))
+	{
+		m_stateManager.PushState(*m_stateGame);
+	}
 }
 
 void StateMenu::Render(ion::render::Renderer& renderer, ion::render::Camera& camera)
-
 {
 
 }

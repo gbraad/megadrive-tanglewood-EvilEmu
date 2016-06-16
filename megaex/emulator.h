@@ -6,18 +6,42 @@
 
 extern U8 videoMemory[LINE_LENGTH*HEIGHT*sizeof(U32)];
 
-enum EmulatorButton
+enum EmulatorButtons
 {
-	eBtn_Up = 0x0101,
-	eBtn_Down = 0x0202,
-	eBtn_Left = 0x0400,
-	eBtn_Right = 0x0800,
-	eBtn_A = 0x2000,
-	eBtn_B = 0x1000,
-	eBtn_C = 0x0010,
-	eBtn_Start = 0x0020
+	eBtn_Up = 0,
+	eBtn_Down,
+	eBtn_Left,
+	eBtn_Right,
+	eBtn_A,
+	eBtn_B,
+	eBtn_C,
+	eBtn_Start,
+	eBtn_MAX
 };
 
+static u16 g_emulatorButtonBits[] =
+{
+	0x0101,
+	0x0202,
+	0x0400,
+	0x0800,
+	0x2000,
+	0x1000,
+	0x0010,
+	0x0020
+};
+
+static const char* g_emulatorButtonNames[] =
+{
+	"Up",
+	"Down",
+	"Left",
+	"Right",
+	"A",
+	"B",
+	"C",
+	"Start"
+};
 
 enum EmulatorState
 {

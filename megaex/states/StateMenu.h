@@ -15,7 +15,7 @@
 class StateMenu : public ion::gamekit::State
 {
 public:
-	StateMenu(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager);
+	StateMenu(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, ion::gamekit::State* stateControlsConfig, ion::gamekit::State* stateGame);
 
 	virtual void OnEnterState();
 	virtual void OnLeaveState();
@@ -24,4 +24,8 @@ public:
 
 	virtual void Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad);
 	virtual void Render(ion::render::Renderer& renderer, ion::render::Camera& camera);
+
+private:
+	ion::gamekit::State* m_stateControlsConfig;
+	ion::gamekit::State* m_stateGame;
 };

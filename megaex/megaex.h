@@ -10,6 +10,7 @@
 
 #include <ion/core/bootstrap/Application.h>
 #include <ion/core/debug/Debug.h>
+#include <ion/core/containers/FixedArray.h>
 #include <ion/renderer/Renderer.h>
 #include <ion/renderer/Window.h>
 #include <ion/renderer/Viewport.h>
@@ -42,9 +43,12 @@ private:
 
 	bool InitialiseRenderer();
 	bool InitialiseInput();
+	bool InitialiseGameStates();
 	void ShutdownRenderer();
 	void ShutdownInput();
-	bool UpdateInput();
+	void ShutdownGameStates();
+	bool UpdateInput(float deltaTime);
+	bool UpdateGameStates(float deltaTime);
 
 	void ChangeWindowSize(const ion::Vector2i& size);
 
@@ -59,7 +63,10 @@ private:
 
 	//States
 	ion::gamekit::StateManager m_stateManager;
-	StateControlsConfig* m_stateControlsConfig;
-	StateGame* m_stateGame;
-	StateMenu* m_stateMenu;
+	ion::gamekit::State* m_stateMenu;
+	ion::gamekit::State* m_stateGame;
+	ion::gamekit::State* m_stateControlsConfig;
+
+	//Button mapping
+	ion::FixedArray<u32, eBtn_MAX> m_keymap;
 };
