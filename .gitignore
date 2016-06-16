@@ -1,2 +1,6 @@
 out/*.o
-mega
+ion
+buildtools
+roms
+bigevilcorp.jamrules
+megaex/_build
