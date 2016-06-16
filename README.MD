@@ -13,3 +13,4 @@ http://www.bigevilcorporation.co.uk
 - Grab ion::engine from https://github.com/BigEvilCorporation/ion-engine
 - Run ion_symlink.bat AS ADMINISTRATOR to link up the engine
 - Run megaEx/GenerateWorkspace_VS20XX.bat to create and open a Visual Studio workspace
+- You'll also need OpenAL redist until I've finished porting ion::audio
