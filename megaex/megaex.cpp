@@ -26,14 +26,24 @@ MegaEx::MegaEx() : ion::framework::Application("megaEx")
 	m_stateGame = NULL;
 	m_stateMenu = NULL;
 
-	m_keymap[eBtn_Up] = DIK_UP;
-	m_keymap[eBtn_Down] = DIK_DOWN;
-	m_keymap[eBtn_Left] = DIK_LEFT;
-	m_keymap[eBtn_Right] = DIK_RIGHT;
-	m_keymap[eBtn_A] = DIK_A;
-	m_keymap[eBtn_B] = DIK_S;
-	m_keymap[eBtn_C] = DIK_D;
-	m_keymap[eBtn_Start] = DIK_RETURN;
+	//Default keymap
+	m_keyboardMap[eBtn_Up] = DIK_UP;
+	m_keyboardMap[eBtn_Down] = DIK_DOWN;
+	m_keyboardMap[eBtn_Left] = DIK_LEFT;
+	m_keyboardMap[eBtn_Right] = DIK_RIGHT;
+	m_keyboardMap[eBtn_A] = DIK_A;
+	m_keyboardMap[eBtn_B] = DIK_S;
+	m_keyboardMap[eBtn_C] = DIK_D;
+	m_keyboardMap[eBtn_Start] = DIK_RETURN;
+
+	m_gamepadMap[eBtn_Up] = ion::input::Gamepad::DPAD_UP;
+	m_gamepadMap[eBtn_Down] = ion::input::Gamepad::DPAD_DOWN;
+	m_gamepadMap[eBtn_Left] = ion::input::Gamepad::DPAD_LEFT;
+	m_gamepadMap[eBtn_Right] = ion::input::Gamepad::DPAD_RIGHT;
+	m_gamepadMap[eBtn_A] = ion::input::Gamepad::BUTTON_X;
+	m_gamepadMap[eBtn_B] = ion::input::Gamepad::BUTTON_A;
+	m_gamepadMap[eBtn_C] = ion::input::Gamepad::BUTTON_B;
+	m_gamepadMap[eBtn_Start] = ion::input::Gamepad::START;
 }
 
 bool MegaEx::Initialise()
@@ -161,7 +171,7 @@ bool MegaEx::UpdateInput(float deltaTime)
 
 	for(int i = 0; i < eBtn_MAX; i++)
 	{
-		if(m_keyboard->KeyDown(m_keymap[i]))
+		if(m_keyboard->KeyDown(m_keyboardMap[i]) || m_gamepad->ButtonDown((ion::input::Gamepad::Buttons)m_gamepadMap[i]))
 		{
 			buttonState |= g_emulatorButtonBits[i];
 		}
@@ -175,7 +185,7 @@ bool MegaEx::UpdateInput(float deltaTime)
 bool MegaEx::InitialiseGameStates()
 {
 	//Create states
-	m_stateControlsConfig = new StateControlsConfig(m_stateManager, *m_resourceManager, m_keymap);
+	m_stateControlsConfig = new StateControlsConfig(m_stateManager, *m_resourceManager, m_keyboardMap);
 	m_stateGame = new StateGame(m_stateManager, *m_resourceManager, ion::Vector2i(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight()), ion::Vector2i(WIDTH, HEIGHT));
 	m_stateMenu = new StateMenu(m_stateManager, *m_resourceManager, m_stateControlsConfig, m_stateGame);
 

@@ -68,5 +68,6 @@ private:
 	ion::gamekit::State* m_stateControlsConfig;
 
 	//Button mapping
-	ion::FixedArray<u32, eBtn_MAX> m_keymap;
+	ion::FixedArray<u32, eBtn_MAX> m_keyboardMap;
+	ion::FixedArray<u32, eBtn_MAX> m_gamepadMap;
 };
