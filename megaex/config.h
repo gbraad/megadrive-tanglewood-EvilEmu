@@ -26,14 +26,23 @@ THE SOFTWARE.
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#define VDP_SCREEN_WIDTH	320
-#define VDP_SCREEN_HEIGHT	224
 #define LINE_LENGTH			((228)*4)					/* 228 / 227 alternating */
-#define WIDTH 				(LINE_LENGTH)
-#define HEIGHT 				(262*2)
 #define BPP					(4)
 #define DEPTH				(32)
 
+//VDP display plane memory size
+#define WIDTH 				(LINE_LENGTH)
+#define HEIGHT 				(262*2)
+
+//VDP display size
+#define VDP_SCREEN_WIDTH	320
+#define VDP_SCREEN_HEIGHT	224
+
+//Power-of-two render texture for Dreamcast
+#define RENDER_TEXTURE_WIDTH	512
+#define RENDER_TEXTURE_HEIGHT	512
+
+//Desktop window dimensions
 #define DEFAULT_SCREEN_WIDTH	VDP_SCREEN_WIDTH*2
 #define DEFAULT_SCREEN_HEIGHT	VDP_SCREEN_HEIGHT*2
 
@@ -52,10 +61,14 @@ THE SOFTWARE.
 #define ENABLE_SMS_BIOS			0
 #define SMS_CART_MISSING		0
 
-#define OPENAL_SUPPORT			1
+#define GLFW_SUPPORT			0
+#define OPENAL_SUPPORT			0
 #define USE_8BIT_OUTPUT			0
 
 #define UNUSED_ARGUMENT(x)		(void)x
+
+#define PIXEL_FORMAT_RGBA		1
+#define PIXEL_FORMAT_ARGB		0
 
 #include "gui/debugger.h"
 

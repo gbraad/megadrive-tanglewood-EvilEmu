@@ -1294,6 +1294,7 @@ extern U32 Z80Cycles;
 #define ENABLE_PC_HISTORY		0
 int UpdateDebugger()
 {
+#if GLFW_SUPPORT
 	int a;
 
 	if (cpu_regs.stage==0)
@@ -1570,6 +1571,8 @@ int UpdateDebugger()
 	ClearKey(GLFW_KEY_KP_MULTIPLY);
 	ClearKey(GLFW_KEY_PAGE_UP);
 
+#endif // GLFW
+
 	return g_pause;
 }
 
@@ -1595,7 +1598,11 @@ void DisplayFillBGColourHiLoLine(U8 colHi,U8 colLo,U32 *pixelPos,int w)
 	U8 g = (colLo&0xF0);
 	U8 b = (colLo&0x0F)<<4;
 
-	colour = (r<<16) | (g<<8) | (b<<0);
+#if PIXEL_FORMAT_RGBA
+	colour = (r << 0) | (g << 8) | (b << 16);
+#elif PIXEL_FORMAT_ARGB
+	colour = (r << 16) | (g << 8) | (b << 0);
+#endif
 
 	for (a=0;a<w;a++)
 	{
@@ -1698,24 +1705,30 @@ void DrawTileXY(int tx,int ty,U32 address,int pal,U32 flipH,U32 flipV,U8 zValue,
 {
 	if (*zPos<zValue)
 	{
-		int colour = ComputeColourXY(tx,ty,address,flipH,flipV);
+		int colourIdx = ComputeColourXY(tx,ty,address,flipH,flipV);
 
-		if (colour!=0)
+		if(colourIdx != 0)
 		{
-			U8 r=colour;
-			U8 g=colour;
-			U8 b=colour;
-			U32 realColour;
+			U8 gb = cRam[pal * 2 * 16 + colourIdx * 2 + 0] & 0x0E;
+			U8 r = cRam[pal * 2 * 16 + colourIdx * 2 + 1] & 0x0E;
+			gb |= cRam[pal * 2 * 16 + colourIdx * 2 + 1] & 0xE0;
 
-			*zPos=zValue;
+			U8 colHi = r;
+			U8 colLo = gb;
+			U32 colour = 0;
 
-			r=(cRam[pal*2*16+colour*2+1]&0x0E)<<4;
-			g=(cRam[pal*2*16+colour*2+0]&0x0E)<<4;
-			b=(cRam[pal*2*16+colour*2+1]&0xE0);
+			r = (colHi & 0x0F) << 4;
+			U8 g = (colLo & 0xF0);
+			U8 b = (colLo & 0x0F) << 4;
 
-			realColour = (r<<16)|(b<<8)|g;
+#if PIXEL_FORMAT_RGBA
+			colour = (r << 0) | (g << 8) | (b << 16);
+#elif PIXEL_FORMAT_ARGB
+			colour = (r << 16) | (g << 8) | (b << 0);
+#endif
 
-			*pixelPos=realColour;
+			*zPos = zValue;
+			*pixelPos = colour;
 		}
 	}
 }

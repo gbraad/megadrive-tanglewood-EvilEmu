@@ -5,9 +5,9 @@ ApplyIonIncludes megaex ;
 ApplyIonCore megaex ;
 ApplyIonIo megaex ;
 ApplyIonInput megaex ;
-ApplyIonRenderer megaex : opengl ;
+ApplyIonRenderer megaex ;
 ApplyIonGameKit megaex ;
-ApplyOpenALSDK megaex ;
+# ApplyOpenALSDK megaex ;
 
 local SRC = 
 	audio/lj_ym2612.c

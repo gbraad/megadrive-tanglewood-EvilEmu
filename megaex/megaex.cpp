@@ -11,6 +11,8 @@
 #include "megaex.h"
 #include "config.h"
 
+#include <ion/core/debug/Debug.h>
+
 MegaEx::MegaEx() : ion::framework::Application("megaEx")
 {
 	m_renderer = NULL;
@@ -27,6 +29,7 @@ MegaEx::MegaEx() : ion::framework::Application("megaEx")
 	m_stateMenu = NULL;
 
 	//Default keymap
+#if defined ION_PLATFORM_WINDOWS
 	m_keyboardMap[eBtn_Up] = DIK_UP;
 	m_keyboardMap[eBtn_Down] = DIK_DOWN;
 	m_keyboardMap[eBtn_Left] = DIK_LEFT;
@@ -35,6 +38,7 @@ MegaEx::MegaEx() : ion::framework::Application("megaEx")
 	m_keyboardMap[eBtn_B] = DIK_S;
 	m_keyboardMap[eBtn_C] = DIK_D;
 	m_keyboardMap[eBtn_Start] = DIK_RETURN;
+#endif
 
 	m_gamepadMap[eBtn_Up] = ion::input::Gamepad::DPAD_UP;
 	m_gamepadMap[eBtn_Down] = ion::input::Gamepad::DPAD_DOWN;
@@ -53,21 +57,31 @@ bool MegaEx::Initialise()
 
 	if(!InitialiseRenderer())
 	{
+		ion::debug::Error("Error initialising renderer");
 		return false;
 	}
 
 	if(!InitialiseInput())
 	{
+		ion::debug::Error("Error initialising input");
 		return false;
 	}
 
+#if defined ION_PLATFORM_DREAMCAST
+	//if(!InitialiseEmulator("/cd/roms/sonic.md"))
+	if(!InitialiseEmulator("/cd/roms/TANGLEWD.BIN"))
+#else
+	//if(!InitialiseEmulator("ROMS\\sonic.md"))
 	if(!InitialiseEmulator("ROMS\\TANGLEWD.BIN"))
+#endif
 	{
+		ion::debug::Error("Error initialising emulator");
 		return false;
 	}
 
 	if(!InitialiseGameStates())
 	{
+		ion::debug::Error("Error initialising gamestates");
 		return false;
 	}
 
@@ -120,8 +134,8 @@ bool MegaEx::InitialiseRenderer()
 	m_viewport = new ion::render::Viewport(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight(), ion::render::Viewport::eOrtho2DAbsolute);
 	m_camera = new ion::render::Camera();
 
-	m_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
-	m_camera->SetPosition(ion::Vector3(-(float)m_window->GetClientAreaWidth() / 2.0f, -(float)m_window->GetClientAreaHeight() / 2.0f, 0.1f));
+	m_viewport->SetClearColour(ion::Colour(0.0f, 0.0f, 0.0f, 1.0f));
+	m_camera->SetPosition(ion::Vector3(-(float)m_window->GetClientAreaWidth() / 2.0f, -(float)m_window->GetClientAreaHeight() / 2.0f, -0.1f));
 
 	return true;
 }
@@ -169,6 +183,7 @@ bool MegaEx::UpdateInput(float deltaTime)
 
 	u16 buttonState = 0;
 
+#if !defined ION_PLATFORM_DREAMCAST
 	for(int i = 0; i < eBtn_MAX; i++)
 	{
 		if(m_keyboard->KeyDown(m_keyboardMap[i]) || m_gamepad->ButtonDown((ion::input::Gamepad::Buttons)m_gamepadMap[i]))
@@ -176,10 +191,15 @@ bool MegaEx::UpdateInput(float deltaTime)
 			buttonState |= g_emulatorButtonBits[i];
 		}
 	}
+#endif
 
 	EmulatorSetButtonState(buttonState);
 
+#if defined ION_PLATFORM_WINDOWS
 	return !m_keyboard->KeyDown(DIK_ESCAPE);
+#else
+	return true;
+#endif
 }
 
 bool MegaEx::InitialiseGameStates()

@@ -829,37 +829,45 @@ void ParseRomHeader(unsigned char *header)
 unsigned long romSize;
 unsigned char *load_rom(char *romName,unsigned int *numBanks)
 {
-    FILE *inRom;
-    unsigned char *romData;
-	
-    inRom = fopen(romName,"rb");
-    if (!inRom)
-    {
-			return 0;
-    }
-    fseek(inRom,0,SEEK_END);
-    romSize = ftell(inRom);
+	FILE *inRom;
+	unsigned char *romData;
 
-		if ((romSize&0xFFFF) != 0)
-		{
-			printf("Bugger.. not 64k rom thing\n");
-			*numBanks= (romSize>>16) + 1;
-		}
-		else
-		{
-			*numBanks = romSize>>16;
-		}
-		fseek(inRom,0,SEEK_SET);
-    romData = (unsigned char *)malloc(romSize);
-    if (romSize != fread(romData,1,romSize,inRom))
+	inRom = fopen(romName, "rb");
+	if(!inRom)
 	{
+		return 0;
+	}
+
+	fseek(inRom, 0, SEEK_END);
+	romSize = ftell(inRom);
+
+	if((romSize & 0xFFFF) != 0)
+	{
+		printf("ROM size not 64kb aligned\n");
+		*numBanks = (romSize >> 16) + 1;
+	}
+	else
+	{
+		*numBanks = romSize >> 16;
+	}
+
+	fseek(inRom, 0, SEEK_SET);
+
+	printf("Allocating %i bytes (%ikb) for ROM\n", romSize, romSize / 1024);
+	romData = (unsigned char *)malloc(romSize);
+
+	printf("Reading ROM");
+	if(romSize != fread(romData, 1, romSize, inRom))
+	{
+		printf("Error reading ROM, bailing out\n");
 		fclose(inRom);
 		return 0;
 	}
-    fclose(inRom);
+	fclose(inRom);
 
 #if (!SMS_MODE) && (!ENABLE_32X_MODE)
-  ParseRomHeader(romData+0x100);
+	printf("Parsing ROM header\n");
+	ParseRomHeader(romData + 0x100);
 #endif
 
 	return romData;
@@ -929,7 +937,12 @@ void doPixel(int x,int y,U8 colHi,U8 colLo)
 	U8 g = (colLo&0xF0);
 	U8 b = (colLo&0x0F)<<4;
 	
+#if PIXEL_FORMAT_RGBA
+	colour = (r << 0) | (g << 8) | (b << 16);
+#elif PIXEL_FORMAT_ARGB
 	colour = (r<<16) | (g<<8) | (b<<0);
+#endif
+
 	doPixel32(x,y,colour);
 }
 
@@ -944,7 +957,12 @@ void doPixelClipped(int x,int y,U8 colHi,U8 colLo)
 	if (x<128 || x>128+40*8 || y<128 || y>128+224)
 		return;
 	
-	colour = (r<<16) | (g<<8) | (b<<0);
+#if PIXEL_FORMAT_RGBA
+	colour = (r << 0) | (g << 8) | (b << 16);
+#elif PIXEL_FORMAT_ARGB
+	colour = (r << 16) | (g << 8) | (b << 0);
+#endif
+
 	pixmem32 = &((U32*)videoMemory)[y*LINE_LENGTH + x];
 	*pixmem32 = colour;
 }
@@ -958,7 +976,11 @@ U8 keyArray[512*3];
 
 int KeyDown(int key)
 {
+#if GLFW_SUPPORT
 	return keyArray[key*3+1]==GLFW_PRESS;
+#else
+	return 0;
+#endif
 }
 
 int CheckKey(int key)
@@ -971,12 +993,14 @@ void ClearKey(int key)
 	keyArray[key*3+2]=0;
 }
 
+#if GLFW_SUPPORT
 void kbHandler(GLFWwindow* window, int key, int scancode, int action, int modifiers)
 {
 	keyArray[key*3 + 0]=keyArray[key*3+1];
 	keyArray[key*3 + 1]=action;
 	keyArray[key*3 + 2]|=(keyArray[key*3+0]==GLFW_RELEASE)&&(keyArray[key*3+1]==GLFW_PRESS);
 }
+#endif
 
 int captureMouse=0;
 
@@ -1098,7 +1122,10 @@ bool InitialiseEmulator(const char* rom)
 	}
 
 	InitGameTime();
+
+#if OPENAL_SUPPORT
 	AudioInitialise();
+#endif
 
 	romPtr = load_rom(romNameExt, &numBlocks);
 
@@ -1194,7 +1221,9 @@ EmulatorState TickEmulator()
 
 		DisplayDebugger();
 
+#if OPENAL_SUPPORT
 		UpdateAudio();
+#endif
 	}
 
 	EmulatorState state = debuggerRunning ? eState_Debugger : eState_Running;
@@ -1208,7 +1237,9 @@ void ShutdownEmulator()
 		SaveSRAM(saveName);
 	}
 
+#if OPENAL_SUPPORT
 	AudioKill();
+#endif
 }
 
 void EmulatorSetButtonState(u16 buttonState)

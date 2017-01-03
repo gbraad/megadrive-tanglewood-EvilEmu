@@ -27,27 +27,36 @@ THE SOFTWARE.
 #ifndef _PLATFORM_H
 #define _PLATFORM_H
 
-#ifdef _WIN32
+#if defined ION_PLATFORM_WINDOWS
 
-#define GLFW_DLL
 #include <windows.h>
 
 #include <GL/GL.h>
-
 #include "GL/glext.h"
-#include "GL/glfw3.h"
 
+#if GLFW_SUPPORT
+#define GLFW_DLL
+#include "GL/glfw3.h"
+#endif
+
+#if OPENAL_SUPPORT
 #include"al.h"
 #include"alc.h"
+#endif
 
 #else
 
 #include <GL/gl.h>
 #include <GL/glext.h>
-#include <GL/glfw.h>
 
+#if GLFW_SUPPORT
+#include <GL/glfw.h>
+#endif
+
+#if OPENAL_SUPPORT
 #include <AL/al.h>
 #include <AL/alc.h>
+#endif
 
 #define UINT64	u_int64_t
 #define __int64 int64_t

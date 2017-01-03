@@ -162,7 +162,9 @@ void PSG_Update()
 		PSG_UpdateTones();
 		PSG_UpdateNoise();
 
+#if OPENAL_SUPPORT
 		_AudioAddData(1,PSG_Output());
+#endif
 	}
 }
 

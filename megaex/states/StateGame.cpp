@@ -14,16 +14,18 @@
 #include <ion/input/Mouse.h>
 #include <ion/input/Gamepad.h>
 
+#include <ion/core/debug/Debug.h>
+
 #include "StateGame.h"
 
-static const int g_top = 128;
-static const int g_bottom = 128 + 224;
-static const int g_left = 128;
-static const int g_right = 128 + (40 * 8);
-static const float g_borderTop = (1.0f / HEIGHT) * (float)g_top;
-static const float g_borderBottom = (1.0f / HEIGHT) * (float)(HEIGHT - g_bottom);
-static const float g_borderLeft = (1.0f / WIDTH) * (float)g_left;
-static const float g_borderRight = (1.0f / WIDTH) * (float)(WIDTH - g_right);
+#include <GL/gl.h>
+
+static const float g_borderTop = 0.0f;
+static const float g_borderBottom = 1.0f - ((float)VDP_SCREEN_HEIGHT / (float)RENDER_TEXTURE_HEIGHT);
+static const float g_borderLeft = 0.0f;
+static const float g_borderRight = 1.0f - ((float)VDP_SCREEN_WIDTH / (float)RENDER_TEXTURE_WIDTH);
+
+u32 display[RENDER_TEXTURE_WIDTH * RENDER_TEXTURE_HEIGHT];
 
 const ion::render::TexCoord StateGame::s_texCoordsGame[4] =
 {
@@ -47,8 +49,15 @@ StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::Resource
 	, m_emulatorSize(emulatorSize)
 {
 	m_renderTexture = NULL;
+
+	m_tickCount = 0;
+	m_renderCount = 0;
+
+#if defined ION_RENDERER_SHADER
 	m_vertexShader = NULL;
 	m_pixelShader = NULL;
+#endif
+
 	m_material = NULL;
 	m_quadPrimitive = NULL;
 
@@ -57,12 +66,18 @@ StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::Resource
 
 void StateGame::OnEnterState()
 {
-	m_renderTexture = ion::render::Texture::Create(m_emulatorSize.x, m_emulatorSize.y, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
+	m_renderTexture = ion::render::Texture::Create(RENDER_TEXTURE_WIDTH, RENDER_TEXTURE_HEIGHT);
+
+#if defined ION_RENDERER_SHADER
 	m_vertexShader = ion::render::Shader::Create();
 	m_pixelShader = ion::render::Shader::Create();
+#endif
+
 	m_material = new ion::render::Material();
 	m_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(m_windowSize.x / 2.0f, m_windowSize.y / 2.0f));
+	m_cubePrimitive = new ion::render::Box(ion::Vector3(1.0f, 1.0f, 1.0f));
 
+#if defined ION_RENDERER_SHADER
 	//Load shaders
 	if(!m_vertexShader->Load("shaders/flattextured_v.ion.shader"))
 	{
@@ -73,12 +88,16 @@ void StateGame::OnEnterState()
 	{
 		ion::debug::Error("Failed to load pixel shader\n");
 	}
+#endif
 
 	//Setup material
 	m_material->AddDiffuseMap(m_renderTexture);
 	m_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+
+#if defined ION_RENDERER_SHADER
 	m_material->SetVertexShader(m_vertexShader);
 	m_material->SetPixelShader(m_pixelShader);
+#endif
 
 	//Setup texture filtering
 	m_renderTexture->SetMinifyFilter(ion::render::Texture::eFilterNearest);
@@ -97,11 +116,13 @@ void StateGame::OnLeaveState()
 	if(m_material)
 		delete m_material;
 
+#if defined ION_RENDERER_SHADER
 	if(m_pixelShader)
 		delete m_pixelShader;
 
 	if(m_vertexShader)
 		delete m_vertexShader;
+#endif
 
 	if(m_renderTexture)
 		delete m_renderTexture;
@@ -121,7 +142,7 @@ void StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 {
 	//Update emulator
 	EmulatorState emulatorState = TickEmulator();
-
+	
 	if(emulatorState != m_prevEmulatorState)
 	{
 		//Emulator switched from running to debugger or back, change rendering mode
@@ -133,18 +154,38 @@ void StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 		{
 			m_quadPrimitive->SetTexCoords(s_texCoordsDebugger);
 		}
-
+	
 		m_prevEmulatorState = emulatorState;
 	}
 
 	//Copy output pixels to render texture
-	m_renderTexture->SetPixels(ion::render::Texture::eBGRA, videoMemory);
+	for(int y = 0; y < VDP_SCREEN_HEIGHT; y++)
+	{
+		memcpy(display + (RENDER_TEXTURE_WIDTH * y), (u32*)videoMemory + (WIDTH * (y + 128)) + 128, VDP_SCREEN_WIDTH * sizeof(u32));
+	}
+
+	m_renderTexture->Load(RENDER_TEXTURE_WIDTH, RENDER_TEXTURE_HEIGHT, ion::render::Texture::eRGBA, ion::render::Texture::eRGBA, ion::render::Texture::eBPP24, false, (u8*)display);
+
+	m_tickCount++;
 }
 
 void StateGame::Render(ion::render::Renderer& renderer, ion::render::Camera& camera)
 {
-	//Bind material and draw quad
-	m_material->Bind(ion::Matrix4(), camera.GetTransform().GetInverse(), renderer.GetProjectionMatrix());
-	renderer.DrawVertexBuffer(m_quadPrimitive->GetVertexBuffer(), m_quadPrimitive->GetIndexBuffer());
-	m_material->Unbind();
+	if(m_tickCount > m_renderCount)
+	{
+		//Bind material and draw quad
+		m_material->Bind(ion::Matrix4(), camera.GetTransform().GetInverse(), renderer.GetProjectionMatrix());
+
+#if defined ION_RENDERER_FIXED
+		renderer.SetMatrix(camera.GetTransform().GetInverse());
+#endif
+
+		renderer.SetFaceCulling(ion::render::Renderer::eNoCull);
+
+		renderer.DrawVertexBuffer(m_quadPrimitive->GetVertexBuffer(), m_quadPrimitive->GetIndexBuffer());
+
+		m_material->Unbind();
+
+		m_renderCount++;
+	}
 }

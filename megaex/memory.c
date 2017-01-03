@@ -160,7 +160,9 @@ void FM_Update()
 
 	LJ_YM2612_generateOutput(chip,1,out);
 
+#if OPENAL_SUPPORT
 	_AudioAddData(0,((bob[0]+bob[1])/2));
+#endif
 }
 
 void YM2612_Write(U8 address,U8 data)
@@ -1154,7 +1156,7 @@ void VDP_DataModeStart()
 			{
 				if ((IdCode&0x1F)!=1)	/* FILL mode...  */
 				{
-					DEB_PauseEmulation(DEB_Mode_68000,"unsupported setting in fill mode.. probably stuffed something up");
+					// DEB_PauseEmulation(DEB_Mode_68000,"unsupported setting in fill mode.. probably stuffed something up");
 					return;
 				}
 				else
