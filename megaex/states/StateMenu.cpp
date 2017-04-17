@@ -47,14 +47,14 @@ void StateMenu::OnResumeState()
 void StateMenu::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad)
 {
 #if defined ION_PLATFORM_WINDOWS
-	if(keyboard->KeyPressedThisFrame(DIK_K))
+	if(keyboard->KeyPressedThisFrame(ion::input::Keycode::K))
 	{
 		m_stateManager.PushState(*m_stateControlsConfig);
 	}
 #endif
 
 #if defined ION_PLATFORM_WINDOWS
-	if(keyboard->KeyPressedThisFrame(DIK_G))
+	if(keyboard->KeyPressedThisFrame(ion::input::Keycode::G))
 #endif
 	{
 		m_stateManager.PushState(*m_stateGame);

@@ -16,7 +16,7 @@
 
 #include "StateControlsConfig.h"
 
-StateControlsConfig::StateControlsConfig(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, ion::FixedArray<u32, eBtn_MAX>& keymap)
+StateControlsConfig::StateControlsConfig(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, ion::FixedArray<ion::input::Keycode, eBtn_MAX>& keymap)
 	: ion::gamekit::State(stateManager, resourceManager)
 	, m_keymap(keymap)
 {
@@ -68,12 +68,12 @@ void StateControlsConfig::Render(ion::render::Renderer& renderer, ion::render::C
 
 }
 
-void StateControlsConfig::OnKeyDown(int key)
+void StateControlsConfig::OnKeyDown(ion::input::Keycode key)
 {
 	m_keymap[m_currentKeyIdx++] = key;
 }
 
-void StateControlsConfig::OnKeyUp(int key)
+void StateControlsConfig::OnKeyUp(ion::input::Keycode key)
 {
 
 }

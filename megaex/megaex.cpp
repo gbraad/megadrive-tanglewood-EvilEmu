@@ -30,14 +30,14 @@ MegaEx::MegaEx() : ion::framework::Application("megaEx")
 
 	//Default keymap
 #if defined ION_PLATFORM_WINDOWS
-	m_keyboardMap[eBtn_Up] = DIK_UP;
-	m_keyboardMap[eBtn_Down] = DIK_DOWN;
-	m_keyboardMap[eBtn_Left] = DIK_LEFT;
-	m_keyboardMap[eBtn_Right] = DIK_RIGHT;
-	m_keyboardMap[eBtn_A] = DIK_A;
-	m_keyboardMap[eBtn_B] = DIK_S;
-	m_keyboardMap[eBtn_C] = DIK_D;
-	m_keyboardMap[eBtn_Start] = DIK_RETURN;
+	m_keyboardMap[eBtn_Up] = ion::input::Keycode::UP;
+	m_keyboardMap[eBtn_Down] = ion::input::Keycode::DOWN;
+	m_keyboardMap[eBtn_Left] = ion::input::Keycode::LEFT;
+	m_keyboardMap[eBtn_Right] = ion::input::Keycode::RIGHT;
+	m_keyboardMap[eBtn_A] = ion::input::Keycode::A;
+	m_keyboardMap[eBtn_B] = ion::input::Keycode::S;
+	m_keyboardMap[eBtn_C] = ion::input::Keycode::D;
+	m_keyboardMap[eBtn_Start] = ion::input::Keycode::RETURN;
 #endif
 
 	m_gamepadMap[eBtn_Up] = ion::input::Gamepad::DPAD_UP;
@@ -196,7 +196,7 @@ bool MegaEx::UpdateInput(float deltaTime)
 	EmulatorSetButtonState(buttonState);
 
 #if defined ION_PLATFORM_WINDOWS
-	return !m_keyboard->KeyDown(DIK_ESCAPE);
+	return !m_keyboard->KeyDown(ion::input::Keycode::ESCAPE);
 #else
 	return true;
 #endif
