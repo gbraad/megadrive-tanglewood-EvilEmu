@@ -77,8 +77,11 @@ void StateGame::OnEnterState()
 	//Setup material
 	m_material->AddDiffuseMap(m_renderTexture);
 	m_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+
+#if defined ION_RENDERER_SHADER
 	m_material->SetVertexShader(m_vertexShader);
 	m_material->SetPixelShader(m_pixelShader);
+#endif
 
 	//Setup texture filtering
 	m_renderTexture->SetMinifyFilter(ion::render::Texture::eFilterNearest);

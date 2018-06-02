@@ -27,14 +27,14 @@ MegaEx::MegaEx() : ion::framework::Application("megaEx")
 	m_stateMenu = NULL;
 
 	//Default keymap
-	m_keyboardMap[eBtn_Up] = DIK_UP;
-	m_keyboardMap[eBtn_Down] = DIK_DOWN;
-	m_keyboardMap[eBtn_Left] = DIK_LEFT;
-	m_keyboardMap[eBtn_Right] = DIK_RIGHT;
-	m_keyboardMap[eBtn_A] = DIK_A;
-	m_keyboardMap[eBtn_B] = DIK_S;
-	m_keyboardMap[eBtn_C] = DIK_D;
-	m_keyboardMap[eBtn_Start] = DIK_RETURN;
+	m_keyboardMap[eBtn_Up] = ion::input::UP;
+	m_keyboardMap[eBtn_Down] = ion::input::DOWN;
+	m_keyboardMap[eBtn_Left] = ion::input::LEFT;
+	m_keyboardMap[eBtn_Right] = ion::input::RIGHT;
+	m_keyboardMap[eBtn_A] = ion::input::A;
+	m_keyboardMap[eBtn_B] = ion::input::S;
+	m_keyboardMap[eBtn_C] = ion::input::D;
+	m_keyboardMap[eBtn_Start] = ion::input::RETURN;
 
 	m_gamepadMap[eBtn_Up] = ion::input::Gamepad::DPAD_UP;
 	m_gamepadMap[eBtn_Down] = ion::input::Gamepad::DPAD_DOWN;
@@ -171,7 +171,7 @@ bool MegaEx::UpdateInput(float deltaTime)
 
 	for(int i = 0; i < eBtn_MAX; i++)
 	{
-		if(m_keyboard->KeyDown(m_keyboardMap[i]) || m_gamepad->ButtonDown((ion::input::Gamepad::Buttons)m_gamepadMap[i]))
+		if(m_keyboard->KeyDown(m_keyboardMap[i]) || m_gamepad->ButtonDown(m_gamepadMap[i]))
 		{
 			buttonState |= g_emulatorButtonBits[i];
 		}
@@ -179,7 +179,7 @@ bool MegaEx::UpdateInput(float deltaTime)
 
 	EmulatorSetButtonState(buttonState);
 
-	return !m_keyboard->KeyDown(DIK_ESCAPE);
+	return !m_keyboard->KeyDown(ion::input::ESCAPE);
 }
 
 bool MegaEx::InitialiseGameStates()
