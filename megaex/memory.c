@@ -142,7 +142,7 @@ void FM_Update()
 	LJ_YM_INT16 bob[2];
 	LJ_YM_INT16	*out[2];
 	
-	static U32 divisor = (CYCLES_PER_FRAME*FRAMES_PER_SECOND)/44100;
+	static U32 divisor = (CYCLES_PER_FRAME_68K*FRAMES_PER_SECOND_NTSC)/44100;
 	out[0]=&bob[0];
 	out[1]=&bob[1];
 
@@ -151,11 +151,11 @@ void FM_Update()
 		divisor--;
 		return;
 	}
-	divisor=(CYCLES_PER_FRAME*FRAMES_PER_SECOND)/44100;
+	divisor=(CYCLES_PER_FRAME_68K*FRAMES_PER_SECOND_NTSC)/44100;
 
 	if (chip==NULL)
 	{
-		chip=LJ_YM2612_create(LJ_YM2612_DEFAULT_CLOCK_RATE/*CYCLES_PER_FRAME*FRAMES_PER_SECOND*/,44100);
+		chip=LJ_YM2612_create(LJ_YM2612_DEFAULT_CLOCK_RATE/*CYCLES_PER_FRAME*FRAMES_PER_SECOND_NTSC*/,44100);
 	}
 
 	LJ_YM2612_generateOutput(chip,1,out);
@@ -228,6 +228,8 @@ U8 Z80_MEM_getByte(U16 address)
 	return 0xFF;
 }
 
+extern void VDP_WriteByte(U16 offset, U8 byte);
+
 void Z80_MEM_setByte(U16 address,U8 data)
 {
 	switch (address&0xF000)
@@ -251,7 +253,7 @@ void Z80_MEM_setByte(U16 address,U8 data)
 	case 0x7000:
 		if (address>0x7F00)
 		{
-			/*TODO VDP write*/
+			VDP_WriteByte(address & 0xFF, data);
 		}
 		break;
 	case 0x8000:
@@ -1176,7 +1178,7 @@ void VDP_DataModeStart()
 			{
 			case 1:	/* VRAM */
 
-				while (--length)
+				while (length)
 				{
 					U16 dataWord = MEM_getWord(srcAddress);
 
@@ -1193,12 +1195,14 @@ void VDP_DataModeStart()
 					}
 
 					dstAddress+= VDP_Registers[0x0F];
+
+					--length;
 				}
 				return;
 
 			case 3:	/* CRAM */
 
-				while (--length)
+				while (length)
 				{
 					U16 dataWord = MEM_getWord(srcAddress);
 
@@ -1208,6 +1212,8 @@ void VDP_DataModeStart()
 					cRam[(dstAddress & 0x7E)+1]=dataWord&0xFF;
 
 					dstAddress += VDP_Registers[0x0F];
+
+					length--;
 				}
 				return;
 			}
@@ -1478,7 +1484,8 @@ U8 MEM_getByte_SRAM(U32 upper24,U32 lower16)
 		}
 	}
 
-	DEB_PauseEmulation(DEB_Mode_68000,"Unmapped Read - May need to crash/return prefetch queue/implement missing functionality");
+	printf("Byteread from unmapped SRAM address 0x%08X\n", (int)upper24 << 16 | lower16);
+	//DEB_PauseEmulation(DEB_Mode_68000,"Unmapped Read - May need to crash/return prefetch queue/implement missing functionality");
 	return 0;
 }
 
@@ -1502,14 +1509,16 @@ void MEM_setByte_SRAM(U32 upper24,U32 lower16,U8 byte)
 		}
 	}
 
-	DEB_PauseEmulation(DEB_Mode_68000,"Unmapped Write - May need to crash/return prefetch queue/implement missing functionality");
+	printf("Byte 0x%02X written to unmapped SRAM address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
+	//DEB_PauseEmulation(DEB_Mode_68000,"Unmapped Write - May need to crash/return prefetch queue/implement missing functionality");
 }
 
 U8 MEM_getByteUnmapped(U32 upper24,U32 lower16)
 {
 	UNUSED_ARGUMENT(upper24);
 	UNUSED_ARGUMENT(lower16);
-	DEB_PauseEmulation(DEB_Mode_68000,"Unamapped Read - May need to crash/return prefetch queue/implement missing functionality");
+	printf("Byte read from unmapped address 0x%08X\n", (int)upper24 << 16 | lower16);
+	//DEB_PauseEmulation(DEB_Mode_68000,"Unamapped Read - May need to crash/return prefetch queue/implement missing functionality");
 	return 0;
 }
 
@@ -1979,7 +1988,8 @@ U8 MEM_getByte_IO(U32 upper24,U32 lower16)
 		}
 		return ioRegisters[((lower16&0x1E)+1)];
 	}
-	DEB_PauseEmulation(DEB_Mode_68000,"Unhandled attempt to Read IO Register");
+	printf("Byte read from unmapped address 0x%08X\n", (int)upper24 << 16 | lower16);
+	//DEB_PauseEmulation(DEB_Mode_68000,"Unhandled attempt to Read IO Register");
 	return 0xFF;
 }
 
@@ -1989,7 +1999,8 @@ U8 MEM_getByte_VDP(U32 upper24,U32 lower16)
 	{
 		return VDP_ReadByte(lower16&0x1F);
 	}
-	DEB_PauseEmulation(DEB_Mode_68000,"Invalid VDP area access");
+	printf("Byte read from unmapped VRAM address 0x%08X\n", (int)upper24 << 16 | lower16);
+	//DEB_PauseEmulation(DEB_Mode_68000,"Invalid VDP area access");
 	return 0xFF;
 }
 
@@ -2033,6 +2044,7 @@ void MEM_setByte_CartRom(U32 upper24,U32 lower16,U8 byte)
 	UNUSED_ARGUMENT(upper24);
 	UNUSED_ARGUMENT(lower16);
 	UNUSED_ARGUMENT(byte);
+	printf("Byte 0x%02X written to cart address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
 /*
 	DEB_PauseEmulation(DEB_Mode_68000,"Write to cart rom... !");
 */
@@ -2130,7 +2142,9 @@ void MEM_setByte_IO(U32 upper24,U32 lower16,U8 byte)
 		}
 	}
 
-	DEB_PauseEmulation(DEB_Mode_68000,"OOB IO Writes currently unhandled");
+	printf("Byte 0x%02X written to unmapped address 0x%08X\n", (int)byte, (int)upper24<<16|lower16);
+
+	// DEB_PauseEmulation(DEB_Mode_68000,"OOB IO Writes currently unhandled");
 }
 
 void MEM_setByte_VDP(U32 upper24,U32 lower16,U8 byte)
@@ -2140,7 +2154,8 @@ void MEM_setByte_VDP(U32 upper24,U32 lower16,U8 byte)
 		VDP_WriteByte(lower16&0x1F,byte);
 		return;
 	}
-	DEB_PauseEmulation(DEB_Mode_68000,"Invalid VDP area access");
+	printf("Byte 0x%02X written to unmapped VRAM address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
+	//DEB_PauseEmulation(DEB_Mode_68000,"Invalid VDP area access");
 }
 
 void MEM_setByteUnmapped(U32 upper24,U32 lower16,U8 byte)
@@ -2148,7 +2163,8 @@ void MEM_setByteUnmapped(U32 upper24,U32 lower16,U8 byte)
 	UNUSED_ARGUMENT(upper24);
 	UNUSED_ARGUMENT(lower16);
 	UNUSED_ARGUMENT(byte);
-	DEB_PauseEmulation(DEB_Mode_68000,"Unamapped Write - May need to crash/return prefetch queue/implement missing functionality");
+	printf("Byte 0x%02X written to unmapped address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
+	//DEB_PauseEmulation(DEB_Mode_68000,"Unamapped Write - May need to crash/return prefetch queue/implement missing functionality");
 }
 
 void MEM_setByte(U32 address,U8 byte)

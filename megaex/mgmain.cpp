@@ -79,11 +79,11 @@ THE SOFTWARE.
 #include "gui/debugger.h"
 
 #include <ion/core/time/Time.h>
+#include <ion/maths/Maths.h>
 
 U8	inHBlank=0;
 U8	inVBlank=0;
 
-u32 g_frameTickCount = 0;
 u64 g_cpuTicks = 0;
 u64 g_fpsCountTicks = 0;
 u64 g_fpsUpdateCounter = 0;
@@ -1124,77 +1124,127 @@ bool InitialiseEmulator(const char* rom)
 	return true;
 }
 
-EmulatorState TickEmulator()
+const int clockTicksPerFrame = CLOCK_FREQUENCY_NTSC / FRAMES_PER_SECOND_NTSC;
+
+float totalTime = 0.0f;
+float accumTime = 0.0f;
+
+u64 clock = 0;
+u64 clockZ80 = 0;
+u64 clockFM = 0;
+u64 clockPSG = 0;
+
+const int clockDivider68K = 7;
+const int clockDividerZ80 = 15;
+const int clockDividerFM = 7;
+const int clockDividerPSG = 15;
+
+EmulatorState TickEmulator(float deltaTime)
 {
 	int debuggerRunning = UpdateDebugger();
 
+	int ticksPerFrames = CLOCK_TICKS_PER_FRAME;
+	int cyclesPerFrame = CYCLES_PER_FRAME_68K;
+	int cyclesPerLine = CYCLES_PER_LINE_68K;
+
 	if(!debuggerRunning)
 	{
-		for(int i = 0; i < CYCLES_PER_FRAME; i++)
+		totalTime += deltaTime;
+		accumTime += deltaTime;
+
+		if (accumTime >= 1.0f / (float)FRAMES_PER_SECOND_NTSC / LINES_PER_FRAME_NTSC)
 		{
-			FM_Update();
-			CPU_Step();
-			PSG_Update();
-			Z80_Step();
+			accumTime -= 1.0f / (float)FRAMES_PER_SECOND_NTSC / LINES_PER_FRAME_NTSC;
 
-			g_frameTickCount++;
-			g_cpuTicks++;
-
-			lineNo = i / CYCLES_PER_LINE;
-			colNo = i % CYCLES_PER_LINE;
-
-			if(lineNo > 223)
+			//Process one a frame at a time
+			for (int i = 0; i < CYCLES_PER_FRAME_68K; i++)
 			{
-				inVBlank = 1;
-			}
-			else
-			{
-				inVBlank = 0;
-			}
+				clock += clockDivider68K;
+				clockZ80 += clockDivider68K;
+				clockFM += clockDivider68K;
+				clockPSG += clockDivider68K;
 
-			if(colNo > ((CYCLES_PER_LINE * 3) / 4))
-			{
-				inHBlank = 1;
-			}
-			else
-			{
-				inHBlank = 0;
-			}
+				CPU_Step();
+				g_cpuTicks++;
 
-			if(colNo == ((CYCLES_PER_LINE * 3) / 4))
-			{
-				U32 displaySizeY = (VDP_Registers[1] & 0x08) ? 30 * 8 : 28 * 8;			/* not quite true.. ntsc can never be 30! */
-
-				if(lineNo > 224)
+				if(clockZ80 > clockDividerZ80)
 				{
-					LineCounter = VDP_Registers[0x0A];
+					Z80_Step();
+					clockZ80 -= clockDividerZ80;
+				}
+
+				if(clockFM > clockDividerFM)
+				{
+					FM_Update();
+					clockFM -= clockDividerFM;
+				}
+
+				if(clockPSG > clockDividerPSG)
+				{
+					PSG_Update();
+					clockPSG -= clockDividerPSG;
+				}
+
+				int lineNo = i / cyclesPerLine;
+				int colNo = i % cyclesPerLine;
+
+				if (lineNo > 223)
+				{
+					inVBlank = 1;
 				}
 				else
 				{
-					LineCounter--;
-					if(LineCounter == 0xFFFFFFFF)
+					inVBlank = 0;
+				}
+
+				if (colNo > ((CYCLES_PER_LINE_68K * 3) / 4))
+				{
+					inHBlank = 1;
+				}
+				else
+				{
+					inHBlank = 0;
+				}
+
+				if (colNo == ((CYCLES_PER_LINE_68K * 3) / 4))
+				{
+					U32 displaySizeY = (VDP_Registers[1] & 0x08) ? 30 * 8 : 28 * 8;			/* not quite true.. ntsc can never be 30! */
+
+					if (lineNo > 224)
 					{
 						LineCounter = VDP_Registers[0x0A];
-						CPU_SignalInterrupt(4);
+					}
+					else
+					{
+						LineCounter--;
+						if (LineCounter == 0xFFFFFFFF)
+						{
+							LineCounter = VDP_Registers[0x0A];
+							CPU_SignalInterrupt(4);
+						}
+					}
+
+					if (lineNo < displaySizeY)
+					{
+						VID_DrawScreen(lineNo);
 					}
 				}
 
-				if(lineNo < displaySizeY)
+				if ((lineNo == 225) && (colNo == 8))
 				{
-					VID_DrawScreen(lineNo);
+					CPU_SignalInterrupt(6);
+					Z80_SignalInterrupt(0);
 				}
-			}
 
-			if((lineNo == 225) && (colNo == 8))
-			{
-				CPU_SignalInterrupt(6);
-				Z80_SignalInterrupt(0);
+				UpdateAudio();
 			}
 		}
 
-		DisplayDebugger();
+		//UpdateAudio();
 
-		UpdateAudio();
+		//DisplayDebugger();
+
+		//UpdateAudio();
 	}
 
 	EmulatorState state = debuggerRunning ? eState_Debugger : eState_Running;
@@ -1465,7 +1515,8 @@ ALboolean ALFWShutdownOpenAL()
 
 int curPlayBuffer=0;
 
-#define BUFFER_LEN		(44100/FRAMES_PER_SECOND)
+// Filling audio buffer once per frame, playing at 44100hz
+#define BUFFER_LEN		(44100/FRAMES_PER_SECOND_NTSC)
 
 BUFFER_FORMAT audioBuffer[BUFFER_LEN];
 int amountAdded=0;
@@ -1509,7 +1560,7 @@ void _AudioAddData(int channel,S16 dacValue)
 }
 
 float tickCnt=0;
-float tickRate=((CYCLES_PER_FRAME*FRAMES_PER_SECOND)/44100.f);
+float tickRate=((CYCLES_PER_FRAME_68K*FRAMES_PER_SECOND_NTSC)/44100.f);
 
 /* audio ticked at same clock as everything else... so need a step down */
 void UpdateAudio()

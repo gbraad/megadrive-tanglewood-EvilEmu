@@ -27,14 +27,14 @@ MegaEx::MegaEx() : ion::framework::Application("megaEx")
 	m_stateMenu = NULL;
 
 	//Default keymap
-	m_keyboardMap[eBtn_Up] = ion::input::UP;
-	m_keyboardMap[eBtn_Down] = ion::input::DOWN;
-	m_keyboardMap[eBtn_Left] = ion::input::LEFT;
-	m_keyboardMap[eBtn_Right] = ion::input::RIGHT;
-	m_keyboardMap[eBtn_A] = ion::input::A;
-	m_keyboardMap[eBtn_B] = ion::input::S;
-	m_keyboardMap[eBtn_C] = ion::input::D;
-	m_keyboardMap[eBtn_Start] = ion::input::RETURN;
+	m_keyboardMap[eBtn_Up] = ion::input::W;
+	m_keyboardMap[eBtn_Down] = ion::input::S;
+	m_keyboardMap[eBtn_Left] = ion::input::A;
+	m_keyboardMap[eBtn_Right] = ion::input::D;
+	m_keyboardMap[eBtn_A] = ion::input::J;
+	m_keyboardMap[eBtn_B] = ion::input::K;
+	m_keyboardMap[eBtn_C] = ion::input::L;
+	m_keyboardMap[eBtn_Start] = ion::input::SPACE;
 
 	m_gamepadMap[eBtn_Up] = ion::input::Gamepad::DPAD_UP;
 	m_gamepadMap[eBtn_Down] = ion::input::Gamepad::DPAD_DOWN;

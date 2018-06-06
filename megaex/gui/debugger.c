@@ -951,10 +951,10 @@ void DisplayCustomRegs()
 	DisplayApproximationOfScreen(70*8,16*8,0);
 }
 
-extern U16	PSG_ToneNoise[4];
+extern U16	PSG_RegsCounters[4];
 extern U16	PSG_ToneCounter[4];
 extern U16	PSG_ToneOut[4];
-extern U8		PSG_Vol[4];
+extern U8	PSG_RegsAttenuation[4];
 extern U16	PSG_NoiseShiftRegister;
 
 #if SMS_MODE
@@ -985,10 +985,10 @@ void SMS_DisplayCustomRegs()
 
 	for (y=0;y<4;y++)
 	{
-		PrintAt(0x0F,0xFF,30,y+32,"TN %04X",PSG_ToneNoise[y]);
+		PrintAt(0x0F,0xFF,30,y+32,"TN %04X", PSG_RegsCounters[y]);
 		PrintAt(0x0F,0xFF,40,y+32,"TC %04X",PSG_ToneCounter[y]);
 		PrintAt(0x0F,0xFF,50,y+32,"TO %04X",PSG_ToneOut[y]);
-		PrintAt(0x0F,0xFF,60,y+32,"V  %02X",PSG_Vol[y]);
+		PrintAt(0x0F,0xFF,60,y+32,"V  %02X", PSG_RegsAttenuation[y]);
 	}
 	PrintAt(0x0F,0xFF,30,4+32,"Noise %04X",PSG_NoiseShiftRegister);
 
@@ -1252,10 +1252,10 @@ void DisplayDebugger()
 
 			for (y=0;y<4;y++)
 			{
-				PrintAt(0x0F,0xFF,60,y+32,"TN %04X",PSG_ToneNoise[y]);
+				PrintAt(0x0F,0xFF,60,y+32,"TN %04X", PSG_RegsCounters[y]);
 				PrintAt(0x0F,0xFF,70,y+32,"TC %04X",PSG_ToneCounter[y]);
 				PrintAt(0x0F,0xFF,80,y+32,"TO %04X",PSG_ToneOut[y]);
-				PrintAt(0x0F,0xFF,90,y+32,"V  %02X",PSG_Vol[y]);
+				PrintAt(0x0F,0xFF,90,y+32,"V  %02X", PSG_RegsAttenuation[y]);
 			}
 			PrintAt(0x0F,0xFF,60,4+32,"Noise %04X",PSG_NoiseShiftRegister);
 
@@ -1575,8 +1575,8 @@ int UpdateDebugger()
 
 void DEB_PauseEmulation(int pauseMode,char *reason)
 {
-	dbMode=pauseMode;
-	g_pause=1;
+	//dbMode=pauseMode;
+	//g_pause=1;
 	printf("Invoking debugger due to %s\n",reason);
 }
 #endif
@@ -1948,11 +1948,11 @@ void ComputeSpritesForNextLine(int nextLine)
 /* Sprite Data 
 
 
-    Index + 0  :   ------yy yyyyyyyy
- Index + 2  :   ----hhvv
- Index + 3  :   -lllllll
- Index + 4  :   pccvhnnn nnnnnnnn
- Index + 6  :   ------xx xxxxxxxx
+ Index + 0  :   -------y yyyyyyyy	: 9 bits (10 bits in interlaced mode only)
+ Index + 2  :   ----hhvv			; 2x2 bits
+ Index + 3  :   -lllllll			; 7 bits
+ Index + 4  :   pccvhnnn nnnnnnnn	; 1 bit (prio), 2 bits (pal), 1 bit (vflip), 1 bit (hflip), 11 bits (tile id)
+ Index + 6  :   -------x xxxxxxxx	; 9 bits
 
  y = Vertical coordinate of sprite
  h = Horizontal size in cells (00b=1 cell, 11b=4 cells)
@@ -1972,11 +1972,11 @@ NB : sprite with x coord=0 masks off lower sprites for scanlines this sprite wou
 	spriteAddress=baseSpriteAddress;
 	while (totSpritesScan && bailOut)
 	{
-		U16 yPos = ( (vRam[spriteAddress+0]<<8) | (vRam[spriteAddress+1]) ) & 0x03FF;
+		U16 yPos = ( (vRam[spriteAddress+0]<<8) | (vRam[spriteAddress+1]) ) & 0x01FF;
 		U16 size = vRam[spriteAddress+2] & 0x0F;
-		U16 link = vRam[spriteAddress+3] & 0x7F;
+		U16 link = vRam[spriteAddress+3] & 0x3F;
 		U16 ctrl = ( (vRam[spriteAddress+4]<<8) | (vRam[spriteAddress+5]) ) & 0xFFFF;
-		U16 xPos = ( (vRam[spriteAddress+6]<<8) | (vRam[spriteAddress+7]) ) & 0x03FF;
+		U16 xPos = ( (vRam[spriteAddress+6]<<8) | (vRam[spriteAddress+7]) ) & 0x01FF;
 		int vSize = size&0x03;
 		int hSize = (size&0x0C)>>2;
 		U8 attributeHighNibble = (ctrl&0xE000)>>8;

@@ -2119,30 +2119,40 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 	LJ_YM_UINT32 debugFlags = 0;
 	if (ym2612Ptr == NULL)
 	{
+#if _DEBUG
 		fprintf(stderr, "ym2612_setRegister:ym2612 is NULL\n");
+#endif
 		return LJ_YM2612_ERROR;
 	}
 
 	if (part >= LJ_YM2612_NUM_PARTS)
 	{
+#if _DEBUG
 		fprintf(stderr, "ym2612_setRegister:invalid part:%d max:%d \n",part, LJ_YM2612_NUM_PARTS);
+#endif
 		return LJ_YM2612_ERROR;
 	}
 
 	if (LJ_YM2612_validRegisters[reg] == 0)
 	{
+#if _DEBUG
 		fprintf(stderr, "ym2612_setRegister:unknown register:0x%X part:%d data:0x%X\n", reg, part, data);
+#endif
 		return LJ_YM2612_ERROR;
 	}
 
 	if ((reg < 0x30) && (part != 0))
 	{
+#if _DEBUG
 		fprintf(stderr, "ym2612_setRegister:unknown register:0x%X part:%d data:0x%X\n", reg, part, data);
+#endif
 		return LJ_YM2612_ERROR;
 	}
 	if (reg > 0xB6)
 	{
+#if _DEBUG
 		fprintf(stderr, "ym2612_setRegister:unknown register:0x%X part:%d data:0x%X\n", reg, part, data);
+#endif
 		return LJ_YM2612_ERROR;
 	}
 	debugFlags = ym2612Ptr->debugFlags;

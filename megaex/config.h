@@ -26,29 +26,47 @@ THE SOFTWARE.
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#define VDP_SCREEN_WIDTH	320
-#define VDP_SCREEN_HEIGHT	224
-#define LINE_LENGTH			((228)*4)					/* 228 / 227 alternating */
-#define WIDTH 				(LINE_LENGTH)
-#define HEIGHT 				(262*2)
-#define BPP					(4)
-#define DEPTH				(32)
+#define VDP_SCREEN_WIDTH		320
+#define VDP_SCREEN_HEIGHT		224
+#define LINE_LENGTH				((228)*4)					/* 228 / 227 alternating */
+#define WIDTH 					(LINE_LENGTH)
+#define HEIGHT 					(262*2)
+#define BPP						(4)
+#define DEPTH					(32)
 
 #define DEFAULT_SCREEN_WIDTH	VDP_SCREEN_WIDTH*2
 #define DEFAULT_SCREEN_HEIGHT	VDP_SCREEN_HEIGHT*2
 
-#define CYCLES_PER_LINE			(450/2)
-#define CYCLES_PER_FRAME		(CYCLES_PER_LINE*312)
-#define FRAMES_PER_SECOND		(60)
+#define CLOCK_FREQUENCY_NTSC	53693175 //Hz
+#define CLOCK_FREQUENCY_PAL		53203424 //Hz
 
-#define PAL_PRETEND					0
+#define CLOCK_DIVIDER_68K		7
+#define CLOCK_DIVIDER_Z80		15
+#define CLOCK_DIVIDER_FM		7
+#define CLOCK_DIVIDER_PSG		15
+
+#define FRAMES_PER_SECOND_NTSC	60
+#define FRAMES_PER_SECOND_PAL	50
+
+#define CLOCK_TICKS_PER_FRAME	CLOCK_FREQUENCY_NTSC / FRAMES_PER_SECOND_NTSC
+
+#define LINES_PER_FRAME_NTSC	262
+#define LINES_PER_FRAME_PAL		312
+
+#define CYCLES_PER_FRAME_68K	CLOCK_TICKS_PER_FRAME / CLOCK_DIVIDER_68K
+#define CYCLES_PER_LINE_68K		CYCLES_PER_FRAME_68K / LINES_PER_FRAME_NTSC
+
+// Tick emulator 1/8th of a line at a time
+#define CYCLES_PER_EMU_UPDATE_68K	CYCLES_PER_LINE_68K / 8
+
+#define PAL_PRETEND				0
 
 #define ENABLE_DEBUGGER			1
 #define DEBUG_BREAK_ON_BOOT		0
 
 #define	ENABLE_32X_MODE			0
 
-#define SMS_MODE						0			/* Attempt to emulate SMS using megadrive core */
+#define SMS_MODE				0			/* Attempt to emulate SMS using megadrive core */
 #define ENABLE_SMS_BIOS			0
 #define SMS_CART_MISSING		0
 

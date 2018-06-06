@@ -123,7 +123,7 @@ void StateGame::OnResumeState()
 void StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad)
 {
 	//Update emulator
-	EmulatorState emulatorState = TickEmulator();
+	EmulatorState emulatorState = TickEmulator(deltaTime);
 
 	if(emulatorState != m_prevEmulatorState)
 	{

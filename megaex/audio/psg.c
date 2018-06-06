@@ -31,34 +31,40 @@ THE SOFTWARE.
 #include "config.h"
 #include "psg.h"
 
-U8 PSG_AddressLatch=0;
+// Registers
+U8	PSG_RegsAttenuation[4]={0xF,0xF,0xF,0xF};
+U16 PSG_RegsCounters[4] = { 0,0,0,0 };
 
-U16 PSG_NoiseShiftRegister=0x8000;
-U16 PSG_ToneNoise[4]={0,0,0,0};
-U16	PSG_ToneCounter[4]={0,0,0,0};
-U16 PSG_ToneOut[4]={0,0,0,0};
-U16 PSG_NoiseCounter=0;
-U8	PSG_Vol[4]={0xF,0xF,0xF,0xF};
+// Current counters
+U16	PSG_ToneCounter[4] = { 0,0,0,0 };
+
+// Current tone output edges
+U16 PSG_ToneOut[4] = { 0,0,0,0 };
 
 U16 PSG_MasterClock=0;
+U8 PSG_AddressLatch = 0;
+U16 PSG_NoiseShiftRegister = 0x8000;
+U16 PSG_NoiseCounter = 0;
 
 void PSG_UpdateTones()
 {
-	int a;
-	for (a=0;a<3;a++)
+	for (int a = 0; a < 3; a++)
 	{
-		if (PSG_ToneCounter[a]==0)	/* special case, always set high */
+		if (PSG_ToneCounter[a] == 0)	/* special case, always set high */
 		{
-			PSG_ToneOut[a]=1;
-			PSG_ToneCounter[a]=PSG_ToneNoise[a]&0x3FF;
+			PSG_ToneOut[a] = 1;
+			PSG_ToneCounter[a] = PSG_RegsCounters[a];
 		}
 		else
 		{
-			PSG_ToneCounter[a]--;
-			if (PSG_ToneCounter[a]==0)
+			//Decrement counter
+			if ((--PSG_ToneCounter[a]) == 0)
 			{
-				PSG_ToneOut[a]^=1;
-				PSG_ToneCounter[a]=PSG_ToneNoise[a]&0x3FF;
+				//Counter elapsed, flip waveform edge
+				PSG_ToneOut[a] ^= 1;
+
+				//Reset counter
+				PSG_ToneCounter[a] = PSG_RegsCounters[a];
 			}
 		}
 	}
@@ -68,7 +74,7 @@ void PSG_UpdateNoiseShiftRegister()
 {
 	U16 newBit=0;
 	PSG_ToneOut[3]^=PSG_NoiseShiftRegister&0x01;
-	if (PSG_ToneNoise[3]&0x4)
+	if (PSG_RegsCounters[3]&0x4)
 	{
 		newBit = ((PSG_NoiseShiftRegister&0x08)>>3) ^ (PSG_NoiseShiftRegister&0x01);
 	}
@@ -96,7 +102,7 @@ void PSG_UpdateNoise()
 				PSG_UpdateNoiseShiftRegister();
 			}
 			PSG_NoiseCounter^=1;
-			PSG_ToneCounter[3]=(PSG_ToneNoise[3]+1)&0x3;
+			PSG_ToneCounter[3]=(PSG_RegsCounters[3]+1)&0x3;
 			if (PSG_ToneCounter[3]==0)
 			{
 				PSG_ToneCounter[3]=PSG_ToneCounter[2];
@@ -109,40 +115,40 @@ void PSG_UpdateNoise()
 	}
 }
 
-#define MAX_OUTPUT_LEVEL		(0x1FFF)
-
 #define VOL_TYPE		U16
 
-VOL_TYPE logScale[16]=													/* stolen from speccy, log may be wrong */
+// From smspower.org
+VOL_TYPE logScale[16] =
 {
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.00000f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.01370f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.02050f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.02910f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.04230f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.06180f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.08470f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.13690f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.16910f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.26470f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.35270f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.44990f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.57040f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.68730f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 0.84820f),
-	(VOL_TYPE)(MAX_OUTPUT_LEVEL * 1.00000f)
+	0,
+	1304 / 14,
+	1642 / 14,
+	2067 / 14,
+	2603 / 14,
+	3277 / 14,
+	4125 / 14,
+	5193 / 14,
+	6568 / 14,
+	8231 / 14,
+	10362 / 14,
+	13045 / 14,
+	16422 / 14,
+	20675 / 14,
+	26028 / 14,
+	32767 / 14
 };
 
 U16 PSG_Output()
 {
-	int a;
-	U16 sample=0;
+	U16 sample = 0;
 
-	for (a=0;a<4;a++)
+	for (int a = 0; a < 4; a++)
 	{
+		//If waveform edge high
 		if (PSG_ToneOut[a])
 		{
-			sample+=logScale[15-PSG_Vol[a]];
+			//Output at current volume
+			sample += logScale[15 - PSG_RegsAttenuation[a]];
 		}
 	}
 
@@ -153,34 +159,41 @@ ION_C_API void _AudioAddData(int channel, S16 dacValue);		/* Externally defined 
 
 void PSG_Update()
 {
-	/* just do tones for now */
-	PSG_MasterClock++;
-	if (PSG_MasterClock>=16)
+	//Divide clock
+	if ((++PSG_MasterClock) >= 16)
 	{
-		PSG_MasterClock=0;
+		//Elapsed
+		PSG_MasterClock = 0;
 
+		//Tick channels
 		PSG_UpdateTones();
 		PSG_UpdateNoise();
 
-		_AudioAddData(1,PSG_Output());
+		//Output to buffer
+		_AudioAddData(1, PSG_Output());
 	}
 }
 
 void PSG_UpdateRegLo(U8 data)
 {
-	int channel=(PSG_AddressLatch&0x60)>>5;
+	//Latch bits 6-5 = channel
+	int channel = (PSG_AddressLatch&0x60)>>5;
+
+	//Latch bit 4 = write attenuation reg
 	if (PSG_AddressLatch&0x10)
 	{
-		PSG_Vol[channel]=data&0x0F;
+		PSG_RegsAttenuation[channel]=data&0x0F;
 	}
 	else
 	{
-		PSG_ToneNoise[channel]&=~0x0F;
-		PSG_ToneNoise[channel]|=data&0x0F;
-		if (channel==3)
+		//Write lower 4 bits
+		PSG_RegsCounters[channel] = (data & 0x0F) | (PSG_RegsCounters[channel] & ~0x000F);
+
+		//If noise channel
+		if (channel == 3)
 		{
 			PSG_NoiseShiftRegister=0x8000;
-			PSG_ToneCounter[3]=(PSG_ToneNoise[3]+1)&0x3;
+			PSG_ToneCounter[3]=(PSG_RegsCounters[3]+1)&0x3;
 			if (PSG_ToneCounter[3]==0)
 			{
 				PSG_ToneCounter[3]=PSG_ToneCounter[2];
@@ -195,32 +208,36 @@ void PSG_UpdateRegLo(U8 data)
 
 void PSG_UpdateRegHi(U8 data)
 {
-	int channel=(PSG_AddressLatch&0x60)>>5;
+	//Latch bits 6-5 = channel
+	int channel = (PSG_AddressLatch&0x60)>>5;
+
+	//Latch bit 4 = write attenuation reg
 	if (PSG_AddressLatch&0x10)
 	{
-		PSG_Vol[channel]=data&0x0F;
+		PSG_RegsAttenuation[channel]=data&0x0F;
 	}
 	else
 	{
-		if (channel==3)		/* special case (noise reg is 4 bit) */
+		//If noise channel
+		if (channel == 3)
 		{
-			PSG_ToneNoise[channel]&=~0x0F;
-			PSG_ToneNoise[channel]|=data&0x0F;
+			PSG_RegsCounters[channel]&=~0x0F;
+			PSG_RegsCounters[channel]|=data&0x0F;
 			PSG_NoiseShiftRegister=0x8000;
-			PSG_ToneCounter[3]=(PSG_ToneNoise[3]+1)&0x3;
+			PSG_ToneCounter[3]=(PSG_RegsCounters[3]+1)&0x3;
 			if (PSG_ToneCounter[3]==0)
 			{
 				PSG_ToneCounter[3]=PSG_ToneCounter[2];
 			}
 			else
 			{
-				PSG_ToneCounter[3]<<=4;	
+				PSG_ToneCounter[3]<<=4;
 			}
 		}
 		else
 		{
-			PSG_ToneNoise[channel]&=~0x3F0;
-			PSG_ToneNoise[channel]|=(data&0x3F)<<4;
+			//Write upper 6 bits
+			PSG_RegsCounters[channel] = (data << 4) | (PSG_RegsCounters[channel] & ~0xFFF0);
 		}
 	}
 }
@@ -229,11 +246,13 @@ void PSG_Write(U8 data)
 {
 	if (data&0x80)
 	{
+		//Latch on, write low byte
 		PSG_AddressLatch=data;
-		PSG_UpdateRegLo(data&0xF);
+		PSG_UpdateRegLo(data);
 	}
 	else
 	{
-		PSG_UpdateRegHi(data&0x3F);
+		//Latch off, write high byte
+		PSG_UpdateRegHi(data);
 	}
 }

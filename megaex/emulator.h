@@ -25,9 +25,9 @@ static u16 g_emulatorButtonBits[] =
 	0x0202,
 	0x0400,
 	0x0800,
-	0x2000,
-	0x1000,
 	0x0010,
+	0x1000,
+	0x2000,
 	0x0020
 };
 
@@ -51,7 +51,7 @@ enum EmulatorState
 };
 
 bool InitialiseEmulator(const char* rom);
-EmulatorState TickEmulator();
+EmulatorState TickEmulator(float deltaTime);
 void ShutdownEmulator();
 void EmulatorSetButtonState(u16 buttonState);
 const char* EmulatorGetROMTitle();
