@@ -1,7 +1,8 @@
 SubDir bigevilcorp megaex ;
 
-ion_renderer_opts = shader ;
+ion_renderer_opts = fixed ;
 
+ApplyIonCompiler megaex ;
 ApplyIonDefines megaex ;
 ApplyIonIncludes megaex ;
 ApplyIonCore megaex ;
