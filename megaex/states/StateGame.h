@@ -40,10 +40,13 @@ private:
 	ion::Vector2i m_emulatorSize;
 
 	ion::render::Texture* m_renderTexture;
-	ion::render::Shader* m_vertexShader;
-	ion::render::Shader* m_pixelShader;
 	ion::render::Material* m_material;
 	ion::render::Quad* m_quadPrimitive;
+
+#if defined ION_RENDERER_SHADER
+	ion::render::Shader* m_vertexShader;
+	ion::render::Shader* m_pixelShader;
+#endif
 
 	EmulatorState m_prevEmulatorState;
 };

@@ -47,10 +47,13 @@ StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::Resource
 	, m_emulatorSize(emulatorSize)
 {
 	m_renderTexture = NULL;
-	m_vertexShader = NULL;
-	m_pixelShader = NULL;
 	m_material = NULL;
 	m_quadPrimitive = NULL;
+
+#if defined ION_RENDERER_SHADER
+	m_vertexShader = NULL;
+	m_pixelShader = NULL;
+#endif
 
 	m_prevEmulatorState = eState_Running;
 }
@@ -58,10 +61,17 @@ StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::Resource
 void StateGame::OnEnterState()
 {
 	m_renderTexture = ion::render::Texture::Create(m_emulatorSize.x, m_emulatorSize.y, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
-	m_vertexShader = ion::render::Shader::Create();
-	m_pixelShader = ion::render::Shader::Create();
 	m_material = new ion::render::Material();
 	m_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(m_windowSize.x / 2.0f, m_windowSize.y / 2.0f));
+
+	//Setup material
+	m_material->AddDiffuseMap(m_renderTexture);
+	m_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+
+#if defined ION_RENDERER_SHADER
+	//Create shaders
+	m_vertexShader = ion::render::Shader::Create();
+	m_pixelShader = ion::render::Shader::Create();
 
 	//Load shaders
 	if(!m_vertexShader->Load("shaders/flattextured_v.ion.shader"))
@@ -74,11 +84,6 @@ void StateGame::OnEnterState()
 		ion::debug::Error("Failed to load pixel shader\n");
 	}
 
-	//Setup material
-	m_material->AddDiffuseMap(m_renderTexture);
-	m_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
-
-#if defined ION_RENDERER_SHADER
 	m_material->SetVertexShader(m_vertexShader);
 	m_material->SetPixelShader(m_pixelShader);
 #endif
@@ -100,11 +105,13 @@ void StateGame::OnLeaveState()
 	if(m_material)
 		delete m_material;
 
+#if defined ION_RENDERER_SHADER
 	if(m_pixelShader)
 		delete m_pixelShader;
 
 	if(m_vertexShader)
 		delete m_vertexShader;
+#endif
 
 	if(m_renderTexture)
 		delete m_renderTexture;
