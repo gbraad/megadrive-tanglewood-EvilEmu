@@ -22,7 +22,7 @@
 #include <ion/input/Keyboard.h>
 #include <ion/input/Mouse.h>
 #include <ion/input/Gamepad.h>
-#include <ion/io/Resourcemanager.h>
+#include <ion/io/ResourceManager.h>
 
 #include "emulator.h"
 #include "states/StateControlsConfig.h"

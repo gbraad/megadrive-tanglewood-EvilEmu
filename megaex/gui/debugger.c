@@ -1294,6 +1294,7 @@ extern U32 Z80Cycles;
 #define ENABLE_PC_HISTORY		0
 int UpdateDebugger()
 {
+#if 0
 	int a;
 
 	if (cpu_regs.stage==0)
@@ -1569,7 +1570,7 @@ int UpdateDebugger()
 	ClearKey(GLFW_KEY_KP_0);
 	ClearKey(GLFW_KEY_KP_MULTIPLY);
 	ClearKey(GLFW_KEY_PAGE_UP);
-
+#endif
 	return g_pause;
 }
 

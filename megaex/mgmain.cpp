@@ -971,12 +971,14 @@ void ClearKey(int key)
 	keyArray[key*3+2]=0;
 }
 
+/*
 void kbHandler(GLFWwindow* window, int key, int scancode, int action, int modifiers)
 {
 	keyArray[key*3 + 0]=keyArray[key*3+1];
 	keyArray[key*3 + 1]=action;
 	keyArray[key*3 + 2]|=(keyArray[key*3+0]==GLFW_RELEASE)&&(keyArray[key*3+1]==GLFW_PRESS);
 }
+*/
 
 int captureMouse=0;
 
