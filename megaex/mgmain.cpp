@@ -1154,9 +1154,11 @@ EmulatorState TickEmulator(float deltaTime)
 		totalTime += deltaTime;
 		accumTime += deltaTime;
 
-		if (accumTime >= 1.0f / (float)FRAMES_PER_SECOND_NTSC / LINES_PER_FRAME_NTSC)
+		//if (accumTime >= 1.0f / (float)FRAMES_PER_SECOND_NTSC / LINES_PER_FRAME_NTSC)
+		if (accumTime >= 1.0f / (float)FRAMES_PER_SECOND_NTSC)
 		{
-			accumTime -= 1.0f / (float)FRAMES_PER_SECOND_NTSC / LINES_PER_FRAME_NTSC;
+			//accumTime -= 1.0f / (float)FRAMES_PER_SECOND_NTSC / LINES_PER_FRAME_NTSC;
+			accumTime -= 1.0f / (float)FRAMES_PER_SECOND_NTSC;
 
 			//Process one a frame at a time
 			for (int i = 0; i < CYCLES_PER_FRAME_68K; i++)
