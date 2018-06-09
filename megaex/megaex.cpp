@@ -61,7 +61,7 @@ bool MegaEx::Initialise()
 		return false;
 	}
 
-	if(!InitialiseEmulator("ROMS\\TANGLEWD.BIN"))
+	if(!InitialiseEmulator("ROMS/TANGLEWD.BIN"))
 	{
 		return false;
 	}

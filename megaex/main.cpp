@@ -2,7 +2,7 @@
 
 #include "megaex.h"
 
-int main(char** args, int numargs)
+int main(int numargs, char** args)
 {
 	MegaEx app;
 
