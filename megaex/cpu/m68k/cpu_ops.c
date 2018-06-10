@@ -182,246 +182,310 @@ U32 FUDGE_EA_CYCLES(U32 endCase,U32 offs,U32 stage,U16 operand)
 
 */
 
+typedef U32(*CEA_Handler)(U32, U32, U32, U32*, U16, int, int);
+
+#define MAX_ADDRESS_HANDLERS 0x3D
+
+// Dx
+U32 CEA_Handler_00_07(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	*ea = cpu_regs.D[operand];
+	return endCase;
+}
+
+// Ax
+U32 CEA_Handler_08_0F(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	*ea = cpu_regs.A[operand - 0x08];
+	return endCase;
+}
+
+// (Ax)
+U32 CEA_Handler_10_17(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+			*ea = cpu_regs.A[operand-0x10];
+	return endCase;
+}
+
+// (Ax)+
+U32 CEA_Handler_18_1F(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	if ((operand == 0x1F) && (length == 1))
+	{
+		length = 2;
+	}
+	*ea = cpu_regs.A[operand - 0x18];
+	cpu_regs.A[operand - 0x18] += length;
+	return endCase;
+}
+
+// -(Ax)
+U32 CEA_Handler_20_27(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (stage)
+	{
+	case 0:
+		if ((operand == 0x27) && (length == 1))
+		{
+			length = 2;
+		}
+		cpu_regs.A[operand - 0x20] -= length;
+		if (asSrc)								/* When used as src this costs 1 more cycle */
+			return 1 + offs;
+		break;
+	case 1:
+		break;
+	}
+	*ea = cpu_regs.A[operand - 0x20];
+	return endCase;
+}
+
+/* (XXXX,Ax) */
+U32 CEA_Handler_28_2F(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (stage)
+	{
+	case 0:
+		*ea = cpu_regs.PC;
+		cpu_regs.PC += 2;
+		return 1 + offs;
+	case 1:
+		if (!BUS_Available(*ea))
+			return 1 + offs;
+		*ea = cpu_regs.A[operand - 0x28] + (S16)MEM_getWord(*ea);
+		return 2 + offs;
+	case 2:
+		return endCase;
+	}
+	return endCase;
+}
+
+/* (XX,Ax,Xx) */
+U32 CEA_Handler_30_37(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (stage)
+	{
+	case 0:
+		*ea = cpu_regs.PC;
+		cpu_regs.PC += 2;
+		return 1 + offs;
+	case 1:
+		if (!BUS_Available(*ea))
+			return 1 + offs;
+		cpu_regs.tmpW = MEM_getWord(*ea);
+		return 2 + offs;
+	case 2:
+		if (cpu_regs.tmpW & 0x8000)
+		{
+			*ea = cpu_regs.A[(cpu_regs.tmpW >> 12) & 0x07];
+		}
+		else
+		{
+			*ea = cpu_regs.D[(cpu_regs.tmpW >> 12) & 0x07];
+		}
+		return 3 + offs;
+	case 3:
+		if (!(cpu_regs.tmpW & 0x0800))
+			*ea = (S16)*ea;
+		*ea += (S8)(cpu_regs.tmpW & 0xFF);
+		*ea += cpu_regs.A[operand - 0x30];
+		return endCase;
+	}
+	return endCase;
+}
+
+/* (XXXX).W */
+U32 CEA_Handler_38(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (stage)
+	{
+	case 0:
+		*ea = cpu_regs.PC;
+		cpu_regs.PC += 2;
+		return 1 + offs;
+	case 1:
+		if (!BUS_Available(*ea))
+			return 1 + offs;
+		*ea = (S16)MEM_getWord(*ea);
+		return 2 + offs;
+	case 2:
+		return endCase;
+	}
+	return endCase;
+}
+
+/* (XXXXXXXX).L */
+U32 CEA_Handler_39(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (stage)
+	{
+	case 0:
+		cpu_regs.tmpL = cpu_regs.PC;
+		cpu_regs.PC += 2;
+		return 1 + offs;
+	case 1:
+		if (!BUS_Available(cpu_regs.tmpL))
+			return 1 + offs;
+		*ea = MEM_getWord(cpu_regs.tmpL) << 16;
+		return 2 + offs;
+	case 2:
+		cpu_regs.tmpL = cpu_regs.PC;
+		cpu_regs.PC += 2;
+		return 3 + offs;
+	case 3:
+		if (!BUS_Available(cpu_regs.tmpL))
+			return 3 + offs;
+		*ea |= MEM_getWord(cpu_regs.tmpL);
+		return 4 + offs;
+	case 4:
+		return endCase;
+	}
+	return endCase;
+}
+
+/* (XXXX,PC) */
+U32 CEA_Handler_3A(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (stage)
+	{
+	case 0:
+		*ea = cpu_regs.PC;
+		cpu_regs.PC += 2;
+		return 1 + offs;
+	case 1:
+		if (!BUS_Available(*ea))
+			return 1 + offs;
+		*ea += (S16)MEM_getWord(*ea);
+		return 2 + offs;
+	case 2:
+		return endCase;
+	}
+	return endCase;
+}
+
+/* (XX,PC,Xx) */
+U32 CEA_Handler_3B(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (stage)
+	{
+	case 0:
+		cpu_regs.tmpL = cpu_regs.PC;
+		cpu_regs.PC += 2;
+		return 1 + offs;
+	case 1:
+		if (!BUS_Available(cpu_regs.tmpL))
+			return 1 + offs;
+		cpu_regs.tmpW = MEM_getWord(cpu_regs.tmpL);
+		return 2 + offs;
+	case 2:
+		if (cpu_regs.tmpW & 0x8000)
+		{
+			*ea = cpu_regs.A[(cpu_regs.tmpW >> 12) & 0x07];
+		}
+		else
+		{
+			*ea = cpu_regs.D[(cpu_regs.tmpW >> 12) & 0x07];
+		}
+		return 3 + offs;
+	case 3:
+		if (!(cpu_regs.tmpW & 0x0800))
+			*ea = (S16)*ea;
+		*ea += (S8)(cpu_regs.tmpW & 0xFF);
+		*ea += cpu_regs.tmpL;
+		return endCase;
+	}
+	return endCase;
+}
+
+/* #XX.B #XXXX.W #XXXXXXXX.L */
+U32 CEA_Handler_3C(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (length)
+	{
+	case 1:
+		*ea = cpu_regs.PC + 1;
+		cpu_regs.PC += 2;
+		return endCase;
+	case 2:
+		*ea = cpu_regs.PC;
+		cpu_regs.PC += 2;
+		return endCase;
+	case 4:
+		*ea = cpu_regs.PC;
+		cpu_regs.PC += 4;
+		return endCase;
+	}
+	return endCase;
+}
+
+CEA_Handler CEA_Handler_Table[MAX_ADDRESS_HANDLERS] =
+{
+	/* 0x00 */ CEA_Handler_00_07,
+	/* 0x01 */ CEA_Handler_00_07,
+	/* 0x02 */ CEA_Handler_00_07,
+	/* 0x03 */ CEA_Handler_00_07,
+	/* 0x04 */ CEA_Handler_00_07,
+	/* 0x05 */ CEA_Handler_00_07,
+	/* 0x06 */ CEA_Handler_00_07,
+	/* 0x07 */ CEA_Handler_00_07,
+	/* 0x08 */ CEA_Handler_08_0F,
+	/* 0x09 */ CEA_Handler_08_0F,
+	/* 0x0A */ CEA_Handler_08_0F,
+	/* 0x0B */ CEA_Handler_08_0F,
+	/* 0x0C */ CEA_Handler_08_0F,
+	/* 0x0D */ CEA_Handler_08_0F,
+	/* 0x0E */ CEA_Handler_08_0F,
+	/* 0x0F */ CEA_Handler_08_0F,
+	/* 0x10 */ CEA_Handler_10_17,
+	/* 0x11 */ CEA_Handler_10_17,
+	/* 0x12 */ CEA_Handler_10_17,
+	/* 0x13 */ CEA_Handler_10_17,
+	/* 0x14 */ CEA_Handler_10_17,
+	/* 0x15 */ CEA_Handler_10_17,
+	/* 0x16 */ CEA_Handler_10_17,
+	/* 0x17 */ CEA_Handler_10_17,
+	/* 0x18 */ CEA_Handler_18_1F,
+	/* 0x19 */ CEA_Handler_18_1F,
+	/* 0x1A */ CEA_Handler_18_1F,
+	/* 0x1B */ CEA_Handler_18_1F,
+	/* 0x1C */ CEA_Handler_18_1F,
+	/* 0x1D */ CEA_Handler_18_1F,
+	/* 0x1E */ CEA_Handler_18_1F,
+	/* 0x1F */ CEA_Handler_18_1F,
+	/* 0x20 */ CEA_Handler_20_27,
+	/* 0x21 */ CEA_Handler_20_27,
+	/* 0x22 */ CEA_Handler_20_27,
+	/* 0x23 */ CEA_Handler_20_27,
+	/* 0x24 */ CEA_Handler_20_27,
+	/* 0x25 */ CEA_Handler_20_27,
+	/* 0x26 */ CEA_Handler_20_27,
+	/* 0x27 */ CEA_Handler_20_27,
+	/* 0x28 */ CEA_Handler_28_2F,
+	/* 0x29 */ CEA_Handler_28_2F,
+	/* 0x2A */ CEA_Handler_28_2F,
+	/* 0x2B */ CEA_Handler_28_2F,
+	/* 0x2C */ CEA_Handler_28_2F,
+	/* 0x2D */ CEA_Handler_28_2F,
+	/* 0x2E */ CEA_Handler_28_2F,
+	/* 0x2F */ CEA_Handler_28_2F,
+	/* 0x30 */ CEA_Handler_30_37,
+	/* 0x31 */ CEA_Handler_30_37,
+	/* 0x32 */ CEA_Handler_30_37,
+	/* 0x33 */ CEA_Handler_30_37,
+	/* 0x34 */ CEA_Handler_30_37,
+	/* 0x35 */ CEA_Handler_30_37,
+	/* 0x36 */ CEA_Handler_30_37,
+	/* 0x37 */ CEA_Handler_30_37,
+	/* 0x38 */ CEA_Handler_38,
+	/* 0x39 */ CEA_Handler_39,
+	/* 0x3A */ CEA_Handler_3A,
+	/* 0x3B */ CEA_Handler_3B,
+	/* 0x3C */ CEA_Handler_3C
+};
+
 U32 COMPUTE_EFFECTIVE_ADDRESS(U32 endCase,U32 offs,U32 stage,U32 *ea,U16 operand,int length,int asSrc)
 {
-    switch (operand)
-    {
-		case 0x00:		/* Dx */
-		case 0x01:
-		case 0x02:
-		case 0x03:
-		case 0x04:
-		case 0x05:
-		case 0x06:
-		case 0x07:
-			*ea = cpu_regs.D[operand];
-			return endCase;
-		case 0x08:		/* Ax */
-		case 0x09:
-		case 0x0A:
-		case 0x0B:
-		case 0x0C:
-		case 0x0D:
-		case 0x0E:
-		case 0x0F:
-			*ea = cpu_regs.A[operand-0x08];
-			return endCase;
-		case 0x10:		/* (Ax) */
-		case 0x11:
-		case 0x12:
-		case 0x13:
-		case 0x14:
-		case 0x15:
-		case 0x16:
-		case 0x17:
-			*ea = cpu_regs.A[operand-0x10];
-			return endCase;
-		case 0x18:		/* (Ax)+ */
-		case 0x19:
-		case 0x1A:
-		case 0x1B:
-		case 0x1C:
-		case 0x1D:
-		case 0x1E:
-		case 0x1F:
-			if ((operand==0x1F) && (length==1))
-			{
-				length=2;
-			}
-			*ea = cpu_regs.A[operand-0x18];
-			cpu_regs.A[operand-0x18]+=length;
-			return endCase;
-		case 0x20:		/* -(Ax) */
-		case 0x21:
-		case 0x22:
-		case 0x23:
-		case 0x24:
-		case 0x25:
-		case 0x26:
-		case 0x27:
-			switch (stage)
-			{
-				case 0:
-					if ((operand==0x27) && (length==1))
-					{
-						length=2;
-					}
-					cpu_regs.A[operand-0x20]-=length;
-					if (asSrc)								/* When used as src this costs 1 more cycle */
-						return 1+offs;
-					break;
-				case 1:
-					break;
-			}
-			*ea=cpu_regs.A[operand-0x20];
-			return endCase;
-		case 0x28:		/* (XXXX,Ax) */
-		case 0x29:
-		case 0x2A:
-		case 0x2B:
-		case 0x2C:
-		case 0x2D:
-		case 0x2E:
-		case 0x2F:
-			switch (stage)
-			{
-				case 0:
-					*ea = cpu_regs.PC;
-					cpu_regs.PC+=2;
-					return 1+offs;
-				case 1:
-					if (!BUS_Available(*ea))
-						return 1+offs;
-					*ea = cpu_regs.A[operand-0x28] + (S16)MEM_getWord(*ea);
-					return 2+offs;
-				case 2:
-					break;
-			}
-			return endCase;
-		case 0x30:		/* (XX,Ax,Xx) */
-		case 0x31:
-		case 0x32:
-		case 0x33:
-		case 0x34:
-		case 0x35:
-		case 0x36:
-		case 0x37:
-			switch (stage)
-			{
-				case 0:
-					*ea = cpu_regs.PC;
-					cpu_regs.PC+=2;
-					return 1+offs;
-				case 1:
-					if (!BUS_Available(*ea))
-						return 1+offs;
-					cpu_regs.tmpW=MEM_getWord(*ea);
-					return 2+offs;
-				case 2:
-					if (cpu_regs.tmpW&0x8000)
-					{
-						*ea = cpu_regs.A[(cpu_regs.tmpW>>12)&0x07];
-					}
-					else 
-					{
-						*ea = cpu_regs.D[(cpu_regs.tmpW>>12)&0x07];
-					}
-					return 3+offs;
-				case 3:
-					if (!(cpu_regs.tmpW&0x0800))
-						*ea = (S16)*ea;
-					*ea+=(S8)(cpu_regs.tmpW&0xFF);
-					*ea+=cpu_regs.A[operand-0x30];
-					break;
-			}
-			return endCase;
-		case 0x38:		/* (XXXX).W */
-			switch (stage)
-			{
-				case 0:
-					*ea = cpu_regs.PC;
-					cpu_regs.PC+=2;
-					return 1+offs;
-				case 1:
-					if (!BUS_Available(*ea))
-						return 1+offs;
-					*ea = (S16)MEM_getWord(*ea);
-					return 2+offs;
-				case 2:
-					break;
-			}
-			return endCase;
-		case 0x39:		/* (XXXXXXXX).L */
-			switch (stage)
-			{
-				case 0:
-					cpu_regs.tmpL = cpu_regs.PC;
-					cpu_regs.PC+=2;
-					return 1+offs;
-				case 1:
-					if (!BUS_Available(cpu_regs.tmpL))
-						return 1+offs;
-					*ea = MEM_getWord(cpu_regs.tmpL)<<16;
-					return 2+offs;
-				case 2:
-					cpu_regs.tmpL = cpu_regs.PC;
-					cpu_regs.PC+=2;
-					return 3+offs;
-				case 3:
-					if (!BUS_Available(cpu_regs.tmpL))
-						return 3+offs;
-					*ea|=MEM_getWord(cpu_regs.tmpL);
-					return 4+offs;
-				case 4:
-					break;
-			}
-			return endCase;
-		case 0x3A:		/* (XXXX,PC) */
-			switch (stage)
-			{
-				case 0:
-					*ea = cpu_regs.PC;
-					cpu_regs.PC+=2;
-					return 1+offs;
-				case 1:
-					if (!BUS_Available(*ea))
-						return 1+offs;
-					*ea+=(S16)MEM_getWord(*ea);
-					return 2+offs;
-				case 2:
-					break;
-			}
-			return endCase;
-		case 0x3B:		/* (XX,PC,Xx) */
-			switch (stage)
-			{
-				case 0:
-					cpu_regs.tmpL = cpu_regs.PC;
-					cpu_regs.PC+=2;
-					return 1+offs;
-				case 1:
-					if (!BUS_Available(cpu_regs.tmpL))
-						return 1+offs;
-					cpu_regs.tmpW=MEM_getWord(cpu_regs.tmpL);
-					return 2+offs;
-				case 2:
-					if (cpu_regs.tmpW&0x8000)
-					{
-						*ea = cpu_regs.A[(cpu_regs.tmpW>>12)&0x07];
-					}
-					else 
-					{
-						*ea = cpu_regs.D[(cpu_regs.tmpW>>12)&0x07];
-					}
-					return 3+offs;
-				case 3:
-					if (!(cpu_regs.tmpW&0x0800))
-						*ea = (S16)*ea;
-					*ea+=(S8)(cpu_regs.tmpW&0xFF);
-					*ea+=cpu_regs.tmpL;
-					break;
-			}
-			return endCase;
-		case 0x3C:		/* #XX.B #XXXX.W #XXXXXXXX.L */
-			switch (length)
-			{
-				case 1:
-					*ea = cpu_regs.PC+1;
-					cpu_regs.PC+=2;
-					return endCase;
-				case 2:
-					*ea = cpu_regs.PC;
-					cpu_regs.PC+=2;
-					return endCase;
-				case 4:
-					*ea = cpu_regs.PC;
-					cpu_regs.PC+=4;
-					break;
-			}
-			break;
-    }
-	
-	return endCase;
+	return CEA_Handler_Table[operand](endCase, offs, stage, ea, operand, length, asSrc);
 }
 
 int COMPUTE_CONDITION(U16 op)
