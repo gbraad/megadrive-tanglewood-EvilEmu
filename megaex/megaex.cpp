@@ -11,6 +11,8 @@
 #include "megaex.h"
 #include "config.h"
 
+#include <ion/core/time/Time.h>
+
 MegaEx::MegaEx() : ion::framework::Application("megaEx")
 {
 	m_renderer = NULL;
@@ -25,6 +27,9 @@ MegaEx::MegaEx() : ion::framework::Application("megaEx")
 	m_stateControlsConfig = NULL;
 	m_stateGame = NULL;
 	m_stateMenu = NULL;
+
+	m_frameCount = 0;
+	m_startTicks = 0;
 
 	//Default keymap
 	m_keyboardMap[eBtn_Up] = ion::input::W;
@@ -96,6 +101,28 @@ bool MegaEx::Update(float deltaTime)
 
 	//Update game state
 	bool gameStateQuit = !UpdateGameStates(deltaTime);
+
+	//Update FPS display
+	if (m_frameCount++ % 60 == 0)
+	{
+		//Get 100-frame end time and diff
+		u64 endTicks = ion::time::GetSystemTicks();
+		u64 diffTicks = endTicks - m_startTicks;
+
+		//Calc frame time and frames per second
+		float frameTime = (float)ion::time::TicksToSeconds(diffTicks) / 60.0f;
+		float framesPerSecond = 1.0f / frameTime;
+
+		//Set window title
+		std::stringstream text;
+		text.setf(std::ios::fixed, std::ios::floatfield);
+		text.precision(2);
+		text << "FPS: " << framesPerSecond;
+		m_window->SetTitle(text.str().c_str());
+
+		//Reset timer
+		m_startTicks = ion::time::GetSystemTicks();
+	}
 
 	return !windowQuit && !inputQuit && !gameStateQuit;
 }

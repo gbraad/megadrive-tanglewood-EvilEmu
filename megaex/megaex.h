@@ -67,6 +67,10 @@ private:
 	ion::gamekit::State* m_stateGame;
 	ion::gamekit::State* m_stateControlsConfig;
 
+	//Timing
+	u64 m_frameCount;
+	u64 m_startTicks;
+
 	//Button mapping
 	ion::FixedArray<ion::input::Keycode, eBtn_MAX> m_keyboardMap;
 	ion::FixedArray<ion::input::Gamepad::Buttons, eBtn_MAX> m_gamepadMap;
