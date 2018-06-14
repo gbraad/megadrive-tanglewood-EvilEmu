@@ -37,8 +37,9 @@ THE SOFTWARE.
 #include "GL/glext.h"
 #include "GL/glfw3.h"
 
-#include"al.h"
-#include"alc.h"
+#include "AL/al.h"
+#include "AL/alc.h"
+#include "AL/alext.h"
 
 #else
 
@@ -48,6 +49,7 @@ THE SOFTWARE.
 
 #include <AL/al.h>
 #include <AL/alc.h>
+#include <AL/alext.h>
 
 #define UINT64	u_int64_t
 #define __int64 int64_t

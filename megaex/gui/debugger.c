@@ -43,14 +43,25 @@ THE SOFTWARE.
 
 #include "font.h"
 
+ION_C_API unsigned char *vRam;
+ION_C_API unsigned char *cRam;
+ION_C_API unsigned char *vsRam;
+ION_C_API unsigned char *cartRom;
+ION_C_API unsigned char *cartRam;
+ION_C_API unsigned char *smsBios;
+ION_C_API unsigned char *systemRam;
+ION_C_API unsigned char *z80Ram;
+
+ION_C_API U32 bankAddress;
+
 extern U32 lineNo;
 extern U32 colNo;
 
-extern U8 *cRam;
-extern U8 *vRam;
-extern U8 *vsRam;
+ION_C_API U8 VDP_Registers[0x20];
 
-extern U8 VDP_Registers[0x20];
+ION_C_API U8 YM2612_Regs[2][256];
+ION_C_API U8 YM2612_AddressLatch1;
+ION_C_API U8 YM2612_AddressLatch2;
 
 extern U8 CRAM[0x200];
 
@@ -462,8 +473,8 @@ void DisplayHelp()
 	PrintAt(0x0F,0xFF,85,8,"P - Show cpu history");
 }
 
-void VDP_GetRegisterContents(U16 offset,char *buffer);
-void IO_GetRegisterContents(U16 offset,char *buffer);
+ION_C_API void VDP_GetRegisterContents(U16 offset,char *buffer);
+ION_C_API void IO_GetRegisterContents(U16 offset,char *buffer);
 
 /* Debug Function */
 void DrawTile(int xx,int yy,U32 address,int pal,U32 flipH,U32 flipV)
@@ -1703,20 +1714,15 @@ void DrawTileXY(int tx,int ty,U32 address,int pal,U32 flipH,U32 flipV,U8 zValue,
 
 		if (colour!=0)
 		{
-			U8 r=colour;
-			U8 g=colour;
-			U8 b=colour;
-			U32 realColour;
-
 			*zPos=zValue;
 
-			r=(cRam[pal*2*16+colour*2+1]&0x0E)<<4;
-			g=(cRam[pal*2*16+colour*2+0]&0x0E)<<4;
-			b=(cRam[pal*2*16+colour*2+1]&0xE0);
+			// 0BBB 0RRR 0000 0GGG
+			U16 cramWord = *(U16*)&cRam[pal * 2 * 16 + colour * 2];
 
-			realColour = (r<<16)|(b<<8)|g;
-
-			*pixelPos=realColour;
+			// 0x0000BR0G
+			// to
+			// 0x00RRBBGG;
+			*pixelPos = ((cramWord & 0x0E00) << 12) | (cramWord & 0xE000) | ((cramWord & 0x000E) << 4);
 		}
 	}
 }

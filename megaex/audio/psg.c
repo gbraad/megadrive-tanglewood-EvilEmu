@@ -155,25 +155,6 @@ U16 PSG_Output()
 	return sample;
 }
 
-ION_C_API void _AudioAddData(int channel, S16 dacValue);		/* Externally defined route to sound player */
-
-void PSG_Update()
-{
-	//Divide clock
-	if ((++PSG_MasterClock) >= 16)
-	{
-		//Elapsed
-		PSG_MasterClock = 0;
-
-		//Tick channels
-		PSG_UpdateTones();
-		PSG_UpdateNoise();
-
-		//Output to buffer
-		_AudioAddData(1, PSG_Output());
-	}
-}
-
 void PSG_UpdateRegLo(U8 data)
 {
 	//Latch bits 6-5 = channel

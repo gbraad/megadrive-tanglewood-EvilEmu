@@ -55,12 +55,13 @@ StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::Resource
 	m_pixelShader = NULL;
 #endif
 
+	m_emulatorThread = NULL;
 	m_prevEmulatorState = eState_Running;
 }
 
 void StateGame::OnEnterState()
 {
-	m_renderTexture = ion::render::Texture::Create(m_emulatorSize.x, m_emulatorSize.y, ion::render::Texture::eRGB, ion::render::Texture::eRGB, ion::render::Texture::eBPP24, false, NULL);
+	m_renderTexture = ion::render::Texture::Create(m_emulatorSize.x, m_emulatorSize.y, ion::render::Texture::eBGRA, ion::render::Texture::eBGRA, ion::render::Texture::eBPP24, false, true, NULL);
 	m_material = new ion::render::Material();
 	m_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(m_windowSize.x / 2.0f, m_windowSize.y / 2.0f));
 
@@ -95,6 +96,9 @@ void StateGame::OnEnterState()
 
 	//Set default coords
 	m_quadPrimitive->SetTexCoords(s_texCoordsGame);
+
+	//Create and run emulator thread
+	m_emulatorThread = new EmulatorThread();
 }
 
 void StateGame::OnLeaveState()
@@ -129,8 +133,12 @@ void StateGame::OnResumeState()
 
 void StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad)
 {
-	//Update emulator
-	EmulatorState emulatorState = TickEmulator(deltaTime);
+#if !EMU_THREADED
+	m_emulatorThread->TickEmulator(deltaTime);
+#endif
+
+#if 0 // TODO
+	//Get emulator state
 
 	if(emulatorState != m_prevEmulatorState)
 	{
@@ -146,9 +154,12 @@ void StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 
 		m_prevEmulatorState = emulatorState;
 	}
+#endif
 
 	//Copy output pixels to render texture
+	m_emulatorThread->m_renderCritSec.Begin();
 	m_renderTexture->SetPixels(ion::render::Texture::eBGRA, videoMemory);
+	m_emulatorThread->m_renderCritSec.End();
 }
 
 void StateGame::Render(ion::render::Renderer& renderer, ion::render::Camera& camera)

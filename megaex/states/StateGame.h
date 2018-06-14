@@ -18,6 +18,7 @@
 #include <ion/renderer/TexCoord.h>
 
 #include "emulator.h"
+#include "emuthread.h"
 
 class StateGame : public ion::gamekit::State
 {
@@ -36,6 +37,9 @@ private:
 	static const ion::render::TexCoord s_texCoordsGame[4];
 	static const ion::render::TexCoord s_texCoordsDebugger[4];
 
+	EmulatorThread* m_emulatorThread;
+	EmulatorState m_prevEmulatorState;
+
 	ion::Vector2i m_windowSize;
 	ion::Vector2i m_emulatorSize;
 
@@ -47,6 +51,4 @@ private:
 	ion::render::Shader* m_vertexShader;
 	ion::render::Shader* m_pixelShader;
 #endif
-
-	EmulatorState m_prevEmulatorState;
 };

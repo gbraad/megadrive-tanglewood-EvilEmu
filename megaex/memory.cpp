@@ -34,7 +34,7 @@ THE SOFTWARE.
 #include "psg.h"
 
 #include "lj_ym2612.h"
-
+#include "mgaudio.h"
 
 #define SYS_RAM_SIZE		(64*1024)
 #define Z80_RAM_SIZE		(8*1024)
@@ -43,22 +43,18 @@ THE SOFTWARE.
 #define VSRAM_SIZE			(80)
 #define CARTRAM_SIZE		(32*1024)		/* this is probably too big - 8k on most carts aparantly */
 
-typedef U8 (*MEM_ReadMap)(U32 upper24,U32 lower16);
-typedef void (*MEM_WriteMap)(U32 upper24,U32 lower16,U8 byte);
+ION_C_API unsigned char *vRam;
+ION_C_API unsigned char *cRam;
+ION_C_API unsigned char *vsRam;
+ION_C_API unsigned char *cartRom;
+ION_C_API unsigned char *cartRam;
+ION_C_API unsigned char *smsBios;
+ION_C_API unsigned char *systemRam;
+ION_C_API unsigned char *z80Ram;
 
-unsigned char *vRam;
-unsigned char *cRam;
-unsigned char *vsRam;
-unsigned char *cartRom;
-unsigned char *cartRam;
-unsigned char *smsBios;
-unsigned char *systemRam;
-unsigned char *z80Ram;
+U32 cartRomSize = 0;
 
-MEM_ReadMap		mem_read[256];
-MEM_WriteMap	mem_write[256];
-
-U8	VDP_Registers[0x20];						/* May as well */
+ION_C_API U8	VDP_Registers[0x20];						/* May as well */
 
 /*
 
@@ -74,7 +70,7 @@ U8	VDP_Registers[0x20];						/* May as well */
 
 */
 
-U32 bankAddress=0;
+ION_C_API U32 bankAddress=0;
 
 /* 9 bits must be set to set the bank address - bit 0 of bank is next bit of sequence */
 void BANK_Set(U8 bank)
@@ -98,17 +94,15 @@ void BANKED_Write(U32 address, U8 data)
 	MEM_setByte(bankAddress|address,data);
 }
 
-U8	YM2612_Regs[2][256];
-U8	YM2612_AddressLatch1;
-U8	YM2612_AddressLatch2;
-
-static void *chip=NULL;
+ION_C_API U8 YM2612_Regs[2][256];
+ION_C_API U8 YM2612_AddressLatch1;
+ION_C_API U8 YM2612_AddressLatch2;
 
 U8 YM2612_Read(U8 address)
 {
 	U8 data;
-	LJ_YM2612_setAddressPinsCSRDWRA1A0(chip,0,0,1,(address&0x0002)>>1,(address&0x0001));
-	LJ_YM2612_getDataPinsD07(chip,&data);
+	LJ_YM2612_setAddressPinsCSRDWRA1A0(ym2612_chip,0,0,1,(address&0x0002)>>1,(address&0x0001));
+	LJ_YM2612_getDataPinsD07(ym2612_chip,&data);
 	return data;
 }
 
@@ -137,37 +131,10 @@ float stepRate;
 
 int inited=0;
 
-void FM_Update()
-{
-	LJ_YM_INT16 bob[2];
-	LJ_YM_INT16	*out[2];
-	
-	static U32 divisor = (CYCLES_PER_FRAME_68K*FRAMES_PER_SECOND_NTSC)/44100;
-	out[0]=&bob[0];
-	out[1]=&bob[1];
-
-	if (divisor>0)
-	{
-		divisor--;
-		return;
-	}
-	divisor=(CYCLES_PER_FRAME_68K*FRAMES_PER_SECOND_NTSC)/44100;
-
-	if (chip==NULL)
-	{
-		chip=LJ_YM2612_create(LJ_YM2612_DEFAULT_CLOCK_RATE/*CYCLES_PER_FRAME*FRAMES_PER_SECOND_NTSC*/,44100);
-	}
-
-	LJ_YM2612_generateOutput(chip,1,out);
-
-	_AudioAddData(0,((bob[0]+bob[1])/2));
-}
-
 void YM2612_Write(U8 address,U8 data)
 {
-
-	LJ_YM2612_setDataPinsD07(chip,data);
-	LJ_YM2612_setAddressPinsCSRDWRA1A0(chip,0,1,0,(address&0x0002)>>1,(address&0x0001));
+	LJ_YM2612_setDataPinsD07(ym2612_chip,data);
+	LJ_YM2612_setAddressPinsCSRDWRA1A0(ym2612_chip,0,1,0,(address&0x0002)>>1,(address&0x0001));
 	switch (address)
 	{
 	case 0:			/* A0 */
@@ -1065,7 +1032,7 @@ char *SMS_VDP_DumpRegisterName(U16 byte)
 	return "";
 }
 
-void VDP_GetRegisterContents(U16 offset,char *buffer)
+ION_C_API void VDP_GetRegisterContents(U16 offset,char *buffer)
 {
 #if SMS_MODE
 	offset&=0x0F;
@@ -1454,32 +1421,52 @@ extern U8* cpu68kbios;
 extern U32 cpu68kbiosSize;
 #endif
 
-U8 MEM_getByte_CartRom(U32 upper24,U32 lower16)
+#define SWAP_WORD(a) ((a&0xFF00) >> 8) | ((a&0x00FF) << 8)
+
+U8 MEM_getByte_CartRom(U32 address, U32 upper24,U32 lower16)
 {
-	return cartRom[ ((upper24 - 0x00)<<16) | lower16];
+	return cartRom[address];
 }
 
-U8 MEM_getByte_SystemRam(U32 upper24,U32 lower16)
+U16 MEM_getWord_CartRom(U32 address)
+{
+#ifdef DEBUG
+	if (address >= cartRomSize)
+	{
+		printf("Cart ROM address out of bounds (addr: 0x%08X size: 0x%08X)", address, cartRomSize);
+		DEB_PauseEmulation(DEB_Mode_68000, "Cart ROM address out of bounds");
+	}
+#endif
+
+	U16 word = *(U16*)&cartRom[address];
+	return SWAP_WORD(word);
+};
+
+U8 MEM_getByte_SystemRam(U32 address, U32 upper24,U32 lower16)
 {
 	UNUSED_ARGUMENT(upper24);
 	return systemRam[lower16];
 }
 
-U8 MEM_getByte_SRAM(U32 upper24,U32 lower16)
+U16 MEM_getWord_SystemRam(U32 address)
 {
-	U32 longAddress = (upper24<<16)|lower16;
+	U16 word = *(U16*)&systemRam[address & 0x0000FFFF];
+	return SWAP_WORD(word);
+}
 
-	if ((longAddress >= SRAM_StartAddress) && (longAddress <=SRAM_EndAddress) )
+U8 MEM_getByte_SRAM(U32 address, U32 upper24,U32 lower16)
+{
+	if ((address >= SRAM_StartAddress) && (address <=SRAM_EndAddress) )
 	{
 		if ((SRAM_OddAccess && (lower16&0x1)) || (SRAM_EvenAccess && ((lower16&0x1)==0)))
 		{
 			if (SRAM_EvenAccess^SRAM_OddAccess)
 			{
-				return SRAM[(longAddress-SRAM_StartAddress)>>1];
+				return SRAM[(address -SRAM_StartAddress)>>1];
 			}
 			else
 			{
-				return SRAM[longAddress-SRAM_StartAddress];
+				return SRAM[address -SRAM_StartAddress];
 			}
 		}
 	}
@@ -1489,21 +1476,19 @@ U8 MEM_getByte_SRAM(U32 upper24,U32 lower16)
 	return 0;
 }
 
-void MEM_setByte_SRAM(U32 upper24,U32 lower16,U8 byte)
+void MEM_setByte_SRAM(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
-	U32 longAddress = (upper24<<16)|lower16;
-
-	if ((longAddress >= SRAM_StartAddress) && (longAddress <=SRAM_EndAddress) )
+	if ((address >= SRAM_StartAddress) && (address <=SRAM_EndAddress) )
 	{
 		if ((SRAM_OddAccess && (lower16&0x1)) || (SRAM_EvenAccess && ((lower16&0x1)==0)))
 		{
 			if (SRAM_EvenAccess^SRAM_OddAccess)
 			{
-				SRAM[(longAddress-SRAM_StartAddress)>>1]=byte;
+				SRAM[(address -SRAM_StartAddress)>>1]=byte;
 			}
 			else
 			{
-				SRAM[longAddress-SRAM_StartAddress]=byte;
+				SRAM[address -SRAM_StartAddress]=byte;
 			}
 			return;
 		}
@@ -1513,7 +1498,7 @@ void MEM_setByte_SRAM(U32 upper24,U32 lower16,U8 byte)
 	//DEB_PauseEmulation(DEB_Mode_68000,"Unmapped Write - May need to crash/return prefetch queue/implement missing functionality");
 }
 
-U8 MEM_getByteUnmapped(U32 upper24,U32 lower16)
+U8 MEM_getByte_Unmapped(U32 address, U32 upper24,U32 lower16)
 {
 	UNUSED_ARGUMENT(upper24);
 	UNUSED_ARGUMENT(lower16);
@@ -1522,18 +1507,29 @@ U8 MEM_getByteUnmapped(U32 upper24,U32 lower16)
 	return 0;
 }
 
+U16 MEM_getWord_Split(U32 address)
+{
+	return (MEM_getByte(address) << 8) | MEM_getByte(address + 1);
+}
+
+void MEM_setWord_Split(U32 address, U16 word)
+{
+	MEM_setByte(address, word >> 8);
+	MEM_setByte(address + 1, word & 0xFF);
+}
+
 /*TODO MOVE z80?*/
 void Z80_MEM_setByte(U16 address,U8 data);
 U8 Z80_MEM_getByte(U16 address);
 
 /*might have probs with recursive memory access 68K->z80[68000]->z80  etc.*/
-U8 MEM_getByte_Z80(U32 upper24,U32 lower16)
+U8 MEM_getByte_Z80(U32 address, U32 upper24,U32 lower16)
 {
 	UNUSED_ARGUMENT(upper24);
 	return Z80_MEM_getByte(lower16);
 }
 
-void MEM_setByte_Z80(U32 upper24,U32 lower16,U8 byte)
+void MEM_setByte_Z80(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	UNUSED_ARGUMENT(upper24);
 	Z80_MEM_setByte(lower16,byte);
@@ -1585,7 +1581,7 @@ char *IO_DumpRegisterName(U16 byte)
 	return "";
 }
 
-void IO_GetRegisterContents(U16 offset,char *buffer)
+ION_C_API void IO_GetRegisterContents(U16 offset,char *buffer)
 {
 	offset&=0x1E;
 	offset+=1;
@@ -1915,7 +1911,7 @@ U8 VDP_32X_Read(U16 adr,int accessor);
 void VDP_32X_Write(U16 adr,U8 byte,int accessor);
 #endif
 
-U8 MEM_getByte_IO(U32 upper24,U32 lower16)
+U8 MEM_getByte_IO(U32 address,U32 upper24,U32 lower16)
 {
 	UNUSED_ARGUMENT(upper24);
 #if ENABLE_32X_MODE
@@ -1993,7 +1989,7 @@ U8 MEM_getByte_IO(U32 upper24,U32 lower16)
 	return 0xFF;
 }
 
-U8 MEM_getByte_VDP(U32 upper24,U32 lower16)
+U8 MEM_getByte_VDP(U32 address,U32 upper24,U32 lower16)
 {
 	if (((upper24 & 0xE7)==0xC0) && ((lower16 & 0xE0)==0x00))					/* Valid mask for VDP register access : 110n n000 nnnn nnnn 000m mmmm  (n = any, m=vdp reg) */
 	{
@@ -2004,42 +2000,7 @@ U8 MEM_getByte_VDP(U32 upper24,U32 lower16)
 	return 0xFF;
 }
 
-U8 MEM_getByte(U32 address)
-{
-	U32	upper24 = (address & 0x00FF0000) >> 16;
-	U32	lower16 = address & 0x0000FFFF;
-	U8	memRegion = upper24;
-
-	return mem_read[memRegion](upper24,lower16);
-}
-
-U16 MEM_getWord(U32 address)
-{
-	U16 retVal;
-	if (address&1)
-	{
-		DEB_PauseEmulation(DEB_Mode_68000,"Mem Get Word (Unaligned Read)");
-	}
-	retVal = MEM_getByte(address)<<8;
-	retVal|= MEM_getByte(address+1);
-	
-	return retVal;
-}
-
-U32 MEM_getLong(U32 address)
-{
-	U32 retVal;
-	if (address&1)
-	{
-		DEB_PauseEmulation(DEB_Mode_68000,"Mem Get Long (Unaligned Read)");
-	}
-	retVal = MEM_getWord(address)<<16;
-	retVal|= MEM_getWord(address+2);
-	
-	return retVal;
-}
-
-void MEM_setByte_CartRom(U32 upper24,U32 lower16,U8 byte)
+void MEM_setByte_CartRom(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	UNUSED_ARGUMENT(upper24);
 	UNUSED_ARGUMENT(lower16);
@@ -2050,13 +2011,26 @@ void MEM_setByte_CartRom(U32 upper24,U32 lower16,U8 byte)
 */
 }
 
-void MEM_setByte_SystemRam(U32 upper24,U32 lower16,U8 byte)
+void MEM_setWord_CartRom(U32 address, U16 word)
+{
+	printf("Byte 0x%02X written to cart address 0x%08X\n", (int)word, (int)address);
+	/*
+	DEB_PauseEmulation(DEB_Mode_68000,"Write to cart rom... !");
+	*/
+}
+
+void MEM_setByte_SystemRam(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	UNUSED_ARGUMENT(upper24);
 	systemRam[lower16]=byte;
 }
 
-void MEM_setByte_IO(U32 upper24,U32 lower16,U8 byte)
+void MEM_setWord_SystemRam(U32 address, U16 word)
+{
+	*(U16*)&systemRam[address & 0x0000FFFF] = word;
+}
+
+void MEM_setByte_IO(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	UNUSED_ARGUMENT(upper24);
 #if ENABLE_32X_MODE
@@ -2147,7 +2121,7 @@ void MEM_setByte_IO(U32 upper24,U32 lower16,U8 byte)
 	// DEB_PauseEmulation(DEB_Mode_68000,"OOB IO Writes currently unhandled");
 }
 
-void MEM_setByte_VDP(U32 upper24,U32 lower16,U8 byte)
+void MEM_setByte_VDP(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	if (((upper24 & 0xE7)==0xC0) && ((lower16 & 0xE0)==0x00))					/* Valid mask for VDP register access : 110n n000 nnnn nnnn 000m mmmm  (n = any, m=vdp reg) */
 	{
@@ -2158,43 +2132,13 @@ void MEM_setByte_VDP(U32 upper24,U32 lower16,U8 byte)
 	//DEB_PauseEmulation(DEB_Mode_68000,"Invalid VDP area access");
 }
 
-void MEM_setByteUnmapped(U32 upper24,U32 lower16,U8 byte)
+void MEM_setByte_Unmapped(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	UNUSED_ARGUMENT(upper24);
 	UNUSED_ARGUMENT(lower16);
 	UNUSED_ARGUMENT(byte);
 	printf("Byte 0x%02X written to unmapped address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
 	//DEB_PauseEmulation(DEB_Mode_68000,"Unamapped Write - May need to crash/return prefetch queue/implement missing functionality");
-}
-
-void MEM_setByte(U32 address,U8 byte)
-{
-	U32	upper24 = (address & 0x00FF0000) >> 16;
-	U32	lower16 = address & 0x0000FFFF;
-	U8	memRegion = upper24;
-	
-	mem_write[memRegion](upper24,lower16,byte);
-}
-
-void MEM_setWord(U32 address, U16 word)
-{
-	if (address&1)
-	{
-		DEB_PauseEmulation(DEB_Mode_68000,"Mem Set Word (Unaligned Write)");
-	}
-	MEM_setByte(address,word>>8);
-	MEM_setByte(address+1,word&0xFF);
-}
-
-void MEM_setLong(U32 address, U32 dword)
-{
-	if (address&1)
-	{
-		DEB_PauseEmulation(DEB_Mode_68000,"Mem Set Long (Unaligned Write)");
-	}
-
-	MEM_setWord(address,dword>>16);
-	MEM_setWord(address+2,dword&0xFFFF);
 }
 
 U32 numBanks;
@@ -2205,7 +2149,7 @@ extern U32 ActiveFrameBuffer;
 
 U8	Vector70[4]={0xFF,0xFF,0xFF,0xFF};			/* Not sure what its default should be! */
 
-U8 MEM_getByte_BiosOrCartRom(U32 upper24,U32 lower16)
+U8 MEM_getByte_BiosOrCartRom(U32 address, U32 upper24,U32 lower16)
 {
 	UNUSED_ARGUMENT(upper24);
 	if (lower16>=0x70 && lower16<=0x73)
@@ -2218,7 +2162,7 @@ U8 MEM_getByte_BiosOrCartRom(U32 upper24,U32 lower16)
 	return cartRom[lower16];
 }
 
-void MEM_setByte_BiosOrCartRom(U32 upper24,U32 lower16,U8 byte)
+void MEM_setByte_BiosOrCartRom(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	UNUSED_ARGUMENT(upper24);
 	if (lower16>=0x70 && lower16<=0x73)
@@ -2230,7 +2174,7 @@ void MEM_setByte_BiosOrCartRom(U32 upper24,U32 lower16,U8 byte)
 	DEB_PauseEmulation(DEB_Mode_68000,"Unmapped rom write");
 }
 
-void MEM_setByte_FRAMEBUFFER(U32 upper24,U32 lower16,U8 byte)
+void MEM_setByte_FRAMEBUFFER(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	if (AdapterControlRegister&0x8000)
 		return;
@@ -2240,7 +2184,7 @@ void MEM_setByte_FRAMEBUFFER(U32 upper24,U32 lower16,U8 byte)
 		FRAMEBUFFER[((upper24-0x84)<<16) + lower16]=byte;
 }
 
-U8 MEM_getByte_FRAMEBUFFER(U32 upper24,U32 lower16)
+U8 MEM_getByte_FRAMEBUFFER(U32 address, U32 upper24,U32 lower16)
 {
 	if (AdapterControlRegister&0x8000)
 		return 0xFF;
@@ -2250,7 +2194,7 @@ U8 MEM_getByte_FRAMEBUFFER(U32 upper24,U32 lower16)
 		return FRAMEBUFFER[((upper24-0x84)<<16) + lower16];
 }
 
-void MEM_setByte_CartRomUpper(U32 upper24,U32 lower16,U8 byte)
+void MEM_setByte_CartRomUpper(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	UNUSED_ARGUMENT(upper24);
 	UNUSED_ARGUMENT(lower16);
@@ -2259,12 +2203,12 @@ void MEM_setByte_CartRomUpper(U32 upper24,U32 lower16,U8 byte)
 	DEB_PauseEmulation(DEB_Mode_68000,"Write to upper rom");
 }
 
-U8 MEM_getByte_CartRomUpper(U32 upper24,U32 lower16)
+U8 MEM_getByte_CartRomUpper(U32 address, U32 upper24,U32 lower16)
 {
 	return cartRom[((upper24-0x88)<<16) + lower16];
 }
 
-void MEM_setByte_CartRomBanked(U32 upper24,U32 lower16,U8 byte)
+void MEM_setByte_CartRomBanked(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
 	UNUSED_ARGUMENT(upper24);
 	UNUSED_ARGUMENT(lower16);
@@ -2273,7 +2217,7 @@ void MEM_setByte_CartRomBanked(U32 upper24,U32 lower16,U8 byte)
 	DEB_PauseEmulation(DEB_Mode_68000,"Write to rom banked");
 }
 
-U8 MEM_getByte_CartRomBanked(U32 upper24,U32 lower16)
+U8 MEM_getByte_CartRomBanked(U32 address, U32 upper24,U32 lower16)
 {
 	U32 bankedAddress=((upper24-0x90)<<16) + lower16;
 
@@ -2328,24 +2272,24 @@ void SwapToStandardMemoryMap()
 	mem_read[0] = MEM_getByte_CartRom;
 	mem_write[0]= MEM_setByte_CartRom;
 
-	mem_read[0x84] = MEM_getByteUnmapped;
-	mem_read[0x85] = MEM_getByteUnmapped;
-	mem_read[0x86] = MEM_getByteUnmapped;
-	mem_read[0x87] = MEM_getByteUnmapped;
-	mem_write[0x84] = MEM_setByteUnmapped;
-	mem_write[0x85] = MEM_setByteUnmapped;
-	mem_write[0x86] = MEM_setByteUnmapped;
-	mem_write[0x87] = MEM_setByteUnmapped;
+	mem_read[0x84] = MEM_getByte_Unmapped;
+	mem_read[0x85] = MEM_getByte_Unmapped;
+	mem_read[0x86] = MEM_getByte_Unmapped;
+	mem_read[0x87] = MEM_getByte_Unmapped;
+	mem_write[0x84] = MEM_setByte_Unmapped;
+	mem_write[0x85] = MEM_setByte_Unmapped;
+	mem_write[0x86] = MEM_setByte_Unmapped;
+	mem_write[0x87] = MEM_setByte_Unmapped;
 
 	for (a=0;a<8;a++)
 	{
-		mem_read[0x88+a] = MEM_getByteUnmapped;
-		mem_write[0x88+a]= MEM_setByteUnmapped;
+		mem_read[0x88+a] = MEM_getByte_Unmapped;
+		mem_write[0x88+a]= MEM_setByte_Unmapped;
 	}
 	for (a=0;a<16;a++)
 	{
-		mem_read[0x90+a] = MEM_getByteUnmapped;
-		mem_write[0x90+a]= MEM_setByteUnmapped;
+		mem_read[0x90+a] = MEM_getByte_Unmapped;
+		mem_write[0x90+a]= MEM_setByte_Unmapped;
 	}
 }
 #endif
@@ -2356,8 +2300,10 @@ void InitialiseStandardMemoryMap()
 
 	for (a=0;a<256;a++)
 	{
-		mem_read[a]=MEM_getByteUnmapped;
-		mem_write[a]=MEM_setByteUnmapped;
+		mem_read[a] = MEM_getByte_Unmapped;
+		mem_write[a] = MEM_setByte_Unmapped;
+		mem_read_word[a] = MEM_getWord_Split;
+		mem_write_word[a] = MEM_setWord_Split;
 	}
 
 	if (numBanks>=0x40)
@@ -2369,6 +2315,8 @@ void InitialiseStandardMemoryMap()
 	{
 		mem_read[a] = MEM_getByte_CartRom;
 		mem_write[a]= MEM_setByte_CartRom;
+		mem_read_word[a] = MEM_getWord_CartRom;
+		mem_write_word[a] = MEM_setWord_CartRom;
 	}
 
 	for (a=0xC0;a<0xE0;a++)
@@ -2381,6 +2329,8 @@ void InitialiseStandardMemoryMap()
 	{
 		mem_read[a] = MEM_getByte_SystemRam;
 		mem_write[a]= MEM_setByte_SystemRam;
+		mem_read_word[a] = MEM_getWord_SystemRam;
+		mem_write_word[a] = MEM_setWord_SystemRam;
 	}
 
 	mem_read[0xA0] = MEM_getByte_Z80;
@@ -2400,18 +2350,19 @@ void InitialiseStandardMemoryMap()
 
 }
 
-void MEM_Initialise(unsigned char *_romPtr,unsigned int num64Banks)
+void MEM_Initialise(unsigned char *_romPtr, U32 romSize, unsigned int num64Banks)
 {
 	unsigned int a=0;
 
 	numBanks=num64Banks;
-	systemRam = malloc(SYS_RAM_SIZE);
-	z80Ram = malloc(Z80_RAM_SIZE);
+	systemRam = (unsigned char*)malloc(SYS_RAM_SIZE);
+	z80Ram = (unsigned char*)malloc(Z80_RAM_SIZE);
 	cartRom = _romPtr;
-	vRam = malloc(VRAM_SIZE);
-	vsRam = malloc(VSRAM_SIZE);
-	cRam = malloc(CRAM_SIZE);
-	cartRam = malloc(CARTRAM_SIZE);
+	cartRomSize = romSize;
+	vRam = (unsigned char*)malloc(VRAM_SIZE);
+	vsRam = (unsigned char*)malloc(VSRAM_SIZE);
+	cRam = (unsigned char*)malloc(CRAM_SIZE);
+	cartRam = (unsigned char*)malloc(CARTRAM_SIZE);
 
 	for (a=0;a<SYS_RAM_SIZE;a++)
 	{

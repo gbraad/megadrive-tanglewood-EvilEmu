@@ -1,3 +1,3 @@
-..\BuildTools\JamPlus\Bin\Win32\Jam.exe --workspace --gen=vs2013 --config=..\buildtools\jamplus\jamplus.config megaex.jam _Build
+..\BuildTools\JamPlus\Bin\Win64\Jam.exe --workspace --gen=vs2013 -compiler=vs2013 --config=jamplus.config megaex.jam _Build
 
-CALL _Build\_workspace.vs2013_\megaex.sln
+CALL _Build\_workspaces_\vs2013\megaex.sln

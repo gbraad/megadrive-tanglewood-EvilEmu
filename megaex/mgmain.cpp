@@ -59,10 +59,6 @@ THE SOFTWARE.
 
 */
 
-
-
-
-
 #include "config.h"
 #include "emulator.h"
 #include "platform.h"
@@ -77,7 +73,9 @@ THE SOFTWARE.
 #include "callbacks.h"
 #include "globals.h"
 #include "gui/debugger.h"
+#include "mgaudio.h"
 
+#include <ion/core/debug/Debug.h>
 #include <ion/core/time/Time.h>
 #include <ion/maths/Maths.h>
 
@@ -827,7 +825,7 @@ void ParseRomHeader(unsigned char *header)
 }
 
 unsigned long romSize;
-unsigned char *load_rom(char *romName,unsigned int *numBanks)
+unsigned char *load_rom(char *romName,unsigned int *numBanks,U32* _romSize)
 {
     FILE *inRom;
     unsigned char *romData;
@@ -842,7 +840,6 @@ unsigned char *load_rom(char *romName,unsigned int *numBanks)
 
 		if ((romSize&0xFFFF) != 0)
 		{
-			printf("Bugger.. not 64k rom thing\n");
 			*numBanks= (romSize>>16) + 1;
 		}
 		else
@@ -861,6 +858,8 @@ unsigned char *load_rom(char *romName,unsigned int *numBanks)
 #if (!SMS_MODE) && (!ENABLE_32X_MODE)
   ParseRomHeader(romData+0x100);
 #endif
+
+	*_romSize = romSize;
 
 	return romData;
 }
@@ -981,19 +980,6 @@ void kbHandler(GLFWwindow* window, int key, int scancode, int action, int modifi
 */
 
 int captureMouse=0;
-
-#if OPENAL_SUPPORT
-void AudioKill();
-void AudioInitialise();
-void UpdateAudio();
-#endif
-
-U32 lineNo=0;
-U32 colNo=0;
-
-ION_C_API U8 VDP_Registers[0x20];
-
-U32 LineCounter=0xFF;
 U32 _32XLineCounter=0xFF;
 
 ION_C_API void VID_DrawScreen(int lineNo);
@@ -1042,8 +1028,6 @@ void UpdateFPS()
   }
 }
 
-ION_C_API void FM_Update();
-
 #ifdef _WIN32
 #define BASE_PATH	"g:\\"
 #else
@@ -1065,10 +1049,6 @@ extern unsigned char *smsBios;
 #if SMS_MODE
 extern U8 SMS_VDP_Status;
 #endif
-ION_C_API void PSG_Update();
-
-U32 PSG_OutOn=1;
-U32 YM_OutOn=1;
 
 char tmpRomName[1024];
 char tmpRomSave[1024];
@@ -1086,8 +1066,8 @@ bool InitialiseEmulator(const char* rom)
 {
 	unsigned int numBlocks;
 	unsigned char *romPtr;
+	U32 size;
 	int running = 1;
-	int a;
 
 	if(rom)
 	{
@@ -1102,7 +1082,7 @@ bool InitialiseEmulator(const char* rom)
 	InitGameTime();
 	AudioInitialise();
 
-	romPtr = load_rom(romNameExt, &numBlocks);
+	romPtr = load_rom(romNameExt, &numBlocks, &size);
 
 	if(!romPtr)
 	{
@@ -1118,141 +1098,12 @@ bool InitialiseEmulator(const char* rom)
 	CPU_BuildTable();
 	Z80_BuildTable();
 
-	MEM_Initialise(romPtr, numBlocks);
+	MEM_Initialise(romPtr, size, numBlocks);
 
 	CPU_Reset();
 	Z80_Reset();
 
 	return true;
-}
-
-const int clockTicksPerFrame = CLOCK_FREQUENCY_NTSC / FRAMES_PER_SECOND_NTSC;
-
-float totalTime = 0.0f;
-float accumTime = 0.0f;
-
-u64 clock = 0;
-u64 clockZ80 = 0;
-u64 clockFM = 0;
-u64 clockPSG = 0;
-
-const int clockDivider68K = 7;
-const int clockDividerZ80 = 15;
-const int clockDividerFM = 7;
-const int clockDividerPSG = 15;
-
-EmulatorState TickEmulator(float deltaTime)
-{
-	int debuggerRunning = UpdateDebugger();
-
-	int ticksPerFrames = CLOCK_TICKS_PER_FRAME;
-	int cyclesPerFrame = CYCLES_PER_FRAME_68K;
-	int cyclesPerLine = CYCLES_PER_LINE_68K;
-
-	if(!debuggerRunning)
-	{
-		totalTime += deltaTime;
-		accumTime += deltaTime;
-
-		//if (accumTime >= 1.0f / (float)FRAMES_PER_SECOND_NTSC / LINES_PER_FRAME_NTSC)
-		if (accumTime >= 1.0f / (float)FRAMES_PER_SECOND_NTSC)
-		{
-			//accumTime -= 1.0f / (float)FRAMES_PER_SECOND_NTSC / LINES_PER_FRAME_NTSC;
-			accumTime -= 1.0f / (float)FRAMES_PER_SECOND_NTSC;
-
-			//Process one a frame at a time
-			for (int i = 0; i < CYCLES_PER_FRAME_68K; i++)
-			{
-				clock += clockDivider68K;
-				clockZ80 += clockDivider68K;
-				clockFM += clockDivider68K;
-				clockPSG += clockDivider68K;
-
-				CPU_Step();
-				g_cpuTicks++;
-
-				if(clockZ80 > clockDividerZ80)
-				{
-					Z80_Step();
-					clockZ80 -= clockDividerZ80;
-				}
-
-				if(clockFM > clockDividerFM)
-				{
-					FM_Update();
-					clockFM -= clockDividerFM;
-				}
-
-				if(clockPSG > clockDividerPSG)
-				{
-					PSG_Update();
-					clockPSG -= clockDividerPSG;
-				}
-
-				int lineNo = i / cyclesPerLine;
-				int colNo = i % cyclesPerLine;
-
-				if (lineNo > 223)
-				{
-					inVBlank = 1;
-				}
-				else
-				{
-					inVBlank = 0;
-				}
-
-				if (colNo > ((CYCLES_PER_LINE_68K * 3) / 4))
-				{
-					inHBlank = 1;
-				}
-				else
-				{
-					inHBlank = 0;
-				}
-
-				if (colNo == ((CYCLES_PER_LINE_68K * 3) / 4))
-				{
-					U32 displaySizeY = (VDP_Registers[1] & 0x08) ? 30 * 8 : 28 * 8;			/* not quite true.. ntsc can never be 30! */
-
-					if (lineNo > 224)
-					{
-						LineCounter = VDP_Registers[0x0A];
-					}
-					else
-					{
-						LineCounter--;
-						if (LineCounter == 0xFFFFFFFF)
-						{
-							LineCounter = VDP_Registers[0x0A];
-							CPU_SignalInterrupt(4);
-						}
-					}
-
-					if (lineNo < displaySizeY)
-					{
-						VID_DrawScreen(lineNo);
-					}
-				}
-
-				if ((lineNo == 225) && (colNo == 8))
-				{
-					CPU_SignalInterrupt(6);
-					Z80_SignalInterrupt(0);
-				}
-
-				UpdateAudio();
-			}
-		}
-
-		//UpdateAudio();
-
-		//DisplayDebugger();
-
-		//UpdateAudio();
-	}
-
-	EmulatorState state = debuggerRunning ? eState_Debugger : eState_Running;
-	return state;
 }
 
 void ShutdownEmulator()
@@ -1261,8 +1112,6 @@ void ShutdownEmulator()
 	{
 		SaveSRAM(saveName);
 	}
-
-	AudioKill();
 }
 
 void EmulatorSetButtonState(u16 buttonState)
@@ -1274,348 +1123,3 @@ const char* EmulatorGetROMTitle()
 {
 	return g_romTitle;
 }
-
-/*
-int main(int argc,char **argv)
-{
-
-
-	
-
-	for (a=0;a<512*3;a++)
-	{
-		keyArray[a]=0;
-	}
-	
-#if OPENAL_SUPPORT
-
-	
-
-#endif
-
-#if SMS_MODE
-	smsBios=load_rom(BASE_PATH "bios.sms",&numBlocks);
-	if (!smsBios)
-	{
-		printf("[ERR] Failed to load sms bios\n");
-		Shutdown()
-		return 1;
-	}
-#endif
-
-#if ENABLE_32X_MODE
-	cpu68kbios=load_rom(BASE_PATH "poormans_sega_32x_bios/BIOS32XG.BIN",&numBlocks);
-	if (!cpu68kbios)
-	{
-		printf("[ERR] Failed to load genesis bios\n");
-		Shutdown()
-		return 1;
-	}
-	cpu68kbiosSize=romSize;
-	
-	masterbios=load_rom(BASE_PATH "poormans_sega_32x_bios/BIOS32XM.BIN",&numBlocks);
-	if (!masterbios)
-	{
-		printf("[ERR] Failed to load master bios\n");
-		Shutdown()
-		return 1;
-	}
-	masterbiosSize=romSize;
-	slavebios=load_rom(BASE_PATH "poormans_sega_32x_bios/BIOS32XS.BIN",&numBlocks);
-	if (!slavebios)
-	{
-		printf("[ERR] Failed to load slave bios\n");
-		Shutdown()
-		return 1;
-	}
-	slavebiosSize=romSize;
-#endif
-
-
-
-#if SMS_MODE
-	LoadSRAM(saveName);
-#endif
-
-#if ENABLE_32X_MODE
-
-	master=SH2_CreateCPU(SH2_Master_Read,SH2_Master_Write,DEB_Mode_SH2_Master);
-	slave=SH2_CreateCPU(SH2_Slave_Read,SH2_Slave_Write,DEB_Mode_SH2_Slave);
-
-	SH2_Reset(master);
-	SH2_Reset(slave);
-
-#endif
-
-
-
-#if DEBUG_BREAK_ON_BOOT
-#if ENABLE_32X_MODE
-	DEB_PauseEmulation(DEB_Mode_SH2_Master,"BOOT");
-#else
-	DEB_PauseEmulation(DEB_Mode_68000,"BOOT");
-#endif
-#endif
-
-	while (running)
-	{
-		
-#if ENABLE_32X_MODE
-			for (a=0;a<3;a++)
-			{
-				VDP_32X_Tick();
-				SH2_Step(master);			/ * 3 steps per 68000 * /
-				SH2_Step(slave);
-			}
-#endif
-
-#if !SMS_MODE
-
-#endif
-/ *			if (massiveHack&1) * /
-			{
-
-			}
-
-
-/ *
-			//
-			///////////////////////////////////////////////////////////////////////////
-			//
-			// Need to stop hacking shit in!
-			//
-			//
-
-			// Approximation of screen to cpu timings (so I can get the irqs firing)
-* /
-
-
-
-
-
-		}
-
-			if (CheckKey('.'))
-			{
-				lockFrameRate^=1;
-				ClearKey('.');
-			}
-			if (CheckKey('1'))
-			{
-				YM_OutOn^=1;
-				ClearKey('1');
-			}
-			if (CheckKey('2'))
-			{
-				PSG_OutOn^=1;
-				ClearKey('2');
-			}
-			if (CheckKey('5'))
-			{
-#if ENABLE_32X_MODE
-				memset(SH2_68K_COMM_REGISTER,0,16);			/ * MASSIVE HACK TO STARTUP SYNC ISSUE * /
-#endif
-				ClearKey('5');
-			}
-		}
-
-		//Run until ESC key pressed or window closed
-		running = UpdateRenderer() && UpdateInput();
-	}
-
-	if (SRAM)
-	{
-		SaveSRAM(saveName);
-	}
-
-	Shutdown();
-
-#if OPENAL_SUPPORT
-	AudioKill(); 
-#endif
-
-	/ * Exit program * /
-	return 0; 
-}*/
-
-/*
-#ifdef _WIN32
-int WINAPI WinMain(      
-									 HINSTANCE hInstance,
-									 HINSTANCE hPrevInstance,
-									 LPSTR lpCmdLine,
-									 int nCmdShow
-									 )
-{
-  AllocConsole();
-  freopen ("CONOUT$", "w", stdout ); 
-
-	main(0,0);
-}
-#endif*/
-
-#if OPENAL_SUPPORT
-
-#define NUMBUFFERS            (3)				/* living dangerously*/
-
-ALuint		  uiBuffers[NUMBUFFERS];
-ALuint		  uiSource;
-
-ALboolean ALFWInitOpenAL()
-{
-	ALCcontext *pContext = NULL;
-	ALCdevice *pDevice = NULL;
-	ALboolean bReturn = AL_FALSE;
-	
-	pDevice = alcOpenDevice(NULL);				/* Request default device*/
-	if (pDevice)
-	{
-		pContext = alcCreateContext(pDevice, NULL);
-		if (pContext)
-		{
-			printf("\nOpened %s Device\n", alcGetString(pDevice, ALC_DEVICE_SPECIFIER));
-			alcMakeContextCurrent(pContext);
-			bReturn = AL_TRUE;
-		}
-		else
-		{
-			alcCloseDevice(pDevice);
-		}
-	}
-
-	return bReturn;
-}
-
-ALboolean ALFWShutdownOpenAL()
-{
-	ALCcontext *pContext;
-	ALCdevice *pDevice;
-
-	pContext = alcGetCurrentContext();
-	pDevice = alcGetContextsDevice(pContext);
-	
-	alcMakeContextCurrent(NULL);
-	alcDestroyContext(pContext);
-	alcCloseDevice(pDevice);
-
-	return AL_TRUE;
-}
-
-#if USE_8BIT_OUTPUT
-
-#define AL_FORMAT						(AL_FORMAT_MONO8)
-#define BUFFER_FORMAT				U8
-#define BUFFER_FORMAT_SIZE	(1)
-#define BUFFER_FORMAT_SHIFT	(8)
-
-#else
-
-#define AL_FORMAT						(AL_FORMAT_MONO16)
-#define BUFFER_FORMAT				S16
-#define BUFFER_FORMAT_SIZE	(2)
-#define BUFFER_FORMAT_SHIFT	(0)
-
-#endif
-
-int curPlayBuffer=0;
-
-// Filling audio buffer once per frame, playing at 44100hz
-#define BUFFER_LEN		(44100/FRAMES_PER_SECOND_NTSC)
-
-BUFFER_FORMAT audioBuffer[BUFFER_LEN];
-int amountAdded=0;
-
-void AudioInitialise()
-{
-	int a=0;
-	for (a=0;a<BUFFER_LEN;a++)
-	{
-		audioBuffer[a]=0;
-	}
-
-	ALFWInitOpenAL();
-
-  /* Generate some AL Buffers for streaming */
-	alGenBuffers( NUMBUFFERS, uiBuffers );
-
-	/* Generate a Source to playback the Buffers */
-  alGenSources( 1, &uiSource );
-
-	for (a=0;a<NUMBUFFERS;a++)
-	{
-		alBufferData(uiBuffers[a], AL_FORMAT, audioBuffer, BUFFER_LEN*BUFFER_FORMAT_SIZE, 44100);
-		alSourceQueueBuffers(uiSource, 1, &uiBuffers[a]);
-	}
-
-	alSourcePlay(uiSource);
-}
-
-
-void AudioKill()
-{
-	ALFWShutdownOpenAL();
-}
-
-S16 currentDAC[2] = {0,0};
-
-void _AudioAddData(int channel,S16 dacValue)
-{
-	currentDAC[channel]=dacValue;
-}
-
-float tickCnt=0;
-float tickRate=((CYCLES_PER_FRAME_68K*FRAMES_PER_SECOND_NTSC)/44100.f);
-
-/* audio ticked at same clock as everything else... so need a step down */
-void UpdateAudio()
-{
-	tickCnt+=1.f;
-	
-	if (tickCnt>=tickRate)
-	{
-		tickCnt-=tickRate;
-
-		if (amountAdded!=BUFFER_LEN)
-		{
-			S32 res=0;
-			if (PSG_OutOn)
-				res+=currentDAC[1];
-			if (YM_OutOn)
-				res+=currentDAC[0];
-			if (PSG_OutOn && YM_OutOn)
-				res>>=1;
-			audioBuffer[amountAdded]=res>>BUFFER_FORMAT_SHIFT;
-			amountAdded++;
-		}
-	}
-
-	if (amountAdded==BUFFER_LEN)
-		{
-			/* 1 second has passed by */
-
-			ALint processed;
-			ALint state;
-			alGetSourcei(uiSource, AL_SOURCE_STATE, &state);
-			alGetSourcei(uiSource, AL_BUFFERS_PROCESSED, &processed);
-			if (processed>0)
-			{
-				ALuint buffer;
-
-				amountAdded=0;
-				alSourceUnqueueBuffers(uiSource,1, &buffer);
-				alBufferData(buffer, AL_FORMAT, audioBuffer, BUFFER_LEN*BUFFER_FORMAT_SIZE, 44100);
-				alSourceQueueBuffers(uiSource, 1, &buffer);
-			}
-
-			if (state!=AL_PLAYING)
-			{
-				alSourcePlay(uiSource);
-			}
-		}
-	
-
-}
-
-#endif
-
-

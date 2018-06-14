@@ -80,6 +80,7 @@ extern Z80_Ins		Z80_instructions[];
 extern Z80_Function	Z80_JumpTable[256];				/* Going to need more tables for extended instruction blocks */
 extern Z80_Decode	Z80_DisTable[256];
 extern Z80_Ins		*Z80_Information[256];
+ION_C_API Z80_Regs		Z80_regs;
 
 #define Z80_REG_B		(0)
 #define Z80_REG_C		(1)

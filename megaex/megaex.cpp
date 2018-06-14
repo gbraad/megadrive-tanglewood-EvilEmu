@@ -91,6 +91,9 @@ void MegaEx::Shutdown()
 	ShutdownRenderer();
 }
 
+extern float TEST_FPS;
+extern ion::thread::CriticalSection TEST_CRIT_SEC;
+
 bool MegaEx::Update(float deltaTime)
 {
 	//Update input
@@ -105,7 +108,7 @@ bool MegaEx::Update(float deltaTime)
 	//Update FPS display
 	if (m_frameCount++ % 60 == 0)
 	{
-		//Get 100-frame end time and diff
+		//Get 60-frame end time and diff
 		u64 endTicks = ion::time::GetSystemTicks();
 		u64 diffTicks = endTicks - m_startTicks;
 
@@ -117,7 +120,9 @@ bool MegaEx::Update(float deltaTime)
 		std::stringstream text;
 		text.setf(std::ios::fixed, std::ios::floatfield);
 		text.precision(2);
-		text << "FPS: " << framesPerSecond;
+		TEST_CRIT_SEC.Begin();
+		text << "FPS: " << TEST_FPS; // framesPerSecond;
+		TEST_CRIT_SEC.End();
 		m_window->SetTitle(text.str().c_str());
 
 		//Reset timer

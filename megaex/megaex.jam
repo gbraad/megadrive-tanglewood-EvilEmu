@@ -8,9 +8,10 @@ ApplyIonIncludes megaex ;
 ApplyIonCore megaex ;
 ApplyIonIo megaex ;
 ApplyIonInput megaex ;
+ApplyIonAudio megaex ;
 ApplyIonRenderer megaex : opengl ;
 ApplyIonGameKit megaex ;
-ApplyOpenALSDK megaex ;
+ApplyOpenALSoftSDK megaex ;
 ApplyGlfwSDK megaex ;
 
 local SRC = 
@@ -46,11 +47,16 @@ local SRC =
 	config.h
 	emulator.cpp
 	emulator.h
+	emuthread.cpp
+	emuthread.h
 	main.cpp
 	megaex.cpp
 	megaex.h
-	memory.c
+	memory.cpp
 	memory.h
+	memory.inl
+	mgaudio.cpp
+	mgaudio.h
 	mgmain.cpp
 	mytypes.h
 	platform.h

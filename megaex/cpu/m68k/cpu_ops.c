@@ -35,6 +35,10 @@ THE SOFTWARE.
 #include "cpu.h"
 #include "memory.h"
 
+#define MAX_ADDRESS_HANDLERS 0x3D
+
+typedef U32(*Address_Handler)(U32, U32, U32, U32*, U16, int, int);
+
 /*New support functionality for cpu with stage and bus arbitration */
 
 U32 BUS_Available(U32 ea)			/* TODO - Need to implement bus arbitration */
@@ -43,135 +47,106 @@ U32 BUS_Available(U32 ea)			/* TODO - Need to implement bus arbitration */
 	return 1;
 }
 
+U32 CycleCount_Handler_Null(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	return endCase;
+}
+
+U32 CycleCount_Handler_Type1(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (stage)
+	{
+	case 0:
+		return 1 + offs;
+	case 1:
+		return 2 + offs;
+	case 2:
+		return endCase;
+	}
+	return endCase;
+}
+
+U32 CycleCount_Handler_Type2(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	switch (stage)
+	{
+	case 0:
+		return 1 + offs;
+	case 1:
+		return endCase;
+	}
+	return endCase;
+}
+
+Address_Handler CycleCount_Handler_Table[MAX_ADDRESS_HANDLERS] =
+{
+	/* 0x00 */ CycleCount_Handler_Null,
+	/* 0x01 */ CycleCount_Handler_Null,
+	/* 0x02 */ CycleCount_Handler_Null,
+	/* 0x03 */ CycleCount_Handler_Null,
+	/* 0x04 */ CycleCount_Handler_Null,
+	/* 0x05 */ CycleCount_Handler_Null,
+	/* 0x06 */ CycleCount_Handler_Null,
+	/* 0x07 */ CycleCount_Handler_Null,
+	/* 0x08 */ CycleCount_Handler_Null,
+	/* 0x09 */ CycleCount_Handler_Null,
+	/* 0x0A */ CycleCount_Handler_Null,
+	/* 0x0B */ CycleCount_Handler_Null,
+	/* 0x0C */ CycleCount_Handler_Null,
+	/* 0x0D */ CycleCount_Handler_Null,
+	/* 0x0E */ CycleCount_Handler_Null,
+	/* 0x0F */ CycleCount_Handler_Null,
+	/* 0x10 */ CycleCount_Handler_Type1,
+	/* 0x11 */ CycleCount_Handler_Type1,
+	/* 0x12 */ CycleCount_Handler_Type1,
+	/* 0x13 */ CycleCount_Handler_Type1,
+	/* 0x14 */ CycleCount_Handler_Type1,
+	/* 0x15 */ CycleCount_Handler_Type1,
+	/* 0x16 */ CycleCount_Handler_Type1,
+	/* 0x17 */ CycleCount_Handler_Type1,
+	/* 0x18 */ CycleCount_Handler_Null,
+	/* 0x19 */ CycleCount_Handler_Null,
+	/* 0x1A */ CycleCount_Handler_Null,
+	/* 0x1B */ CycleCount_Handler_Null,
+	/* 0x1C */ CycleCount_Handler_Null,
+	/* 0x1D */ CycleCount_Handler_Null,
+	/* 0x1E */ CycleCount_Handler_Null,
+	/* 0x1F */ CycleCount_Handler_Null,
+	/* 0x20 */ CycleCount_Handler_Null,
+	/* 0x21 */ CycleCount_Handler_Null,
+	/* 0x22 */ CycleCount_Handler_Null,
+	/* 0x23 */ CycleCount_Handler_Null,
+	/* 0x24 */ CycleCount_Handler_Null,
+	/* 0x25 */ CycleCount_Handler_Null,
+	/* 0x26 */ CycleCount_Handler_Null,
+	/* 0x27 */ CycleCount_Handler_Type2,
+	/* 0x28 */ CycleCount_Handler_Type2,
+	/* 0x29 */ CycleCount_Handler_Type2,
+	/* 0x2A */ CycleCount_Handler_Type2,
+	/* 0x2B */ CycleCount_Handler_Type2,
+	/* 0x2C */ CycleCount_Handler_Type2,
+	/* 0x2D */ CycleCount_Handler_Type2,
+	/* 0x2E */ CycleCount_Handler_Type2,
+	/* 0x2F */ CycleCount_Handler_Type2,
+	/* 0x30 */ CycleCount_Handler_Type1,
+	/* 0x31 */ CycleCount_Handler_Type1,
+	/* 0x32 */ CycleCount_Handler_Type1,
+	/* 0x33 */ CycleCount_Handler_Type1,
+	/* 0x34 */ CycleCount_Handler_Type1,
+	/* 0x35 */ CycleCount_Handler_Type1,
+	/* 0x36 */ CycleCount_Handler_Type1,
+	/* 0x37 */ CycleCount_Handler_Type1,
+	/* 0x38 */ CycleCount_Handler_Type2,
+	/* 0x39 */ CycleCount_Handler_Null,
+	/* 0x3A */ CycleCount_Handler_Type2,
+	/* 0x3B */ CycleCount_Handler_Type1,
+	/* 0x3C */ CycleCount_Handler_Null
+};
+
 /* Applies a fudge to correct the cycle timings for some odd instructions (JMP) */
 U32 FUDGE_EA_CYCLES(U32 endCase,U32 offs,U32 stage,U16 operand)
 {
-    switch (operand)
-    {
-		case 0x00:		/* Dx */
-		case 0x01:
-		case 0x02:
-		case 0x03:
-		case 0x04:
-		case 0x05:
-		case 0x06:
-		case 0x07:
-			break;
-		case 0x08:		/* Ax */
-		case 0x09:
-		case 0x0A:
-		case 0x0B:
-		case 0x0C:
-		case 0x0D:
-		case 0x0E:
-		case 0x0F:
-			break;
-		case 0x10:		/* (Ax) */
-		case 0x11:
-		case 0x12:
-		case 0x13:
-		case 0x14:
-		case 0x15:
-		case 0x16:
-		case 0x17:
-			switch (stage)
-			{
-				case 0:
-					return 1+offs;
-				case 1:
-					return 2+offs;
-				case 2:
-					break;
-			}
-			break;
-		case 0x18:		/* (Ax)+ */
-		case 0x19:
-		case 0x1A:
-		case 0x1B:
-		case 0x1C:
-		case 0x1D:
-		case 0x1E:
-		case 0x1F:
-			break;
-		case 0x20:		/* -(Ax) */
-		case 0x21:
-		case 0x22:
-		case 0x23:
-		case 0x24:
-		case 0x25:
-		case 0x26:
-		case 0x27:
-			break;
-		case 0x28:		/* (XXXX,Ax) */
-		case 0x29:
-		case 0x2A:
-		case 0x2B:
-		case 0x2C:
-		case 0x2D:
-		case 0x2E:
-		case 0x2F:
-			switch (stage)
-			{
-				case 0:
-					return 1+offs;
-				case 1:
-					break;
-			}
-			break;
-		case 0x30:		/* (XX,Ax,Xx) */
-		case 0x31:
-		case 0x32:
-		case 0x33:
-		case 0x34:
-		case 0x35:
-		case 0x36:
-		case 0x37:
-			switch (stage)
-			{
-				case 0:
-					return 1+offs;
-				case 1:
-					return 2+offs;
-				case 2:
-					break;
-			}
-			break;
-		case 0x38:		/* (XXXX).W */
-			switch (stage)
-			{
-				case 0:
-					return 1+offs;
-				case 1:
-					break;
-			}
-			break;
-		case 0x39:		/* (XXXXXXXX).L */
-			break;
-		case 0x3A:		/* (XXXX,PC) */
-			switch (stage)
-			{
-				case 0:
-					return 1+offs;
-				case 1:
-					break;
-			}
-			break;
-		case 0x3B:		/* (XX,PC,Xx) */
-			switch (stage)
-			{
-				case 0:
-					return 1+offs;
-				case 1:
-					return 2+offs;
-				case 2:
-					break;
-			}
-			break;
-		case 0x3C:		/* #XX.B #XXXX.W #XXXXXXXX.L */
-			break;
-    }
-	
-	return endCase;
+	return CycleCount_Handler_Table[operand](endCase, offs, stage, NULL, operand, 0, 0);
 }
 
 /*
@@ -181,10 +156,6 @@ U32 FUDGE_EA_CYCLES(U32 endCase,U32 offs,U32 stage,U16 operand)
  stage should be 0-4 on input
 
 */
-
-typedef U32(*CEA_Handler)(U32, U32, U32, U32*, U16, int, int);
-
-#define MAX_ADDRESS_HANDLERS 0x3D
 
 // Dx
 U32 CEA_Handler_00_07(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
@@ -203,7 +174,7 @@ U32 CEA_Handler_08_0F(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, in
 // (Ax)
 U32 CEA_Handler_10_17(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
 {
-			*ea = cpu_regs.A[operand-0x10];
+	*ea = cpu_regs.A[operand-0x10];
 	return endCase;
 }
 
@@ -315,32 +286,53 @@ U32 CEA_Handler_38(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int l
 }
 
 /* (XXXXXXXX).L */
+U32 CEA_Handler_39_0(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	cpu_regs.tmpL = cpu_regs.PC;
+	cpu_regs.PC += 2;
+	return 1 + offs;
+}
+
+U32 CEA_Handler_39_1(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	if (!BUS_Available(cpu_regs.tmpL))
+		return 1 + offs;
+	*ea = MEM_getWord(cpu_regs.tmpL) << 16;
+	return 2 + offs;
+}
+
+U32 CEA_Handler_39_2(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	cpu_regs.tmpL = cpu_regs.PC;
+	cpu_regs.PC += 2;
+	return 3 + offs;
+}
+
+U32 CEA_Handler_39_3(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	if (!BUS_Available(cpu_regs.tmpL))
+		return 3 + offs;
+	*ea |= MEM_getWord(cpu_regs.tmpL);
+	return 4 + offs;
+}
+
+U32 CEA_Handler_39_4(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+{
+	return endCase;
+}
+
+Address_Handler CEA_Handler_Table_39[MAX_ADDRESS_HANDLERS] =
+{
+	/* 0x00 */ CEA_Handler_39_0,
+	/* 0x01 */ CEA_Handler_39_1,
+	/* 0x02 */ CEA_Handler_39_2,
+	/* 0x03 */ CEA_Handler_39_3,
+	/* 0x04 */ CEA_Handler_39_4,
+};
+
 U32 CEA_Handler_39(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
 {
-	switch (stage)
-	{
-	case 0:
-		cpu_regs.tmpL = cpu_regs.PC;
-		cpu_regs.PC += 2;
-		return 1 + offs;
-	case 1:
-		if (!BUS_Available(cpu_regs.tmpL))
-			return 1 + offs;
-		*ea = MEM_getWord(cpu_regs.tmpL) << 16;
-		return 2 + offs;
-	case 2:
-		cpu_regs.tmpL = cpu_regs.PC;
-		cpu_regs.PC += 2;
-		return 3 + offs;
-	case 3:
-		if (!BUS_Available(cpu_regs.tmpL))
-			return 3 + offs;
-		*ea |= MEM_getWord(cpu_regs.tmpL);
-		return 4 + offs;
-	case 4:
-		return endCase;
-	}
-	return endCase;
+	return CEA_Handler_Table_39[stage](endCase, offs, stage, ea, operand, length, asSrc);
 }
 
 /* (XXXX,PC) */
@@ -418,7 +410,7 @@ U32 CEA_Handler_3C(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int l
 	return endCase;
 }
 
-CEA_Handler CEA_Handler_Table[MAX_ADDRESS_HANDLERS] =
+Address_Handler CEA_Handler_Table[MAX_ADDRESS_HANDLERS] =
 {
 	/* 0x00 */ CEA_Handler_00_07,
 	/* 0x01 */ CEA_Handler_00_07,
@@ -528,6 +520,105 @@ int COMPUTE_CONDITION(U16 op)
 	return 0;
 }
 
+#define MAX_VALUE_HANDLERS 0x4
+#define MAX_VALUE_STAGES   0x5
+
+typedef U32(*Value_Handler)(U32, U32, U32, U16, U32*, U32*, int);
+
+U32 Value_Handler_Byte_0(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+{
+	if (!BUS_Available(*eas))
+		return 0 + offs;
+	*ead = MEM_getByte(*eas);
+	return 1 + offs;
+}
+
+U32 Value_Handler_Byte_1(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+{
+	return 2 + offs;
+}
+
+U32 Value_Handler_Word_0(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+{
+	if (!BUS_Available(*eas))
+		return 0 + offs;
+	*ead = MEM_getWord(*eas);
+	return 1 + offs;
+}
+
+U32 Value_Handler_Word_1(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+{
+	return 2 + offs;
+}
+
+U32 Value_Handler_Long_0(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+{
+	cpu_regs.tmpL = *eas;
+	if (!BUS_Available(cpu_regs.tmpL))
+		return 0 + offs;
+	*ead = MEM_getWord(cpu_regs.tmpL) << 16;
+	return 1 + offs;
+}
+
+U32 Value_Handler_Long_1(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+{
+	cpu_regs.tmpL += 2;
+	return 2 + offs;
+}
+
+U32 Value_Handler_Long_2(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+{
+	if (!BUS_Available(cpu_regs.tmpL))
+		return 2 + offs;
+	*ead |= MEM_getWord(cpu_regs.tmpL);
+	return 3 + offs;
+}
+
+U32 Value_Handler_Long_3(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+{
+	return 4 + offs;
+}
+
+U32 Value_Handler_EndCase(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+{
+	return endCase;
+}
+
+Value_Handler Value_Handler_Table[MAX_VALUE_HANDLERS][MAX_VALUE_STAGES] =
+{
+	{	// Byte fetch, stages 0 - 4
+		Value_Handler_Byte_0,
+		Value_Handler_Byte_1,
+		Value_Handler_EndCase,
+		Value_Handler_EndCase,
+		Value_Handler_EndCase,
+	},
+	
+	{	// Word fetch, stages 0 - 4
+		Value_Handler_Word_0,
+		Value_Handler_Word_1,
+		Value_Handler_EndCase,
+		Value_Handler_EndCase,
+		Value_Handler_EndCase,
+	},
+	
+	{	// Doesn't exist
+		Value_Handler_EndCase,
+		Value_Handler_EndCase,
+		Value_Handler_EndCase,
+		Value_Handler_EndCase,
+		Value_Handler_EndCase,
+	},
+	
+	{	// Long fetch, stages 0 - 4
+		Value_Handler_Long_0,
+		Value_Handler_Long_1,
+		Value_Handler_Long_2,
+		Value_Handler_Long_3,
+		Value_Handler_EndCase,
+	}
+};
+
 U32 LOAD_EFFECTIVE_VALUE(U32 endCase,U32 offs,U32 stage,U16 op,U32 *ead,U32 *eas,int length)
 {
 	if (op<0x10)
@@ -535,62 +626,8 @@ U32 LOAD_EFFECTIVE_VALUE(U32 endCase,U32 offs,U32 stage,U16 op,U32 *ead,U32 *eas
 		*ead=*eas;
 		return endCase;
 	}
-	
-	switch (length)
-	{
-		case 1:
-			switch (stage)
-			{
-				case 0:
-					if (!BUS_Available(*eas))
-						return 0+offs;
-					*ead = MEM_getByte(*eas);
-					return 1+offs;
-				case 1:
-					return 2+offs;
-				case 2:
-					break;
-			}
-			break;
-		case 2:
-			switch (stage)
-			{
-				case 0:
-					if (!BUS_Available(*eas))
-						return 0+offs;
-					*ead = MEM_getWord(*eas);
-					return 1+offs;
-				case 1:
-					return 2+offs;
-				case 2:
-					break;
-			}
-			break;
-		case 4:
-			switch (stage)
-			{
-				case 0:
-					cpu_regs.tmpL = *eas;
-					if (!BUS_Available(cpu_regs.tmpL))
-						return 0+offs;
-					*ead = MEM_getWord(cpu_regs.tmpL)<<16;
-					return 1+offs;
-				case 1:
-					cpu_regs.tmpL+=2;
-					return 2+offs;
-				case 2:
-					if (!BUS_Available(cpu_regs.tmpL))
-						return 2+offs;
-					*ead|=MEM_getWord(cpu_regs.tmpL);
-					return 3+offs;
-				case 3:
-					return 4+offs;
-				case 4:
-					break;
-			}
-			break;
-	}
-	return endCase;
+
+	return Value_Handler_Table[length-1][stage](endCase, offs, stage, op, ead, eas, length);
 }
 
 U32 STORE_EFFECTIVE_VALUE(U32 endCase,U32 offs,U32 stage,U16 op,U32 *ead,U32 *eas)

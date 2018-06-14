@@ -4,6 +4,8 @@
 
 #pragma once
 
+#define EMU_THREADED 1
+
 extern U8 videoMemory[LINE_LENGTH*HEIGHT*sizeof(U32)];
 
 enum EmulatorButtons
@@ -51,7 +53,6 @@ enum EmulatorState
 };
 
 bool InitialiseEmulator(const char* rom);
-EmulatorState TickEmulator(float deltaTime);
 void ShutdownEmulator();
 void EmulatorSetButtonState(u16 buttonState);
 const char* EmulatorGetROMTitle();
