@@ -11,7 +11,7 @@ ApplyIonInput megaex ;
 ApplyIonAudio megaex ;
 ApplyIonRenderer megaex : opengl ;
 ApplyIonGameKit megaex ;
-ApplyOpenALSoftSDK megaex ;
+ApplySDL2SDK megaex : audio ;
 ApplyGlfwSDK megaex ;
 
 local SRC = 

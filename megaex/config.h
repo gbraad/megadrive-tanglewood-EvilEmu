@@ -70,7 +70,7 @@ THE SOFTWARE.
 #define ENABLE_SMS_BIOS			0
 #define SMS_CART_MISSING		0
 
-#define OPENAL_SUPPORT			1
+#define OPENAL_SUPPORT			0
 #define USE_8BIT_OUTPUT			0
 
 #define UNUSED_ARGUMENT(x)		(void)x

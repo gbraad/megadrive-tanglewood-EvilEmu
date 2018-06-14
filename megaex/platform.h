@@ -37,9 +37,11 @@ THE SOFTWARE.
 #include "GL/glext.h"
 #include "GL/glfw3.h"
 
+#if OPENAL_SUPPORT
 #include "AL/al.h"
 #include "AL/alc.h"
 #include "AL/alext.h"
+#endif
 
 #else
 
@@ -47,9 +49,11 @@ THE SOFTWARE.
 #include <GL/glext.h>
 #include <GL/glfw.h>
 
+#if OPENAL_SUPPORT
 #include <AL/al.h>
 #include <AL/alc.h>
 #include <AL/alext.h>
+#endif
 
 #define UINT64	u_int64_t
 #define __int64 int64_t
