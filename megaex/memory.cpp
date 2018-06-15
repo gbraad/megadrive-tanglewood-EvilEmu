@@ -36,6 +36,8 @@ THE SOFTWARE.
 #include "lj_ym2612.h"
 #include "mgaudio.h"
 
+#include "memory.inl"
+
 #define SYS_RAM_SIZE		(64*1024)
 #define Z80_RAM_SIZE		(8*1024)
 #define VRAM_SIZE			(64*1024)

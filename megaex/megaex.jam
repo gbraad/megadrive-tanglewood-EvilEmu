@@ -11,8 +11,6 @@ ApplyIonInput megaex ;
 ApplyIonAudio megaex ;
 ApplyIonRenderer megaex : opengl ;
 ApplyIonGameKit megaex ;
-ApplySDL2SDK megaex : audio ;
-ApplyGlfwSDK megaex ;
 
 local SRC = 
 	audio/lj_ym2612.c

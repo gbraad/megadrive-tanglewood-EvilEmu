@@ -1,4 +1,5 @@
 #include "mgaudio.h"
+#include <stdio.h>
 
 LJ_YM2612* ym2612_chip = NULL;
 

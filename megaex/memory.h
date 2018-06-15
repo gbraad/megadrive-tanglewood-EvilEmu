@@ -23,7 +23,8 @@ THE SOFTWARE.
 
  */
 
-#pragma once
+#ifndef _MEGAEX_MEMORY_H
+#define _MEGAEX_MEMORY_H
 
 #include "mytypes.h"
 
@@ -40,12 +41,12 @@ ION_C_API void MEM_Initialise(unsigned char *_romPtr, U32 romSize, unsigned int 
 
 ION_C_API void MEM_MapKickstartLow(int yes);
 
-ION_C_API inline U8		MEM_getByte(U32 address);
-ION_C_API inline void	MEM_setByte(U32 address,U8 byte);
-ION_C_API inline U16	MEM_getWord(U32 address);
-ION_C_API inline void	MEM_setWord(U32 address,U16 word);
-ION_C_API inline U32	MEM_getLong(U32 address);
-ION_C_API inline void	MEM_setLong(U32 address,U32 dword);
+ION_C_API U8	MEM_getByte(U32 address);
+ION_C_API void	MEM_setByte(U32 address,U8 byte);
+ION_C_API U16	MEM_getWord(U32 address);
+ION_C_API void	MEM_setWord(U32 address,U16 word);
+ION_C_API U32	MEM_getLong(U32 address);
+ION_C_API void	MEM_setLong(U32 address,U32 dword);
 
 typedef U8(*MEM_ReadByteMap)(U32 address, U32 upper24, U32 lower16);
 typedef void(*MEM_WriteByteMap)(U32 address, U32 upper24, U32 lower16, U8 byte);
@@ -59,4 +60,5 @@ ION_C_API MEM_WriteByteMap	mem_write[256];
 ION_C_API MEM_ReadWordMap	mem_read_word[256];
 ION_C_API MEM_WriteWordMap	mem_write_word[256];
 
-#include "memory.inl"
+#endif
+
