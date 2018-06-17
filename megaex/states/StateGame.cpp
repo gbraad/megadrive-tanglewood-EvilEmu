@@ -99,6 +99,7 @@ void StateGame::OnEnterState()
 
 	//Create and run emulator thread
 	m_emulatorThread = new EmulatorThread();
+	m_emulatorThread->Run();
 }
 
 void StateGame::OnLeaveState()
