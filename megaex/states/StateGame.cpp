@@ -100,6 +100,7 @@ void StateGame::OnEnterState()
 	//Create and run emulator thread
 	m_emulatorThread = new EmulatorThread();
 	m_emulatorThread->Run();
+	m_emulatorThread->SetPriority(ion::thread::Thread::Priority::High);
 }
 
 void StateGame::OnLeaveState()
