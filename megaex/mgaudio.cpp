@@ -25,8 +25,26 @@ void AudioInitialise()
 	//Create voice
 	ionAudioVoice = ionAudioEngine->CreateVoice(ionAudioSource, true);
 
-	//Lock buffer ready for filling
+	//XAudio2 voice cannot be starved or it will stop the timer
+#if !defined ION_AUDIO_SUPPORTS_SDL
+
+	//Lead with one buffer of silence
 	ionAudioBuffer->Lock();
+
+	u16 sample = 0;
+	for (int i = 0; i < AUDIO_BUFFER_LEN_SAMPLES; i++)
+	{
+		ionAudioBuffer->Add((const char*)&sample, AUDIO_BUFFER_FORMAT_SIZE);
+	}
+
+	ionAudioBuffer->Unlock();
+	ionAudioVoice->SubmitBuffer(*ionAudioBuffer);
+
+#endif
+
+	//Lock and clear buffer ready for filling
+	ionAudioBuffer->Lock();
+	ionAudioBuffer->Clear();
 }
 
 void AudioBeginPlayback()
