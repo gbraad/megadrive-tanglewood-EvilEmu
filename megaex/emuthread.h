@@ -29,7 +29,7 @@ private:
 
 	EmulatorState m_lastEmulatorState;
 
-	float m_totalTime;
+	float m_prevAudioClock;
 	float m_accumTime;
 	
 	u64 m_clock68K;

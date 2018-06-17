@@ -35,7 +35,10 @@ THE SOFTWARE.
 #include <GL/GL.h>
 
 #include "GL/glext.h"
+
+#if GLFW_SUPPORT
 #include "GL/glfw3.h"
+#endif
 
 #if OPENAL_SUPPORT
 #include "AL/al.h"
@@ -47,7 +50,10 @@ THE SOFTWARE.
 
 #include <GL/gl.h>
 #include <GL/glext.h>
+
+#if GLFW_SUPPORT
 #include <GL/glfw.h>
+#endif
 
 #if OPENAL_SUPPORT
 #include <AL/al.h>

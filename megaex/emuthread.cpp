@@ -27,7 +27,7 @@
 #if defined DEBUG
 #define EMU_FRAME_SKIP		1
 #else
-#define EMU_FRAME_SKIP		1
+#define EMU_FRAME_SKIP		0
 #endif
 
 ION_C_API U8 VDP_Registers[0x20];
@@ -41,7 +41,7 @@ EmulatorThread::EmulatorThread()
 	: ion::thread::Thread("Emulator")
 #endif
 {
-	m_totalTime = 0.0f;
+	m_prevAudioClock = 0.0f;
 	m_accumTime = 0.0f;
 
 	m_clock68K = 0;
@@ -83,14 +83,21 @@ void EmulatorThread::TickEmulator(float deltaTime)
 
 	if (!debuggerRunning)
 	{
-		m_totalTime += deltaTime;
-		m_accumTime += deltaTime;
+		//Begin audio playback
+		AudioBeginPlayback();
+
+		//Get audio clock
+		const float audioClock = AudioGetClock();
+		const float audioClockDelta = audioClock - m_prevAudioClock;
+		m_prevAudioClock = audioClock;
+		m_accumTime += audioClockDelta;
 
 		framesBehind = (int)ion::maths::Floor(m_accumTime / EMU_TIMESTEP);
 
 		if (framesBehind > 1)
 		{
-			printf("Lagging behind by %i frames\n", framesBehind);
+			printf("Emulator lagging behind by %i frames (audio clock: %.4f prev clock: %.4f audio delta: %.4f accum time: %.4f)\n",
+				framesBehind, audioClock, m_prevAudioClock, audioClockDelta, m_accumTime);
 		}
 
 		int framesToProcess = ion::maths::Min(framesBehind, EMU_MAX_TICK_FRAMES);
@@ -192,17 +199,13 @@ void EmulatorThread::TickEmulator(float deltaTime)
 
 			m_renderCritSec.End();
 
-			//Catch up audio
-			for (int i = 0; i < ion::maths::Max(0, framesBehind - framesToProcess); i++)
-			{
-				AudioTick(deltaTime);
-			}
+			ion::thread::Sleep(1);
 		}
 	}
 
 	if (framesBehind == 0)
 	{
-		ion::thread::Sleep(1);
+		ion::thread::Sleep(5);
 	}
 
 	m_lastEmulatorState = debuggerRunning ? eState_Debugger : eState_Running;

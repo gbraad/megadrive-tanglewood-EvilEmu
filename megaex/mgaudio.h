@@ -13,13 +13,13 @@
 #include "lj_ym2612.h"
 #include "psg.h"
 
-#define AUDIO_NUM_BUFFERS			3
 #define AUDIO_BUFFER_FORMAT			s16
 #define AUDIO_BUFFER_FORMAT_SIZE	sizeof(AUDIO_BUFFER_FORMAT)
 
 #define AUDIO_SAMPLE_RATE_HZ		44100
-#define AUDIO_BUFFER_LEN_BYTES		((AUDIO_SAMPLE_RATE_HZ/FRAMES_PER_SECOND_NTSC) * AUDIO_BUFFER_FORMAT_SIZE)
-#define AUDIO_FILL_RATE				((float)(CYCLES_PER_FRAME_68K * FRAMES_PER_SECOND_NTSC) / (float)AUDIO_SAMPLE_RATE_HZ)
+#define AUDIO_BUFFER_LEN_SAMPLES	256
+#define AUDIO_BUFFER_LEN_BYTES		(AUDIO_BUFFER_LEN_SAMPLES*AUDIO_BUFFER_FORMAT_SIZE)
+#define AUDIO_FILL_RATE				((double)(CYCLES_PER_FRAME_68K * FRAMES_PER_SECOND_NTSC) / (double)AUDIO_SAMPLE_RATE_HZ)
 
 enum AudioDACChannel
 {
@@ -50,31 +50,29 @@ public:
 	IonAudioSource();
 	virtual bool OpenStream();
 	virtual void CloseStream();
-	virtual void RequestBuffer(ion::audio::SourceCallback& callback);
+	virtual void RequestBuffer(ion::audio::SourceCallback& callback) {}
 };
 
 void AudioInitialise();
+void AudioBeginPlayback();
+void AudioStopPlayback();
 void AudioTick(float deltaTime);
 void AudioFMUpdate();
 void AudioPSGUpdate();
 void AudioSetDAC(int channel, S16 dacValue);
+float AudioGetClock();
 
 extern LJ_YM2612* ym2612_chip;
 
 extern ion::audio::Engine* ionAudioEngine;
-extern ion::audio::Buffer* ionAudioBuffers[AUDIO_NUM_BUFFERS];
 extern ion::audio::Voice* ionAudioVoice;
-extern ion::Queue<ion::audio::Buffer*, AUDIO_NUM_BUFFERS> ionAudioBufferQueue;
-extern ion::audio::SourceCallback* ionAudioStarvedSource;
+extern ion::audio::Buffer* ionAudioBuffer;
 extern IonAudioStreamDesc ionAudioStreamDesc;
 extern IonAudioSource ionAudioSource;
 
 extern s16 audioDAC[AUDIO_DAC_COUNT];
-extern int audioBufferIdx;	// Current buffer being filled
-extern int audioWritePtr;	// Current buffer write ptr
-extern u64 audioSamplesWritten;
 
-extern float audioClock;
+extern double audioClock;
 extern int audioPSGClock;
 
 #endif

@@ -957,7 +957,11 @@ U8 keyArray[512*3];
 
 int KeyDown(int key)
 {
+#if GLFW_SUPPORT
 	return keyArray[key*3+1]==GLFW_PRESS;
+#else
+	return 0;
+#endif
 }
 
 int CheckKey(int key)

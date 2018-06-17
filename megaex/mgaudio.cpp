@@ -4,81 +4,73 @@
 LJ_YM2612* ym2612_chip = NULL;
 
 ion::audio::Engine* ionAudioEngine = NULL;
-ion::audio::Buffer* ionAudioBuffers[AUDIO_NUM_BUFFERS];
 ion::audio::Voice* ionAudioVoice = NULL;
-ion::Queue<ion::audio::Buffer*, AUDIO_NUM_BUFFERS> ionAudioBufferQueue;
-ion::audio::SourceCallback* ionAudioStarvedSource = NULL;
+ion::audio::Buffer* ionAudioBuffer = NULL;
 IonAudioStreamDesc ionAudioStreamDesc;
 IonAudioSource ionAudioSource;
 
 s16 audioDAC[AUDIO_DAC_COUNT] = { 0, 0 };
-int audioBufferIdx = 0;
-int audioWritePtr = 0;
-u64 audioSamplesWritten = 0;
-float audioClock = 0.0f;
+double audioClock = 0.0;
+float audioClockFM = 0.0f;
 int audioPSGClock = 0;
 
 void AudioInitialise()
 {
+	//Create audio engine
 	ionAudioEngine = ion::audio::Engine::Create();
 
-	for (int i = 0; i < AUDIO_NUM_BUFFERS; i++)
+	//Create buffer
+	ionAudioBuffer = new ion::audio::Buffer(AUDIO_BUFFER_LEN_BYTES);
+
+	//Create voice
+	ionAudioVoice = ionAudioEngine->CreateVoice(ionAudioSource, true);
+
+	//Lock buffer ready for filling
+	ionAudioBuffer->Lock();
+}
+
+void AudioBeginPlayback()
+{
+	if (ionAudioVoice->GetState() != ion::audio::Voice::Playing)
 	{
-		ionAudioBuffers[i] = new ion::audio::Buffer(AUDIO_BUFFER_LEN_BYTES);
-		ionAudioBuffers[i]->Lock();
+		ionAudioVoice->Play();
+	}
+}
+
+void AudioStopPlayback()
+{
+	if (ionAudioVoice->GetState() != ion::audio::Voice::Stopped)
+	{
+		ionAudioVoice->Stop();
 	}
 }
 
 void AudioTick(float deltaTime)
 {
-	audioClock += 1.0f;
+	audioClock += 1.0;
 
 	while (audioClock >= AUDIO_FILL_RATE)
 	{
 		audioClock -= AUDIO_FILL_RATE;
 
-		if ((audioSamplesWritten % (44100 / 4)) == 0)
-		{
-			u64 samplesPlayed = ionAudioVoice ? ionAudioVoice->GetPositionSamples() : 0;
-			printf("Samples ahead: %i\n", audioSamplesWritten - samplesPlayed);
-		}
-
 		//Get current DAC sample
 		S16 sample = (audioDAC[AUDIO_DAC_PSG] + audioDAC[AUDIO_DAC_FM]); // >> 1;
 
 		//Fill buffer
-		ionAudioBuffers[audioBufferIdx]->Put((const char*)&sample, AUDIO_BUFFER_FORMAT_SIZE, audioWritePtr);
-
-		//Advance buffer
-		audioWritePtr += AUDIO_BUFFER_FORMAT_SIZE;
-		audioSamplesWritten++;
+		ionAudioBuffer->Add((const char*)&sample, AUDIO_BUFFER_FORMAT_SIZE);
 
 		//If buffer full
-		if (audioWritePtr == AUDIO_BUFFER_LEN_BYTES)
+		if(ionAudioBuffer->GetDataSize() == AUDIO_BUFFER_LEN_BYTES)
 		{
-			//If voice is starved
-			if (ionAudioStarvedSource)
-			{
-				//Submit it immediately
-				ionAudioStarvedSource->SubmitBuffer(*ionAudioBuffers[audioBufferIdx]);
-				ionAudioStarvedSource = NULL;
-			}
-			else
-			{
-				//Push to queue
-				ionAudioBufferQueue.Push(ionAudioBuffers[audioBufferIdx]);
-			}
+			//Unlock buffer
+			ionAudioBuffer->Unlock();
+				
+			//Submit buffer
+			ionAudioVoice->SubmitBuffer(*ionAudioBuffer);
 
-			//Start filling next buffer
-			audioWritePtr = 0;
-			audioBufferIdx = (audioBufferIdx + 1) % AUDIO_NUM_BUFFERS;
-		}
-
-		//Create and play voice after at least first buffer filled
-		if (!ionAudioVoice && !ionAudioBufferQueue.IsEmpty())
-		{
-			ionAudioVoice = ionAudioEngine->CreateVoice(ionAudioSource, true);
-			ionAudioVoice->Play();
+			//Lock and reset buffer
+			ionAudioBuffer->Lock();
+			ionAudioBuffer->Reset();
 		}
 	}
 }
@@ -88,16 +80,21 @@ void AudioSetDAC(int channel, S16 dacValue)
 	audioDAC[channel] = dacValue;
 }
 
+float AudioGetClock()
+{
+	return ionAudioVoice ? ionAudioVoice->GetPositionSeconds() : 0.0f;
+}
+
 void AudioFMUpdate()
 {
 	static U32 divisor = (CYCLES_PER_FRAME_68K*FRAMES_PER_SECOND_NTSC) / AUDIO_SAMPLE_RATE_HZ;
-
+	
 	if (divisor>0)
 	{
 		divisor--;
 		return;
 	}
-
+	
 	divisor = (CYCLES_PER_FRAME_68K*FRAMES_PER_SECOND_NTSC) / AUDIO_SAMPLE_RATE_HZ;
 
 	if (ym2612_chip == NULL)
@@ -144,16 +141,3 @@ void IonAudioSource::CloseStream()
 {
 };
 
-void IonAudioSource::RequestBuffer(ion::audio::SourceCallback& callback)
-{
-	if (ionAudioBufferQueue.IsEmpty())
-	{
-		//printf("Voice starved, waiting for next buffer\n");
-		ionAudioStarvedSource = &callback;
-	}
-	else
-	{
-		callback.SubmitBuffer(*ionAudioBufferQueue.Pop());
-		ionAudioStarvedSource = NULL;
-	}
-}
