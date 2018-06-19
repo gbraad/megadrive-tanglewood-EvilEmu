@@ -656,17 +656,17 @@ void SetHL(U16 res)
 extern U32 Z80Cycles;
 
 
-U32 Z80_DI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_DI(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.IFF1=0;
 	Z80_regs.IFF2=0;
 
@@ -675,25 +675,25 @@ U32 Z80_DI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16
 	return 0;
 }
 
-U32 Z80_LDRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDRP(U32 stage,U16* operands)
 {
 	U8 nH,nL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nL=Z80_MEM_getByte(Z80_regs.PC);
 	nH=Z80_MEM_getByte(Z80_regs.PC+1);
 
 	Z80_regs.PC+=2;
 
-	SetRP(op1,nH,nL);	
+	SetRP(operands[0],nH,nL);	
 
 	Z80Cycles=10;
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
@@ -704,18 +704,18 @@ U32 Z80_LDRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_ED_IM(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_IM(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	switch(op1)
+	
+	
+	
+	
+	
+	
+	
+	
+	switch(operands[0])
 	{
 	case 0:
 		Z80_regs.InterruptMode=0;
@@ -733,19 +733,19 @@ U32 Z80_ED_IM(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_JP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_JP(U32 stage,U16* operands)
 {
 	U8 nH,nL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nL=Z80_MEM_getByte(Z80_regs.PC);
 	nH=Z80_MEM_getByte(Z80_regs.PC+1);
 
@@ -756,19 +756,19 @@ U32 Z80_JP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16
 	return 0;
 }
 
-U32 Z80_CALL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CALL(U32 stage,U16* operands)
 {
 	U8 nH,nL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nL=Z80_MEM_getByte(Z80_regs.PC);
 	nH=Z80_MEM_getByte(Z80_regs.PC+1);
 
@@ -786,24 +786,24 @@ U32 Z80_CALL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_LDn(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDn(U32 stage,U16* operands)
 {
 	U8 n;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	n=Z80_MEM_getByte(Z80_regs.PC);
 
 	Z80_regs.PC+=1;
 
-	SetR(op1,1,n);
+	SetR(operands[0],1,n);
 
 	Z80Cycles=7;
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
@@ -814,18 +814,18 @@ U32 Z80_LDn(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_XOR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_XOR(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	Z80_regs.R[Z80_REG_A] ^= GetR(op1,1);
+	
+	
+	
+	
+	
+	
+	
+	
+	Z80_regs.R[Z80_REG_A] ^= GetR(operands[0],1);
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,Z80_regs.R[Z80_REG_A],Z80_STATUS_C|Z80_STATUS_H|Z80_STATUS_N,0);
 
@@ -840,23 +840,23 @@ U32 Z80_XOR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 
 /* Flags are wrong here. but this is a kind of mental flag instruction anyway (see undocumented) */
 
-U32 Z80_CB_BITm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_BITm(U32 stage,U16* operands)
 {
 	U8 Z;
 	U16 MemAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z = Z80_MEM_getByte(MemAddress);
 
-	Z&=1<<op1;
+	Z&=1<<operands[0];
 
 	ComputeFlags(Z80_STATUS_Z,Z,Z80_STATUS_N,Z80_STATUS_H);
 	if (Z80_regs.R[Z80_REG_F] & Z80_STATUS_Z)
@@ -867,7 +867,7 @@ U32 Z80_CB_BITm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	{
 		Z80_regs.R[Z80_REG_F]&=~Z80_STATUS_PV;
 	}
-	if (op1==7)
+	if (operands[0]==7)
 	{
 		if (Z!=0)
 		{
@@ -878,7 +878,7 @@ U32 Z80_CB_BITm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 			Z80_regs.R[Z80_REG_F]&=~Z80_STATUS_S;
 		}
 	}
-	if (op1==5)
+	if (operands[0]==5)
 	{
 		if (Z!=0)
 		{
@@ -889,7 +889,7 @@ U32 Z80_CB_BITm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 			Z80_regs.R[Z80_REG_F]&=~Z80_STATUS_X_B5;
 		}
 	}
-	if (op1==3)
+	if (operands[0]==3)
 	{
 		if (Z!=0)
 		{
@@ -909,23 +909,23 @@ U32 Z80_CB_BITm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_JPcc(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_JPcc(U32 stage,U16* operands)
 {
 	U8 nH,nL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nL=Z80_MEM_getByte(Z80_regs.PC);
 	nH=Z80_MEM_getByte(Z80_regs.PC+1);
 
-	if (TestFlags(op1))
+	if (TestFlags(operands[0]))
 	{
 		Z80_regs.PC=(nH<<8) | nL;
 	}
@@ -939,20 +939,20 @@ U32 Z80_JPcc(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_LDm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDm(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	Z80_MEM_setByte(memAddress,	GetR(op1,0));
+	
+	
+	
+	
+	
+	
+	
+	
+	Z80_MEM_setByte(memAddress,	GetR(operands[0],0));
 
 	Z80Cycles=7;
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
@@ -964,19 +964,19 @@ U32 Z80_LDm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_LD_nn_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LD_nn_A(U32 stage,U16* operands)
 {
 	U16 nHnL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nHnL=Z80_MEM_getByte(Z80_regs.PC);
 	nHnL|=Z80_MEM_getByte(Z80_regs.PC+1)<<8;
 
@@ -989,17 +989,17 @@ U32 Z80_LD_nn_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_RET(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_RET(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC=Z80_MEM_getByte(Z80_regs.SP);
 	Z80_regs.SP++;
 	Z80_regs.PC|=Z80_MEM_getByte(Z80_regs.SP)<<8;
@@ -1010,22 +1010,22 @@ U32 Z80_RET(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_INC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_INC(U32 stage,U16* operands)
 {
 	U8 src=1;
-	U8 dst=GetR(op1,1);
+	U8 dst=GetR(operands[0],1);
 	U8 res=dst+src;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	SetR(op1,1,res);
+	
+	
+	
+	
+	
+	
+	
+	
+	SetR(operands[0],1,res);
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3,res,Z80_STATUS_N,0);
 	ComputeAddHV(src,dst,res);
 
@@ -1037,19 +1037,19 @@ U32 Z80_INC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_LDA_nn(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDA_nn(U32 stage,U16* operands)
 {
 	U16 nHnL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nHnL=Z80_MEM_getByte(Z80_regs.PC);
 	nHnL|=Z80_MEM_getByte(Z80_regs.PC+1)<<8;
 
@@ -1062,18 +1062,18 @@ U32 Z80_LDA_nn(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_OR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_OR(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	Z80_regs.R[Z80_REG_A] |= GetR(op1,1);
+	
+	
+	
+	
+	
+	
+	
+	
+	Z80_regs.R[Z80_REG_A] |= GetR(operands[0],1);
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,Z80_regs.R[Z80_REG_A],Z80_STATUS_C|Z80_STATUS_H|Z80_STATUS_N,0);
 
@@ -1086,7 +1086,7 @@ U32 Z80_OR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16
 	return 0;
 }
 
-U32 Z80_ED_LDIR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDIR(U32 stage,U16* operands)
 {
 	U16 src = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U16 dst = (Z80_regs.R[Z80_REG_D]<<8)|Z80_regs.R[Z80_REG_E];
@@ -1094,14 +1094,14 @@ U32 Z80_ED_LDIR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 
 	U8 byte = Z80_MEM_getByte(src);
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_MEM_setByte(dst,byte);
 
 	src++;
@@ -1148,18 +1148,18 @@ U32 Z80_ED_LDIR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_LDrr(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDrr(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	SetR(op1,1,GetR(op2,1));
+	
+	
+	
+	
+	
+	
+	
+	
+	SetR(operands[0],1,GetR(operands[1],1));
 
 	Z80Cycles=4;
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
@@ -1170,22 +1170,22 @@ U32 Z80_LDrr(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_DEC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_DEC(U32 stage,U16* operands)
 {
-	U8 dst=GetR(op1,1);
+	U8 dst=GetR(operands[0],1);
 	U8 src=1;
 	U8 res=dst-src;
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	SetR(op1,1,res);
+	
+	
+	
+	
+	
+	
+	
+	
+	SetR(operands[0],1,res);
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3,res,0,Z80_STATUS_N);
 	ComputeSubHV(src,dst,res);
@@ -1199,19 +1199,19 @@ U32 Z80_DEC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_RLCA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_RLCA(U32 stage,U16* operands)
 {
 	U8 carry = Z80_regs.R[Z80_REG_A]&0x80;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]<<=1;
 
 	if (carry)
@@ -1232,19 +1232,19 @@ U32 Z80_RLCA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_RRCA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_RRCA(U32 stage,U16* operands)
 {
 	U8 carry = Z80_regs.R[Z80_REG_A]&0x01;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]>>=1;
 
 	if (carry)
@@ -1265,19 +1265,19 @@ U32 Z80_RRCA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_ORA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ORA_n(U32 stage,U16* operands)
 {
 	U8 byte = Z80_MEM_getByte(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	Z80_regs.R[Z80_REG_A] |= byte;
@@ -1289,20 +1289,20 @@ U32 Z80_ORA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_LD_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LD_HL(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 
-	SetR(op1,0,Z80_MEM_getByte(memAddress));
+	SetR(operands[0],0,Z80_MEM_getByte(memAddress));
 
 	Z80Cycles=7;
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
@@ -1314,20 +1314,20 @@ U32 Z80_LD_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_ADDA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ADDA_n(U32 stage,U16* operands)
 {
 	U8 dst=Z80_regs.R[Z80_REG_A];
 	U8 src=Z80_MEM_getByte(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	Z80_regs.R[Z80_REG_A]=dst+src;
@@ -1340,20 +1340,20 @@ U32 Z80_ADDA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_ADCA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ADCA_n(U32 stage,U16* operands)
 {
 	U8 dst=Z80_regs.R[Z80_REG_A];
 	U8 src=Z80_MEM_getByte(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	Z80_regs.R[Z80_REG_A]=dst+src;
@@ -1368,22 +1368,22 @@ U32 Z80_ADCA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_INCRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_INCRP(U32 stage,U16* operands)
 {
-	U16 rp=GetRP(op1);
+	U16 rp=GetRP(operands[0]);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	rp++;
 
-	SetRP(op1,rp>>8,rp&0xFF);
+	SetRP(operands[0],rp>>8,rp&0xFF);
 
 	Z80Cycles=6;
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
@@ -1394,22 +1394,22 @@ U32 Z80_INCRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_DECRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_DECRP(U32 stage,U16* operands)
 {
-	U16 rp=GetRP(op1);
+	U16 rp=GetRP(operands[0]);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	rp--;
 
-	SetRP(op1,rp>>8,rp&0xFF);
+	SetRP(operands[0],rp>>8,rp&0xFF);
 
 	Z80Cycles=6;
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
@@ -1420,33 +1420,33 @@ U32 Z80_DECRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_NOP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_NOP(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80Cycles=4;
 	return 0;
 }
 
-U32 Z80_LDSP_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDSP_HL(U32 stage,U16* operands)
 {
 	U16 rp = GetHL();
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 
 	Z80_regs.SP = rp;
 
@@ -1458,17 +1458,17 @@ U32 Z80_LDSP_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_LDI_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDI_A(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.IR&=0x00FF;
 	Z80_regs.IR|=Z80_regs.R[Z80_REG_A]<<8;
 
@@ -1477,17 +1477,17 @@ U32 Z80_ED_LDI_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	return 0;
 }
 
-U32 Z80_ED_LDR_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDR_A(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.IR&=0xFF00;
 	Z80_regs.IR|=Z80_regs.R[Z80_REG_A];
 
@@ -1496,25 +1496,25 @@ U32 Z80_ED_LDR_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	return 0;
 }
 
-U32 Z80_POPRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_POPRP(U32 stage,U16* operands)
 {
 	U8 nH,nL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nL=Z80_MEM_getByte(Z80_regs.SP);
 	Z80_regs.SP++;
 	nH=Z80_MEM_getByte(Z80_regs.SP);
 	Z80_regs.SP++;
 
-	SetRPAF(op1,nH,nL);
+	SetRPAF(operands[0],nH,nL);
 
 	Z80Cycles=10;
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
@@ -1525,18 +1525,18 @@ U32 Z80_POPRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_EXAF(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_EXAF(U32 stage,U16* operands)
 {
 	int a;
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	for (a=Z80_REG_F;a<=Z80_REG_A;a++)
 	{
 		U8 tmp;
@@ -1549,18 +1549,18 @@ U32 Z80_EXAF(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_EXX(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_EXX(U32 stage,U16* operands)
 {
 	int a;
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	for (a=Z80_REG_B;a<=Z80_REG_L;a++)
 	{
 		U8 tmp;
@@ -1573,20 +1573,20 @@ U32 Z80_EXX(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_LDHL_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDHL_n(U32 stage,U16* operands)
 {
 	U8 byte;
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_regs.PC++;
@@ -1605,17 +1605,17 @@ U32 Z80_LDHL_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_JPHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_JPHL(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC=GetHL();
 
 	Z80Cycles=4;
@@ -1627,21 +1627,21 @@ U32 Z80_JPHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_CP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CP(U32 stage,U16* operands)
 {
 	U8 dst = Z80_regs.R[Z80_REG_A];
-	U8 src = GetR(op1,1);
+	U8 src = GetR(operands[0],1);
 	U8 tmp = dst-src;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	ComputeFlags(Z80_STATUS_X_B5|Z80_STATUS_X_B3,src,0,0);								/* bit 3 & 5 are based on source operand, not result */
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z,tmp,0,Z80_STATUS_N);
 	ComputeSubHCV(src,dst,tmp);
@@ -1655,19 +1655,19 @@ U32 Z80_CP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16
 	return 0;
 }
 
-U32 Z80_RRA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_RRA(U32 stage,U16* operands)
 {
 	U8 carry = Z80_regs.R[Z80_REG_A]&0x01;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]>>=1;
 	
 	if (Z80_regs.R[Z80_REG_F]&Z80_STATUS_C)
@@ -1695,19 +1695,19 @@ U32 Z80_RRA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_RLA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_RLA(U32 stage,U16* operands)
 {
 	U8 carry = Z80_regs.R[Z80_REG_A]&0x80;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]<<=1;
 	
 	if (Z80_regs.R[Z80_REG_F]&Z80_STATUS_C)
@@ -1735,19 +1735,19 @@ U32 Z80_RLA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_ANDA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ANDA_n(U32 stage,U16* operands)
 {
 	U8 byte = Z80_MEM_getByte(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	Z80_regs.R[Z80_REG_A] &= byte;
@@ -1759,27 +1759,27 @@ U32 Z80_ANDA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CB_SLA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_SLA(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
-		SetR(op1,0,Z80_MEM_getByte(memAddress));
+		SetR(operands[0],0,Z80_MEM_getByte(memAddress));
 	}
 
-	res = GetR(op1,0);
+	res = GetR(operands[0],0);
 	carry = res&0x80;
 
 	res<<=1;
@@ -1797,7 +1797,7 @@ U32 Z80_CB_SLA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,res,Z80_STATUS_H|Z80_STATUS_N,0);
 
-	SetR(op1,0,res);
+	SetR(operands[0],0,res);
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_MEM_setByte(memAddress,res);
@@ -1812,22 +1812,22 @@ U32 Z80_CB_SLA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_ADDHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ADDHL(U32 stage,U16* operands)
 {
 	U16 dst=GetHL();
 	U16 src;
 	U16 res;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	src = GetRP(op1);
+	
+	
+	
+	
+	
+	
+	
+	
+	src = GetRP(operands[0]);
 
 	res = dst+src;
 
@@ -1845,19 +1845,19 @@ U32 Z80_ADDHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_DJNZ(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_DJNZ(U32 stage,U16* operands)
 {
 	S8 offs = Z80_MEM_getByte(Z80_regs.PC);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	Z80_regs.R[Z80_REG_B]--;
@@ -1875,21 +1875,21 @@ U32 Z80_DJNZ(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_CPHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CPHL(U32 stage,U16* operands)
 {
 	U8 src = Z80_MEM_getByte(Get_HL_(Z80_regs.PC));
 	U8 dst = Z80_regs.R[Z80_REG_A];
 	U8 tmp = dst-src;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	ComputeFlags(Z80_STATUS_X_B5|Z80_STATUS_X_B3,src,0,0);								/* bit 3 & 5 are based on source operand, not result */
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z,tmp,0,Z80_STATUS_N);
 	ComputeSubHCV(src,dst,tmp);
@@ -1904,21 +1904,21 @@ U32 Z80_CPHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_INCHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_INCHL(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 	U8 dst = Z80_MEM_getByte(memAddress);
 	U8 src = 1;
 	U8 res = dst+src;
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_MEM_setByte(memAddress,res);	
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3,res,Z80_STATUS_N,0);
@@ -1934,19 +1934,19 @@ U32 Z80_INCHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_JR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_JR(U32 stage,U16* operands)
 {
 	S8 offs = (S8)Z80_MEM_getByte(Z80_regs.PC);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	Z80_regs.PC+=offs;
@@ -1956,20 +1956,20 @@ U32 Z80_JR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16
 	return 0;
 }
 
-U32 Z80_SUBA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_SUBA_n(U32 stage,U16* operands)
 {
 	U8 dst=Z80_regs.R[Z80_REG_A];
 	U8 src=Z80_MEM_getByte(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	Z80_regs.R[Z80_REG_A]=dst-src;
@@ -1982,21 +1982,21 @@ U32 Z80_SUBA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CP_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CP_n(U32 stage,U16* operands)
 {
 	U8 dst=Z80_regs.R[Z80_REG_A];
 	U8 src=Z80_MEM_getByte(Z80_regs.PC);
 	U8 tmp = dst-src;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	ComputeFlags(Z80_STATUS_X_B5|Z80_STATUS_X_B3,src,0,0);								/* bit 3 & 5 are based on source operand, not result */
@@ -2008,22 +2008,22 @@ U32 Z80_CP_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_JRcc(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_JRcc(U32 stage,U16* operands)
 {
 	S8 offs = (S8)Z80_MEM_getByte(Z80_regs.PC);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
-	if (TestFlags(op1))
+	if (TestFlags(operands[0]))
 	{
 		Z80Cycles=12;
 		Z80_regs.PC+=offs;
@@ -2035,19 +2035,19 @@ U32 Z80_JRcc(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_PUSHRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_PUSHRP(U32 stage,U16* operands)
 {
-	U16 val=GetRPAF(op1);
+	U16 val=GetRPAF(operands[0]);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.SP--;
 	Z80_MEM_setByte(Z80_regs.SP,val>>8);
 	Z80_regs.SP--;
@@ -2062,30 +2062,30 @@ U32 Z80_PUSHRP(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CB_BIT(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_BIT(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	U8 Z;
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z = Z80_MEM_getByte(memAddress);
 	}
 	else
 	{
-		Z = Z80_regs.R[op2];
+		Z = Z80_regs.R[operands[1]];
 	}
 
-	Z&=1<<op1;
+	Z&=1<<operands[0];
 
 	ComputeFlags(Z80_STATUS_Z,Z,Z80_STATUS_N,Z80_STATUS_H);
 	if (Z80_regs.R[Z80_REG_F] & Z80_STATUS_Z)
@@ -2096,7 +2096,7 @@ U32 Z80_CB_BIT(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	{
 		Z80_regs.R[Z80_REG_F]&=~Z80_STATUS_PV;
 	}
-	if (op1==7)
+	if (operands[0]==7)
 	{
 		if (Z!=0)
 		{
@@ -2107,7 +2107,7 @@ U32 Z80_CB_BIT(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 			Z80_regs.R[Z80_REG_F]&=~Z80_STATUS_S;
 		}
 	}
-	if (op1==5)
+	if (operands[0]==5)
 	{
 		if (Z!=0)
 		{
@@ -2118,7 +2118,7 @@ U32 Z80_CB_BIT(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 			Z80_regs.R[Z80_REG_F]&=~Z80_STATUS_X_B5;
 		}
 	}
-	if (op1==3)
+	if (operands[0]==3)
 	{
 		if (Z!=0)
 		{
@@ -2137,17 +2137,17 @@ U32 Z80_CB_BIT(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_LDA_DE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDA_DE(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A] = Z80_MEM_getByte((Z80_regs.R[Z80_REG_D]<<8) | Z80_regs.R[Z80_REG_E]);
 
 	Z80Cycles=7;
@@ -2155,27 +2155,27 @@ U32 Z80_LDA_DE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CB_SRL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_SRL(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
-		SetR(op1,0,Z80_MEM_getByte(memAddress));
+		SetR(operands[0],0,Z80_MEM_getByte(memAddress));
 	}
 
-	res = GetR(op1,0);
+	res = GetR(operands[0],0);
 	carry = res&0x01;
 
 	res>>=1;
@@ -2193,7 +2193,7 @@ U32 Z80_CB_SRL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,res,Z80_STATUS_H|Z80_STATUS_N,0);
 
-	SetR(op1,0,res);
+	SetR(operands[0],0,res);
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_MEM_setByte(memAddress,res);
@@ -2208,17 +2208,17 @@ U32 Z80_CB_SRL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_EI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_EI(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.delayedInterruptEnable=2;		/* will enable AFTER next instruction cycle */
 
 	Z80Cycles=4;
@@ -2226,20 +2226,20 @@ U32 Z80_EI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16
 	return 0;
 }
 
-U32 Z80_ADDA_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ADDA_r(U32 stage,U16* operands)
 {
 	U8 dst=Z80_regs.R[Z80_REG_A];
-	U8 src=GetR(op1,1);
+	U8 src=GetR(operands[0],1);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=dst+src;
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3,Z80_regs.R[Z80_REG_A],Z80_STATUS_N,0);
@@ -2254,40 +2254,40 @@ U32 Z80_ADDA_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_RST(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_RST(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.SP--;
 	Z80_MEM_setByte(Z80_regs.SP,Z80_regs.PC>>8);
 	Z80_regs.SP--;
 	Z80_MEM_setByte(Z80_regs.SP,Z80_regs.PC&0xFF);
 
-	Z80_regs.PC=op1<<3;
+	Z80_regs.PC=operands[0]<<3;
 
 	Z80Cycles=11;
 
 	return 0;
 }
 
-U32 Z80_LDDE_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDDE_A(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_MEM_setByte((Z80_regs.R[Z80_REG_D]<<8) | Z80_regs.R[Z80_REG_E],Z80_regs.R[Z80_REG_A]);
 
 	Z80Cycles=7;
@@ -2295,19 +2295,19 @@ U32 Z80_LDDE_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_OUTn_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_OUTn_A(U32 stage,U16* operands)
 {
 	U8 n;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	n=Z80_MEM_getByte(Z80_regs.PC);
 
 	Z80_regs.PC+=1;
@@ -2319,18 +2319,18 @@ U32 Z80_OUTn_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_AND(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_AND(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	Z80_regs.R[Z80_REG_A] &= GetR(op1,1);
+	
+	
+	
+	
+	
+	
+	
+	
+	Z80_regs.R[Z80_REG_A] &= GetR(operands[0],1);
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,Z80_regs.R[Z80_REG_A],Z80_STATUS_C|Z80_STATUS_N,Z80_STATUS_H);
 
@@ -2343,22 +2343,22 @@ U32 Z80_AND(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_ED_SBCHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_SBCHL(U32 stage,U16* operands)
 {
 	U16 dst=(Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U16 src;
 	U16 res;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	switch (op1)
+	
+	
+	
+	
+	
+	
+	
+	
+	switch (operands[0])
 	{
 	case 0:
 		src=Z80_regs.R[Z80_REG_B]<<8;
@@ -2399,21 +2399,21 @@ U32 Z80_ED_SBCHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	return 0;
 }
 
-U32 Z80_DECHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_DECHL(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 	U8 dst = Z80_MEM_getByte(memAddress);
 	U8 src = 1;
 	U8 res = dst-src;
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_MEM_setByte(memAddress,res);	
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3,res,0,Z80_STATUS_N);
@@ -2429,25 +2429,25 @@ U32 Z80_DECHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_ED_LDnn_dd(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDnn_dd(U32 stage,U16* operands)
 {
 	U16 nHnL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nHnL=Z80_MEM_getByte(Z80_regs.PC);
 	nHnL|=Z80_MEM_getByte(Z80_regs.PC+1)<<8;
 
 	Z80_regs.PC+=2;
 
-	switch (op1)
+	switch (operands[0])
 	{
 	case 0:
 		Z80_MEM_setByte(nHnL,Z80_regs.R[Z80_REG_C]);
@@ -2472,20 +2472,20 @@ U32 Z80_ED_LDnn_dd(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16
 	return 0;
 }
 
-U32 Z80_LDnn_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDnn_HL(U32 stage,U16* operands)
 {
 	U16 rp = GetHL();
 	U16 nHnL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nHnL=Z80_MEM_getByte(Z80_regs.PC);
 	nHnL|=Z80_MEM_getByte(Z80_regs.PC+1)<<8;
 
@@ -2503,19 +2503,19 @@ U32 Z80_LDnn_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_EXDE_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_EXDE_HL(U32 stage,U16* operands)
 {
 	U8 tmp;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	tmp=Z80_regs.R[Z80_REG_D];
 	Z80_regs.R[Z80_REG_D]=Z80_regs.R[Z80_REG_H];
 	Z80_regs.R[Z80_REG_H]=tmp;
@@ -2528,7 +2528,7 @@ U32 Z80_EXDE_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_LDDR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDDR(U32 stage,U16* operands)
 {
 	U16 src = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U16 dst = (Z80_regs.R[Z80_REG_D]<<8)|Z80_regs.R[Z80_REG_E];
@@ -2536,14 +2536,14 @@ U32 Z80_ED_LDDR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 
 	U8 byte = Z80_MEM_getByte(src);
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_MEM_setByte(dst,byte);
 
 	src--;
@@ -2590,19 +2590,19 @@ U32 Z80_ED_LDDR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_LDHL_nn(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDHL_nn(U32 stage,U16* operands)
 {
 	U16 nHnL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nHnL=Z80_MEM_getByte(Z80_regs.PC);
 	nHnL|=Z80_MEM_getByte(Z80_regs.PC+1)<<8;
 
@@ -2619,22 +2619,22 @@ U32 Z80_LDHL_nn(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_CB_SETm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_SETm(U32 stage,U16* operands)
 {
 	U8 Z;
 	U16 MemAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z = Z80_MEM_getByte(MemAddress);
-	Z|=1<<op1;
+	Z|=1<<operands[0];
 	Z80_MEM_setByte(MemAddress,Z);
 
 	Z80Cycles=15;
@@ -2646,22 +2646,22 @@ U32 Z80_CB_SETm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_CB_RESm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RESm(U32 stage,U16* operands)
 {
 	U8 Z;
 	U16 MemAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z = Z80_MEM_getByte(MemAddress);
-	Z&=~(1<<op1);
+	Z&=~(1<<operands[0]);
 	Z80_MEM_setByte(MemAddress,Z);
 
 	Z80Cycles=15;
@@ -2673,20 +2673,20 @@ U32 Z80_CB_RESm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_SUBA_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_SUBA_r(U32 stage,U16* operands)
 {
 	U8 dst=Z80_regs.R[Z80_REG_A];
-	U8 src=GetR(op1,1);
+	U8 src=GetR(operands[0],1);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=dst-src;
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3,Z80_regs.R[Z80_REG_A],0,Z80_STATUS_N);
@@ -2701,18 +2701,18 @@ U32 Z80_SUBA_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_RETcc(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_RETcc(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	if (TestFlags(op1))
+	
+	
+	
+	
+	
+	
+	
+	
+	if (TestFlags(operands[0]))
 	{
 		Z80_regs.PC=Z80_MEM_getByte(Z80_regs.SP);
 		Z80_regs.SP++;
@@ -2729,36 +2729,36 @@ U32 Z80_RETcc(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_SCF(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_SCF(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	ComputeFlags(Z80_STATUS_X_B3|Z80_STATUS_X_B5,Z80_regs.R[Z80_REG_A],Z80_STATUS_H|Z80_STATUS_N,Z80_STATUS_C);
 	Z80Cycles=4;
 
 	return 0;
 }
 
-U32 Z80_XORm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_XORm(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A] ^= Z80_MEM_getByte(memAddress);
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,Z80_regs.R[Z80_REG_A],Z80_STATUS_C|Z80_STATUS_H|Z80_STATUS_N,0);
@@ -2773,17 +2773,17 @@ U32 Z80_XORm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_CCF(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CCF(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.R[Z80_REG_F]&Z80_STATUS_C)
 	{
 		Z80_regs.R[Z80_REG_F]|=Z80_STATUS_H;
@@ -2800,21 +2800,21 @@ U32 Z80_CCF(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_ADDm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ADDm(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 	U8 dst=Z80_regs.R[Z80_REG_A];
 	U8 src=Z80_MEM_getByte(memAddress);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=dst+src;
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3,Z80_regs.R[Z80_REG_A],Z80_STATUS_N,0);
@@ -2830,20 +2830,20 @@ U32 Z80_ADDm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_EXSP_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_EXSP_HL(U32 stage,U16* operands)
 {
 	U16 rp = GetHL();
 	U8 nH,nL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nL=Z80_MEM_getByte(Z80_regs.SP);
 	nH=Z80_MEM_getByte(Z80_regs.SP+1);
 
@@ -2860,25 +2860,25 @@ U32 Z80_EXSP_HL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_LDdd_nn(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDdd_nn(U32 stage,U16* operands)
 {
 	U16 nHnL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nHnL=Z80_MEM_getByte(Z80_regs.PC);
 	nHnL|=Z80_MEM_getByte(Z80_regs.PC+1)<<8;
 
 	Z80_regs.PC+=2;
 
-	switch (op1)
+	switch (operands[0])
 	{
 	case 0:
 		Z80_regs.R[Z80_REG_C]=Z80_MEM_getByte(nHnL);
@@ -2903,20 +2903,20 @@ U32 Z80_ED_LDdd_nn(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16
 	return 0;
 }
 
-U32 Z80_ADCA_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ADCA_r(U32 stage,U16* operands)
 {
 	U8 dst=Z80_regs.R[Z80_REG_A];
-	U8 src=GetR(op1,1);
+	U8 src=GetR(operands[0],1);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=dst+src;
 	if (Z80_regs.R[Z80_REG_F]&Z80_STATUS_C)
 		Z80_regs.R[Z80_REG_A]++;
@@ -2933,38 +2933,38 @@ U32 Z80_ADCA_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CPL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CPL(U32 stage,U16* operands)
 {
 	Z80_regs.R[Z80_REG_A]=~Z80_regs.R[Z80_REG_A];
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	ComputeFlags(Z80_STATUS_X_B3|Z80_STATUS_X_B5,Z80_regs.R[Z80_REG_A],0,Z80_STATUS_N|Z80_STATUS_H);
 	Z80Cycles=4;
 
 	return 0;
 }
 
-U32 Z80_XORA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_XORA_n(U32 stage,U16* operands)
 {
 	U8 byte = Z80_MEM_getByte(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	Z80_regs.R[Z80_REG_A] ^= byte;
@@ -2976,17 +2976,17 @@ U32 Z80_XORA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_HALT(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_HALT(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.stopped=1;
 
 	Z80Cycles=4;
@@ -2994,20 +2994,20 @@ U32 Z80_HALT(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_ED_INr_C(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_INr_C(U32 stage,U16* operands)
 {
 	U8 byte = Z80_IO_getByte((Z80_regs.R[Z80_REG_B]<<8)|Z80_regs.R[Z80_REG_C]);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	SetR(op1,0,byte);
+	
+	
+	
+	
+	
+	
+	
+	
+	SetR(operands[0],0,byte);
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,byte,Z80_STATUS_H|Z80_STATUS_N,0);
 
@@ -3016,27 +3016,27 @@ U32 Z80_ED_INr_C(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	return 0;
 }
 
-U32 Z80_CB_RLC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RLC(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
-		SetR(op1,0,Z80_MEM_getByte(memAddress));
+		SetR(operands[0],0,Z80_MEM_getByte(memAddress));
 	}
 
-	res = GetR(op1,0);
+	res = GetR(operands[0],0);
 	carry = res&0x80;
 
 	res<<=1;
@@ -3054,7 +3054,7 @@ U32 Z80_CB_RLC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,res,Z80_STATUS_H|Z80_STATUS_N,0);
 
-	SetR(op1,0,res);
+	SetR(operands[0],0,res);
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_MEM_setByte(memAddress,res);
@@ -3069,25 +3069,25 @@ U32 Z80_CB_RLC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CALLcc(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CALLcc(U32 stage,U16* operands)
 {
 	U8 nH,nL;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	nL=Z80_MEM_getByte(Z80_regs.PC);
 	nH=Z80_MEM_getByte(Z80_regs.PC+1);
 
 	Z80_regs.PC+=2;
 
-	if (TestFlags(op1))
+	if (TestFlags(operands[0]))
 	{
 		Z80_regs.SP--;
 		Z80_MEM_setByte(Z80_regs.SP,Z80_regs.PC>>8);
@@ -3106,20 +3106,20 @@ U32 Z80_CALLcc(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_SBCA_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_SBCA_r(U32 stage,U16* operands)
 {
 	U8 dst=Z80_regs.R[Z80_REG_A];
-	U8 src=GetR(op1,1);
+	U8 src=GetR(operands[0],1);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=dst-src;
 	if (Z80_regs.R[Z80_REG_F]&Z80_STATUS_C)
 	{
@@ -3138,28 +3138,28 @@ U32 Z80_SBCA_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CB_RES(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RES(U32 stage,U16* operands)
 {
 	U8 Z;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
-		SetR(op2,0,Z80_MEM_getByte(memAddress));
+		SetR(operands[1],0,Z80_MEM_getByte(memAddress));
 	}
 
-	Z = GetR(op2,0);
-	Z&=~(1<<op1);
-	SetR(op2,0,Z);
+	Z = GetR(operands[1],0);
+	Z&=~(1<<operands[0]);
+	SetR(operands[1],0,Z);
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_MEM_setByte(memAddress,Z);
@@ -3174,28 +3174,28 @@ U32 Z80_CB_RES(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CB_SET(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_SET(U32 stage,U16* operands)
 {
 	U8 Z;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
-		SetR(op2,0,Z80_MEM_getByte(memAddress));
+		SetR(operands[1],0,Z80_MEM_getByte(memAddress));
 	}
 
-	Z = GetR(op2,0);
-	Z|=1<<op1;
-	SetR(op2,0,Z);
+	Z = GetR(operands[1],0);
+	Z|=1<<operands[0];
+	SetR(operands[1],0,Z);
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_MEM_setByte(memAddress,Z);
@@ -3210,21 +3210,21 @@ U32 Z80_CB_SET(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_SUBm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_SUBm(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 	U8 dst=Z80_regs.R[Z80_REG_A];
 	U8 src=Z80_MEM_getByte(memAddress);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=dst-src;
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3,Z80_regs.R[Z80_REG_A],0,Z80_STATUS_N);
@@ -3240,20 +3240,20 @@ U32 Z80_SUBm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_INA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_INA_n(U32 stage,U16* operands)
 {
 	U8 portLo = Z80_MEM_getByte(Z80_regs.PC);
 	U8 byte;
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	byte = Z80_IO_getByte((Z80_regs.R[Z80_REG_A]<<8)|portLo);
@@ -3265,19 +3265,19 @@ U32 Z80_INA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_ANDm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ANDm(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A] &= Z80_MEM_getByte(memAddress);
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,Z80_regs.R[Z80_REG_A],Z80_STATUS_C|Z80_STATUS_N,Z80_STATUS_H);
@@ -3292,19 +3292,19 @@ U32 Z80_ANDm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_ORm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ORm(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A] |= Z80_MEM_getByte(memAddress);
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,Z80_regs.R[Z80_REG_A],Z80_STATUS_C|Z80_STATUS_H|Z80_STATUS_N,0);
@@ -3319,27 +3319,27 @@ U32 Z80_ORm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_CB_RL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RL(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
-		SetR(op1,0,Z80_MEM_getByte(memAddress));
+		SetR(operands[0],0,Z80_MEM_getByte(memAddress));
 	}
 
-	res = GetR(op1,0);
+	res = GetR(operands[0],0);
 	carry = res&0x80;
 
 	res<<=1;
@@ -3364,7 +3364,7 @@ U32 Z80_CB_RL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,res,Z80_STATUS_H|Z80_STATUS_N,0);
 
-	SetR(op1,0,res);
+	SetR(operands[0],0,res);
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_MEM_setByte(memAddress,res);
@@ -3379,20 +3379,20 @@ U32 Z80_CB_RL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_ADCm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ADCm(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 	U8 dst=Z80_regs.R[Z80_REG_A];
 	U8 src=Z80_MEM_getByte(memAddress);
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 
 	Z80_regs.R[Z80_REG_A]=dst+src;
 	if (Z80_regs.R[Z80_REG_F]&Z80_STATUS_C)
@@ -3411,27 +3411,27 @@ U32 Z80_ADCm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_CB_RRC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RRC(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
-		SetR(op1,0,Z80_MEM_getByte(memAddress));
+		SetR(operands[0],0,Z80_MEM_getByte(memAddress));
 	}
 
-	res = GetR(op1,0);
+	res = GetR(operands[0],0);
 	carry = res&0x01;
 
 	res>>=1;
@@ -3449,7 +3449,7 @@ U32 Z80_CB_RRC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,res,Z80_STATUS_H|Z80_STATUS_N,0);
 
-	SetR(op1,0,res);
+	SetR(operands[0],0,res);
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_MEM_setByte(memAddress,res);
@@ -3464,27 +3464,27 @@ U32 Z80_CB_RRC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CB_RR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RR(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
-		SetR(op1,0,Z80_MEM_getByte(memAddress));
+		SetR(operands[0],0,Z80_MEM_getByte(memAddress));
 	}
 
-	res = GetR(op1,0);
+	res = GetR(operands[0],0);
 	carry = res&0x01;
 
 	res>>=1;
@@ -3509,7 +3509,7 @@ U32 Z80_CB_RR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,res,Z80_STATUS_H|Z80_STATUS_N,0);
 
-	SetR(op1,0,res);
+	SetR(operands[0],0,res);
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_MEM_setByte(memAddress,res);
@@ -3524,22 +3524,22 @@ U32 Z80_CB_RR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,
 	return 0;
 }
 
-U32 Z80_ED_ADCHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_ADCHL(U32 stage,U16* operands)
 {
 	U16 dst=(Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U16 src;
 	U16 res;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	switch (op1)
+	
+	
+	
+	
+	
+	
+	
+	
+	switch (operands[0])
 	{
 	case 0:
 		src=Z80_regs.R[Z80_REG_B]<<8;
@@ -3580,20 +3580,20 @@ U32 Z80_ED_ADCHL(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	return 0;
 }
 
-U32 Z80_CB_RLm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RLm(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	res = Z80_MEM_getByte(memAddress);
 	carry = res&0x80;
@@ -3631,27 +3631,27 @@ U32 Z80_CB_RLm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CB_SRA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_SRA(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
-		SetR(op1,0,Z80_MEM_getByte(memAddress));
+		SetR(operands[0],0,Z80_MEM_getByte(memAddress));
 	}
 
-	res = GetR(op1,0);
+	res = GetR(operands[0],0);
 	carry = res&0x01;
 
 	res>>=1;
@@ -3676,7 +3676,7 @@ U32 Z80_CB_SRA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3|Z80_STATUS_P,res,Z80_STATUS_H|Z80_STATUS_N,0);
 
-	SetR(op1,0,res);
+	SetR(operands[0],0,res);
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 	{
 		Z80_MEM_setByte(memAddress,res);
@@ -3691,20 +3691,20 @@ U32 Z80_CB_SRA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_ED_NEG(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_NEG(U32 stage,U16* operands)
 {
 	U8 src=Z80_regs.R[Z80_REG_A];
 	U8 dst=0;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=dst-src;
 
 	ComputeFlags(Z80_STATUS_S|Z80_STATUS_Z|Z80_STATUS_X_B5|Z80_STATUS_X_B3,Z80_regs.R[Z80_REG_A],0,Z80_STATUS_N);
@@ -3715,17 +3715,17 @@ U32 Z80_ED_NEG(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_LDBC_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDBC_A(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_MEM_setByte((Z80_regs.R[Z80_REG_B]<<8) | Z80_regs.R[Z80_REG_C],Z80_regs.R[Z80_REG_A]);
 
 	Z80Cycles=7;
@@ -3733,7 +3733,7 @@ U32 Z80_LDBC_A(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_ED_LDI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDI(U32 stage,U16* operands)
 {
 	U16 src = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U16 dst = (Z80_regs.R[Z80_REG_D]<<8)|Z80_regs.R[Z80_REG_E];
@@ -3741,14 +3741,14 @@ U32 Z80_ED_LDI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 
 	U8 byte = Z80_MEM_getByte(src);
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_MEM_setByte(dst,byte);
 
 	src++;
@@ -3794,21 +3794,21 @@ U32 Z80_ED_LDI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_ED_RLD(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_RLD(U32 stage,U16* operands)
 {
 	U16 hl = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U8 accTmp = Z80_regs.R[Z80_REG_A];
 	U8 hlTmp = Z80_MEM_getByte(hl);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	accTmp&=0xF0;
 	accTmp|=hlTmp>>4;
 	hlTmp<<=4;
@@ -3824,17 +3824,17 @@ U32 Z80_ED_RLD(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_ED_LDA_R(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDA_R(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=Z80_regs.IR&0xFF;
 
 	ComputeFlags(Z80_STATUS_Z|Z80_STATUS_S|Z80_STATUS_X_B3|Z80_STATUS_X_B5,Z80_regs.R[Z80_REG_A],Z80_STATUS_H|Z80_STATUS_N|Z80_STATUS_PV,0);
@@ -3848,19 +3848,19 @@ U32 Z80_ED_LDA_R(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 }
 
 /* TODO verify flags */
-U32 Z80_DAA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_DAA(U32 stage,U16* operands)
 {
 	U8 tmp=Z80_regs.R[Z80_REG_A];
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.R[Z80_REG_F] & Z80_STATUS_N)
 	{
 		if ((Z80_regs.R[Z80_REG_F] & Z80_STATUS_H) || ((tmp&0xF)>9))
@@ -3893,7 +3893,7 @@ U32 Z80_DAA(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U1
 	return 0;
 }
 
-U32 Z80_ED_CPIR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_CPIR(U32 stage,U16* operands)
 {
 	U16 src = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U16 cnt = (Z80_regs.R[Z80_REG_B]<<8)|Z80_regs.R[Z80_REG_C];
@@ -3903,14 +3903,14 @@ U32 Z80_ED_CPIR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	U8 n;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	ComputeSubHV(byte,Z80_regs.R[Z80_REG_A],res);
 	ComputeFlags(Z80_STATUS_Z|Z80_STATUS_S,res,0,Z80_STATUS_N);
 
@@ -3970,19 +3970,19 @@ U32 Z80_ED_CPIR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_OUTC_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_OUTC_r(U32 stage,U16* operands)
 {
-	U8 byte = GetR(op1,0);
+	U8 byte = GetR(operands[0],0);
 		
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_IO_setByte((Z80_regs.R[Z80_REG_B]<<8)|Z80_regs.R[Z80_REG_C],byte);
 
 	Z80Cycles=12;
@@ -3990,17 +3990,17 @@ U32 Z80_ED_OUTC_r(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 
 	return 0;
 }
 
-U32 Z80_LDA_BC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_LDA_BC(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A] = Z80_MEM_getByte((Z80_regs.R[Z80_REG_B]<<8) | Z80_regs.R[Z80_REG_C]);
 
 	Z80Cycles=7;
@@ -4008,20 +4008,20 @@ U32 Z80_LDA_BC(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_SBCA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_SBCA_n(U32 stage,U16* operands)
 {
 	U8 dst=Z80_regs.R[Z80_REG_A];
 	U8 src=Z80_MEM_getByte(Z80_regs.PC);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC++;
 
 	Z80_regs.R[Z80_REG_A]=dst-src;
@@ -4038,21 +4038,21 @@ U32 Z80_SBCA_n(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CB_RLCm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RLCm(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	res = Z80_MEM_getByte(memAddress);
 	carry = res&0x80;
 
@@ -4082,21 +4082,21 @@ U32 Z80_CB_RLCm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_CB_RRm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RRm(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	res = Z80_MEM_getByte(memAddress);
 	carry = res&0x01;
 
@@ -4133,21 +4133,21 @@ U32 Z80_CB_RRm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_CB_SLAm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_SLAm(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	res = Z80_MEM_getByte(memAddress);
 	carry = res&0x80;
 
@@ -4177,21 +4177,21 @@ U32 Z80_CB_SLAm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_CB_RRCm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_RRCm(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	res = Z80_MEM_getByte(memAddress);
 	carry = res&0x01;
 
@@ -4221,21 +4221,21 @@ U32 Z80_CB_RRCm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_CB_SRLm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_SRLm(U32 stage,U16* operands)
 {
 	U8 carry;
 	U8 res;
 	U16 memAddress = Get_HL_(Z80_regs.PC-2);
 	
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	res = Z80_MEM_getByte(memAddress);
 	carry = res&0x01;
 
@@ -4265,17 +4265,17 @@ U32 Z80_CB_SRLm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_RETI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_RETI(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC=Z80_MEM_getByte(Z80_regs.SP);
 	Z80_regs.SP++;
 	Z80_regs.PC|=Z80_MEM_getByte(Z80_regs.SP)<<8;
@@ -4288,21 +4288,21 @@ U32 Z80_ED_RETI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_OUTD(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_OUTD(U32 stage,U16* operands)
 {
 	U16 madFlags;
 	U8 n;
 	U16 src = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	n=Z80_MEM_getByte(src);
 
 	Z80_regs.R[Z80_REG_B]--;
@@ -4341,17 +4341,17 @@ U32 Z80_ED_OUTD(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_LDA_I(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDA_I(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=Z80_regs.IR>>8;
 
 	ComputeFlags(Z80_STATUS_Z|Z80_STATUS_S|Z80_STATUS_X_B3|Z80_STATUS_X_B5,Z80_regs.R[Z80_REG_A],Z80_STATUS_H|Z80_STATUS_N|Z80_STATUS_PV,0);
@@ -4364,7 +4364,7 @@ U32 Z80_ED_LDA_I(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	return 0;
 }
 
-U32 Z80_ED_LDD(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_LDD(U32 stage,U16* operands)
 {
 	U16 src = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U16 dst = (Z80_regs.R[Z80_REG_D]<<8)|Z80_regs.R[Z80_REG_E];
@@ -4372,14 +4372,14 @@ U32 Z80_ED_LDD(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 
 	U8 byte = Z80_MEM_getByte(src);
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_MEM_setByte(dst,byte);
 
 	src--;
@@ -4425,9 +4425,9 @@ U32 Z80_ED_LDD(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_ED_OTDR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_OTDR(U32 stage,U16* operands)
 {
-	Z80_ED_OUTD(stage,op1,op2,op3,op4,op5,op6,op7,op8);			/* saves some duplication */
+	Z80_ED_OUTD(stage,operands);			/* saves some duplication */
 
 	if (Z80_regs.R[Z80_REG_B]!=0)
 	{
@@ -4442,21 +4442,21 @@ U32 Z80_ED_OTDR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_INI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_INI(U32 stage,U16* operands)
 {
 	U16 madFlags;
 	U8 n;
 	U16 dst = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	n=Z80_IO_getByte((Z80_regs.R[Z80_REG_B]<<8)|Z80_regs.R[Z80_REG_C]);
 
 	Z80_MEM_setByte(dst,n);
@@ -4495,21 +4495,21 @@ U32 Z80_ED_INI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_ED_RRD(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_RRD(U32 stage,U16* operands)
 {
 	U16 hl = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U8 accTmp = Z80_regs.R[Z80_REG_A];
 	U8 hlTmp = Z80_MEM_getByte(hl);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	accTmp&=0xF0;
 	accTmp|=hlTmp&0x0F;
 	hlTmp>>=4;
@@ -4525,21 +4525,21 @@ U32 Z80_ED_RRD(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_SBCm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_SBCm(U32 stage,U16* operands)
 {
 	U16 memAddress = Get_HL_(Z80_regs.PC);
 	U8 dst=Z80_regs.R[Z80_REG_A];
 	U8 src=Z80_MEM_getByte(memAddress);
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.R[Z80_REG_A]=dst-src;
 	if (Z80_regs.R[Z80_REG_F]&Z80_STATUS_C)
 		Z80_regs.R[Z80_REG_A]--;
@@ -4557,21 +4557,21 @@ U32 Z80_SBCm(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U
 	return 0;
 }
 
-U32 Z80_ED_OUTI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_OUTI(U32 stage,U16* operands)
 {
 	U16 madFlags;
 	U8 n;
 	U16 src = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	n=Z80_MEM_getByte(src);
 
 	Z80_regs.R[Z80_REG_B]--;
@@ -4610,9 +4610,9 @@ U32 Z80_ED_OUTI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_OTIR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_OTIR(U32 stage,U16* operands)
 {
-	Z80_ED_OUTI(stage,op1,op2,op3,op4,op5,op6,op7,op8);			/* saves some duplication */
+	Z80_ED_OUTI(stage,operands);			/* saves some duplication */
 
 	if (Z80_regs.R[Z80_REG_B]!=0)
 	{
@@ -4627,7 +4627,7 @@ U32 Z80_ED_OTIR(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return 0;
 }
 
-U32 Z80_ED_CPI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_CPI(U32 stage,U16* operands)
 {
 	U16 src = (Z80_regs.R[Z80_REG_H]<<8)|Z80_regs.R[Z80_REG_L];
 	U16 cnt = (Z80_regs.R[Z80_REG_B]<<8)|Z80_regs.R[Z80_REG_C];
@@ -4637,14 +4637,14 @@ U32 Z80_ED_CPI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	U8 n;
 
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	ComputeSubHV(byte,Z80_regs.R[Z80_REG_A],res);
 	ComputeFlags(Z80_STATUS_Z|Z80_STATUS_S,res,0,Z80_STATUS_N);
 
@@ -4696,17 +4696,17 @@ U32 Z80_ED_CPI(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return 0;
 }
 
-U32 Z80_ED_RETN(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_RETN(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC=Z80_MEM_getByte(Z80_regs.SP);
 	Z80_regs.SP++;
 	Z80_regs.PC|=Z80_MEM_getByte(Z80_regs.SP)<<8;

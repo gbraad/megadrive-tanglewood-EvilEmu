@@ -60,8 +60,8 @@ typedef struct
 	U32	lastInstruction;		/* Used by debugger (since sub stage instruction emulation shifts PC as it goes) */
 }Z80_Regs;
 
-typedef U16 (*Z80_Decode)(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8);
-typedef U32 (*Z80_Function)(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8);
+typedef U16 (*Z80_Decode)(U32 adr,U16* operands);
+typedef U32 (*Z80_Function)(U32 stage,U16* operands);
 
 typedef struct
 {

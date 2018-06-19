@@ -432,1046 +432,1046 @@ int decodeLengthEXT(U16 op)
 
 /*-----------------------------------------------------------------------------------------------------*/
 
-U16 CPU_DIS_LEA(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_LEA(U32 adr,U16* operands)
 {
 	int length=0;	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("LEA",4);
-    length+=decodeEffectiveAddress(adr+length,op2,4);
-    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[1],4);
+    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",operands[0]);
 	return length;
 }
 
-U16 CPU_DIS_MOVE(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVE(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthM(op1);
+    int len=decodeLengthM(operands[0]);
 	U16 t1,t2;
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 
 	decodeInstruction("MOVE",len);
 	
-	t1 = (op2 & 0x38)>>3;
-	t2 = (op2 & 0x07)<<3;
-	op2 = t1|t2;
+	t1 = (operands[1] & 0x38)>>3;
+	t2 = (operands[1] & 0x07)<<3;
+	operands[1] = t1|t2;
 	
-    length+=decodeEffectiveAddress(adr+length,op3,len);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
     strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_SUBs(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SUBs(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("SUB",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op3,len);
-    sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
+    sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_SUBQ(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SUBQ(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("SUBQ",len);
 	
-    if (op1==0)
-		op1=8;
-    sprintf(&mnemonicData[strlen(mnemonicData)],"#%02X,",op1);
-    length+=decodeEffectiveAddress(adr+length,op3,len);
+    if (operands[0]==0)
+		operands[0]=8;
+    sprintf(&mnemonicData[strlen(mnemonicData)],"#%02X,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_BCC(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BCC(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthCC(op2);
+    int len=decodeLengthCC(operands[1]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	decodeInstructionCC("B",op1,len);
+	
+	
+	
+	
+	
+	
+	
+	
+	decodeInstructionCC("B",operands[0],len);
 
-	length+=decodeDisp(adr+length,op2);
+	length+=decodeDisp(adr+length,operands[1]);
 
 	return length;
 }
 
-U16 CPU_DIS_CMPA(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_CMPA(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthWL(op2);
+    int len=decodeLengthWL(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("CMPA",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op3,len);
-    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
+    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_CMP(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_CMP(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("CMP",len);
 
-    length+=decodeEffectiveAddress(adr+length,op3,len);
-    sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
+    sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_CMPI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_CMPI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("CMPI",len);
 	
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
     return length;
 }
 
-U16 CPU_DIS_MOVEA(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEA(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthM(op1);
+    int len=decodeLengthM(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVEA",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op3,len);
-    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",op2);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
+    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",operands[1]);
 
 	return length;
 }
 
-U16 CPU_DIS_DBCC(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_DBCC(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
 	
-	decodeInstructionCC("DB",op1,len);
+	
+	
+	
+	
+	
+	
+	
+	
+	decodeInstructionCC("DB",operands[0],len);
 
-    sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op2);
+    sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[1]);
 	length+=decodeDisp(adr+length,0);
 
 	return length;
 }
 
-U16 CPU_DIS_BRA(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BRA(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLengthCC(op1);
+	int len=decodeLengthCC(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BRA",len);
 	
-	length+=decodeDisp(adr+length,op1);
+	length+=decodeDisp(adr+length,operands[0]);
 	
 	return length;
 }
 
-U16 CPU_DIS_BTSTI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BTSTI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthReg(op1);
+    int len=decodeLengthReg(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BTST",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,1);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op1,len);
+    length+=decodeEffectiveAddress(adr+length,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_ADDs(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ADDs(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ADD",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op3,len);
-    sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
+    sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_NOT(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_NOT(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("NOT",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
     return length;
 }
 
-U16 CPU_DIS_SUBA(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SUBA(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthWL(op2);
+    int len=decodeLengthWL(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("SUBA",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op3,len);
-    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
+    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_ADDA(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ADDA(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthWL(op2);
+    int len=decodeLengthWL(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ADDA",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op3,len);
-    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
+    sprintf(&mnemonicData[strlen(mnemonicData)],",A%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_TST(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_TST(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("TST",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 
 	return length;
 }
 
-U16 CPU_DIS_JMP(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_JMP(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=4;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("JMP",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op1,4);
+    length+=decodeEffectiveAddress(adr+length,operands[0],4);
 	
 	return length;
 }
 
-U16 CPU_DIS_MOVEQ(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEQ(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=4;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVEQ",len);
 	
-	sprintf(&mnemonicData[strlen(mnemonicData)],"#%02X,D%d",op2,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"#%02X,D%d",operands[1],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_LSR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_LSR(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLength(op2);
+	int len=decodeLength(operands[1]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("LSR",len);
 
-	decodeIR(op3,op1);	
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op4);
+	decodeIR(operands[2],operands[0]);	
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[3]);
 	
 	return length;
 }
 
-U16 CPU_DIS_SWAP(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SWAP(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("SWAP",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d",op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_MOVEMs(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEMs(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthWL(op1);
+    int len=decodeLengthWL(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVEM",len);
 
 	length+=decodeRegsDst(adr+length);			/* note displayed in wrong order at present */
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_MOVEMd(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEMd(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthWL(op1);
+    int len=decodeLengthWL(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVEM",len);
 	
 	/* ToDo. Actually decode register mappings and put operands in right order */
-	length+=decodeRegsSrc(adr+length,op2);
+	length+=decodeRegsSrc(adr+length,operands[1]);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_SUBI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SUBI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("SUBI",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_BSR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BSR(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLengthCC(op1);
+	int len=decodeLengthCC(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BSR",len);
 	
-	length+=decodeDisp(adr+length,op1);
+	length+=decodeDisp(adr+length,operands[0]);
 	
 	return length;
 }
 
-U16 CPU_DIS_RTS(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_RTS(U32 adr,U16* operands)
 {
 	int length=0;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
     strcpy(mnemonicData,"RTS");
 
 	return length;
 }
 
-U16 CPU_DIS_ILLEGAL(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ILLEGAL(U32 adr,U16* operands)
 {
 	int length=0;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
     strcpy(mnemonicData,"ILLEGAL");
 	
 	return length;
 }
 
-U16 CPU_DIS_ORd(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ORd(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("OR",len);
 	
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op1);
-    length+=decodeEffectiveAddress(adr+length,op3,len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_ADDQ(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ADDQ(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ADDQ",len);
 	
-    if (op1==0)
-		op1=8;
-    sprintf(&mnemonicData[strlen(mnemonicData)],"#%02X,",op1);
-    length+=decodeEffectiveAddress(adr+length,op3,len);
+    if (operands[0]==0)
+		operands[0]=8;
+    sprintf(&mnemonicData[strlen(mnemonicData)],"#%02X,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
 	
 	return length;	
 }
 
-U16 CPU_DIS_CLR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_CLR(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("CLR",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_ANDI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ANDI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ANDI",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_EXG(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_EXG(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=4;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("EXG",len);
 
-	switch(op2)
+	switch(operands[1])
 	{
 		default:
 			strcat(mnemonicData,"?,?");
 			break;
 		case 0x08:					/* Data & Data */
-			sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",op1,op3);
+			sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",operands[0],operands[2]);
 			break;
 		case 0x09:					/* Address & Address */
-			sprintf(&mnemonicData[strlen(mnemonicData)],"A%d,A%d",op1,op3);
+			sprintf(&mnemonicData[strlen(mnemonicData)],"A%d,A%d",operands[0],operands[2]);
 			break;
 		case 0x11:					/* Data & Address */
-			sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,A%d",op1,op3);
+			sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,A%d",operands[0],operands[2]);
 			break;
 	}
 
 	return length;
 }
 
-U16 CPU_DIS_JSR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_JSR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=4;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("JSR",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op1,len);
+    length+=decodeEffectiveAddress(adr+length,operands[0],len);
 	
     return length;
 }
 
-U16 CPU_DIS_BCLRI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BCLRI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthReg(op1);
+    int len=decodeLengthReg(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BCLR",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,1);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op1,len);
+    length+=decodeEffectiveAddress(adr+length,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_ANDs(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ANDs(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("AND",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op3,len);
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_SUBd(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SUBd(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("SUB",len);
 	
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op1);
-    length+=decodeEffectiveAddress(adr+length,op3,len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
 	
     return length;
 }
 
-U16 CPU_DIS_BSET(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BSET(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthReg(op2);
+    int len=decodeLengthReg(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BSET",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op1);
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 
 	return length;
 }
 
-U16 CPU_DIS_BSETI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BSETI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthReg(op1);
+    int len=decodeLengthReg(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BSET",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,1);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op1,len);
+    length+=decodeEffectiveAddress(adr+length,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_MULU(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MULU(U32 adr,U16* operands)
 {
 	int length=0;
     int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MULU",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op2,len);
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_LSL(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_LSL(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLength(op2);
+	int len=decodeLength(operands[1]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("LSL",len);
 
-	decodeIR(op3,op1);	
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op4);
+	decodeIR(operands[2],operands[0]);	
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[3]);
 	
 	return length;
 }
 
-U16 CPU_DIS_ADDI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ADDI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ADDI",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_EXT(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_EXT(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLengthEXT(op1);
+	int len=decodeLengthEXT(operands[0]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("EXT",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d",op2);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d",operands[1]);
 
 	return length;	
 }
 
-U16 CPU_DIS_MULS(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MULS(U32 adr,U16* operands)
 {
 	int length=0;
     int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MULS",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op2,len);
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_NEG(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_NEG(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("NEG",len);
 	
-    length+=decodeEffectiveAddress(adr,op2,len);
+    length+=decodeEffectiveAddress(adr,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_MOVEUSP(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEUSP(U32 adr,U16* operands)
 {
 	int length=0;
     int len=4;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVE",len);
 	
-	if (op1)
+	if (operands[0])
 	{
-		sprintf(&mnemonicData[strlen(mnemonicData)],"USP,A%d",op2);
+		sprintf(&mnemonicData[strlen(mnemonicData)],"USP,A%d",operands[1]);
 	}
 	else
 	{
-		sprintf(&mnemonicData[strlen(mnemonicData)],"A%d,USP",op2);
+		sprintf(&mnemonicData[strlen(mnemonicData)],"A%d,USP",operands[1]);
 	}
 
 	return length;
 }
 
-U16 CPU_DIS_SCC(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SCC(U32 adr,U16* operands)
 {
 	int length=0;
     int len=1;
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	decodeInstructionCC("S",op1,len);
+	
+	
+	
+	
+	
+	
+	
+	
+	decodeInstructionCC("S",operands[0],len);
 
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 
 	return length;
 }
 
-U16 CPU_DIS_ORSR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ORSR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("OR",len);
 	
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
@@ -1480,80 +1480,80 @@ U16 CPU_DIS_ORSR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return length;
 }
 
-U16 CPU_DIS_PEA(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_PEA(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=4;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("PEA",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op1,len);
+    length+=decodeEffectiveAddress(adr+length,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_MOVEFROMSR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEFROMSR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVE",len);
     strcat(mnemonicData,"SR,");
-    length+=decodeEffectiveAddress(adr,op1,len);
+    length+=decodeEffectiveAddress(adr,operands[0],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_RTE(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_RTE(U32 adr,U16* operands)
 {
 	int length=0;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
     strcpy(mnemonicData,"RTE");
 
 	return length;
 }
 
-U16 CPU_DIS_ANDSR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ANDSR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("AND",len);
 	
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
@@ -1562,326 +1562,326 @@ U16 CPU_DIS_ANDSR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 	return length;
 }
 
-U16 CPU_DIS_MOVETOSR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVETOSR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVE",len);
-    length+=decodeEffectiveAddress(adr,op1,len);
+    length+=decodeEffectiveAddress(adr,operands[0],len);
     strcat(mnemonicData,",SR");
 	
 	return length;
 }
 
-U16 CPU_DIS_LINK(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_LINK(U32 adr,U16* operands)
 {
 	int length=0;
     int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("LINK",len);
 	
-	sprintf(&mnemonicData[strlen(mnemonicData)],"A%d,",op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"A%d,",operands[0]);
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
 	
 	return length;
 }
 
-U16 CPU_DIS_CMPM(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_CMPM(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLength(op2);
+	int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("CMPM",len);
 	
-	sprintf(&mnemonicData[strlen(mnemonicData)],"(A%d)+,(A%d)+",op3,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"(A%d)+,(A%d)+",operands[2],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_ADDd(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ADDd(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ADD",len);
 	
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op1);
-    length+=decodeEffectiveAddress(adr+length,op3,len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_UNLK(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_UNLK(U32 adr,U16* operands)
 {
 	int length=0;
     int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("UNLK",len);
 	
-	sprintf(&mnemonicData[strlen(mnemonicData)],"A%d",op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"A%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_ORs(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ORs(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("OR",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op3,len);
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_ANDd(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ANDd(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("AND",len);
 	
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op1);
-    length+=decodeEffectiveAddress(adr+length,op3,len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_ORI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ORI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ORI",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_ASL(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ASL(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLength(op2);
+	int len=decodeLength(operands[1]);
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 
 	decodeInstruction("ASL",len);
 
-	decodeIR(op3,op1);	
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op4);
+	decodeIR(operands[2],operands[0]);	
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[3]);
 	
 	return length;
 }
 
-U16 CPU_DIS_ASR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ASR(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLength(op2);
+	int len=decodeLength(operands[1]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ASR",len);
 
-	decodeIR(op3,op1);	
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op4);
+	decodeIR(operands[2],operands[0]);	
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[3]);
 	
 	return length;
 }
 
-U16 CPU_DIS_DIVU(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_DIVU(U32 adr,U16* operands)
 {
 	int length=0;
     int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("DIVU",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op2,len);
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_BCLR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BCLR(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthReg(op2);
+    int len=decodeLengthReg(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BCLR",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op1);
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 
 	return length;
 }
 
-U16 CPU_DIS_EORd(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_EORd(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("EOR",len);
 	
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op1);
-    length+=decodeEffectiveAddress(adr+length,op3,len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[2],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_BTST(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BTST(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthReg(op2);
+    int len=decodeLengthReg(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BTST",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op1);
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 
 	return length;
 }
 
-U16 CPU_DIS_STOP(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_STOP(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("STOP",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
@@ -1889,171 +1889,171 @@ U16 CPU_DIS_STOP(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7
 	return length;
 }
 
-U16 CPU_DIS_ROL(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ROL(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLength(op2);
+	int len=decodeLength(operands[1]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ROL",len);
 
-	decodeIR(op3,op1);	
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op4);
+	decodeIR(operands[2],operands[0]);	
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[3]);
 	
 	return length;
 }
 
-U16 CPU_DIS_ROR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ROR(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLength(op2);
+	int len=decodeLength(operands[1]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ROR",len);
 
-	decodeIR(op3,op1);	
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op4);
+	decodeIR(operands[2],operands[0]);	
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[3]);
 	
 	return length;
 }
 
-U16 CPU_DIS_NOP(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_NOP(U32 adr,U16* operands)
 {
 	int length=0;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
     strcpy(mnemonicData,"NOP");
 
 	return length;
 }
 
-U16 CPU_DIS_BCHG(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BCHG(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthReg(op2);
+    int len=decodeLengthReg(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BCHG",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",op1);
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,",operands[0]);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 
 	return length;
 }
 
-U16 CPU_DIS_BCHGI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_BCHGI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLengthReg(op1);
+    int len=decodeLengthReg(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("BCHG",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,1);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op1,len);
+    length+=decodeEffectiveAddress(adr+length,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_LSRm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_LSRm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("LSR",len);
 
-    length+=decodeEffectiveAddress(adr,op1,len);
+    length+=decodeEffectiveAddress(adr,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_EORI(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_EORI(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("EORI",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
 	strcat(mnemonicData,",");
-    length+=decodeEffectiveAddress(adr+length,op2,len);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_EORICCR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_EORICCR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=1;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("EORI",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
@@ -2062,213 +2062,213 @@ U16 CPU_DIS_EORICCR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 
 	return length;
 }
 
-U16 CPU_DIS_ROXL(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ROXL(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLength(op2);
+	int len=decodeLength(operands[1]);
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ROXL",len);
 
-	decodeIR(op3,op1);	
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op4);
+	decodeIR(operands[2],operands[0]);	
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[3]);
 	
 	return length;
 }
 
-U16 CPU_DIS_ROXR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ROXR(U32 adr,U16* operands)
 {
 	int length=0;
-	int len=decodeLength(op2);
+	int len=decodeLength(operands[1]);
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 
 	decodeInstruction("ROXR",len);
 
-	decodeIR(op3,op1);	
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op4);
+	decodeIR(operands[2],operands[0]);	
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[3]);
 	
 	return length;
 }
 
-U16 CPU_DIS_MOVETOCCR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVETOCCR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVE",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op1,len);
+    length+=decodeEffectiveAddress(adr+length,operands[0],len);
 	strcat(mnemonicData,",CCR");
 
 	return length;
 }
 
-U16 CPU_DIS_TRAP(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_TRAP(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=4;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("TRAP",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"%02X",op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"%02X",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_ADDX(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ADDX(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ADDX",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",op3,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",operands[2],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_DIVS(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_DIVS(U32 adr,U16* operands)
 {
 	int length=0;
     int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("DIVS",len);
 	
-    length+=decodeEffectiveAddress(adr+length,op2,len);
-	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",op1);
+    length+=decodeEffectiveAddress(adr+length,operands[1],len);
+	sprintf(&mnemonicData[strlen(mnemonicData)],",D%d",operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_SUBX(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SUBX(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op2);
+    int len=decodeLength(operands[1]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("SUBX",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",op3,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",operands[2],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_ASRm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ASRm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ASR",len);
 
-    length+=decodeEffectiveAddress(adr,op1,len);
+    length+=decodeEffectiveAddress(adr,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_ASLm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ASLm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ASL",len);
 
-    length+=decodeEffectiveAddress(adr,op1,len);
+    length+=decodeEffectiveAddress(adr,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_ANDICCR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ANDICCR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=1;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ANDI",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
@@ -2277,20 +2277,20 @@ U16 CPU_DIS_ANDICCR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 
 	return length;
 }
 
-U16 CPU_DIS_ORICCR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ORICCR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=1;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ORI",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
@@ -2299,248 +2299,248 @@ U16 CPU_DIS_ORICCR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	return length;
 }
 
-U16 CPU_DIS_NEGX(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_NEGX(U32 adr,U16* operands)
 {
 	int length=0;
-    int len=decodeLength(op1);
+    int len=decodeLength(operands[0]);
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("NEGX",len);
 	
-    length+=decodeEffectiveAddress(adr,op2,len);
+    length+=decodeEffectiveAddress(adr,operands[1],len);
 	
 	return length;
 }
 
-U16 CPU_DIS_SBCD(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SBCD(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=1;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("SBCD",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",op2,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",operands[1],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_ABCD(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ABCD(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=1;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ABCD",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",op2,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,D%d",operands[1],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_MOVEP_W_m(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEP_W_m(U32 adr,U16* operands)
 {
 	int length=2;
 	int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVEP",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,(#%04X,A%d)",op1,MEM_getWord(adr),op2);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,(#%04X,A%d)",operands[0],MEM_getWord(adr),operands[1]);
 
 	return length;
 }
 
-U16 CPU_DIS_MOVEP_L_m(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEP_L_m(U32 adr,U16* operands)
 {
 	int length=2;
 	int len=4;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVEP",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,(#%04X,A%d)",op1,MEM_getWord(adr),op2);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"D%d,(#%04X,A%d)",operands[0],MEM_getWord(adr),operands[1]);
 
 	return length;
 }
 
-U16 CPU_DIS_MOVEP_m_W(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEP_m_W(U32 adr,U16* operands)
 {
 	int length=2;
 	int len=2;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVEP",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"(#%04X,A%d),D%d",MEM_getWord(adr),op2,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"(#%04X,A%d),D%d",MEM_getWord(adr),operands[1],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_ABCDm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ABCDm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=1;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ABCD",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"-(A%d),-(A%d)",op2,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"-(A%d),-(A%d)",operands[1],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_ROXLm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ROXLm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ROXL",len);
 
-	length+=decodeEffectiveAddress(adr,op1,len);
+	length+=decodeEffectiveAddress(adr,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_MOVEP_m_L(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_MOVEP_m_L(U32 adr,U16* operands)
 {
 	int length=2;
 	int len=4;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("MOVEP",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"(#%04X,A%d),D%d",MEM_getWord(adr),op2,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"(#%04X,A%d),D%d",MEM_getWord(adr),operands[1],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_SBCDm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_SBCDm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=1;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("SBCD",len);
 
-	sprintf(&mnemonicData[strlen(mnemonicData)],"-(A%d),-(A%d)",op2,op1);
+	sprintf(&mnemonicData[strlen(mnemonicData)],"-(A%d),-(A%d)",operands[1],operands[0]);
 
 	return length;
 }
 
-U16 CPU_DIS_RTR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_RTR(U32 adr,U16* operands)
 {
 	int length=0;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
     strcpy(mnemonicData,"RTR");
 
 	return length;
 }
 
-U16 CPU_DIS_EORISR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_EORISR(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=1;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("EORI",len);
 
 	length+=decodeEffectiveAddress(adr+length,0x3C,len);
@@ -2549,122 +2549,122 @@ U16 CPU_DIS_EORISR(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	return length;
 }
 
-U16 CPU_DIS_LSLm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_LSLm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("LSL",len);
 
-    length+=decodeEffectiveAddress(adr,op1,len);
+    length+=decodeEffectiveAddress(adr,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_TRAPV(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_TRAPV(U32 adr,U16* operands)
 {
 	int length=0;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 
     	strcpy(mnemonicData,"TRAPV");
 
 	return length;
 }
 
-U16 CPU_DIS_ROXRm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ROXRm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ROXR",len);
 
-	length+=decodeEffectiveAddress(adr,op1,len);
+	length+=decodeEffectiveAddress(adr,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_ROLm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_ROLm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ROL",len);
 
-	length+=decodeEffectiveAddress(adr,op1,len);
+	length+=decodeEffectiveAddress(adr,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_RORm(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_RORm(U32 adr,U16* operands)
 {
 	int length=0;
 	int len=2;
 
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	decodeInstruction("ROR",len);
 
-	length+=decodeEffectiveAddress(adr,op1,len);
+	length+=decodeEffectiveAddress(adr,operands[0],len);
 
 	return length;
 }
 
-U16 CPU_DIS_RESET(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_RESET(U32 adr,U16* operands)
 {
 	int length=0;
 	
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 
     	strcpy(mnemonicData,"RESET");
 
@@ -2672,49 +2672,42 @@ U16 CPU_DIS_RESET(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op
 }
 
 
-U16 CPU_DIS_LINEF(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_LINEF(U32 adr,U16* operands)
 {
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	sprintf(mnemonicData,"LINE F Exception %08X",op1);
+	
+	
+	
+	
+	
+	
+	
+	
+	sprintf(mnemonicData,"LINE F Exception %08X",operands[0]);
 
 	return 0;
 }
 
-U16 CPU_DIS_LINEA(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_LINEA(U32 adr,U16* operands)
 {
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
-	sprintf(mnemonicData,"LINE A Exception %08X",op1);
+	
+	
+	
+	
+	
+	
+	
+	
+	sprintf(mnemonicData,"LINE A Exception %08X",operands[0]);
 
 	return 0;
 }
 
-U16 CPU_DIS_UNKNOWN(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 CPU_DIS_UNKNOWN(U32 adr, U16* operands)
 {
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	UNUSED_ARGUMENT(operands);
 	strcpy(mnemonicData,"Unknown Instruction");
 	
 	return 0;

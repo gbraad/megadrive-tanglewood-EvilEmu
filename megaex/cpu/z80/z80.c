@@ -236,34 +236,34 @@ Z80_Function	Z80_ED_JumpTable[256];
 Z80_Decode	Z80_ED_DisTable[256];
 Z80_Ins		*Z80_ED_Information[256];
 
-U32 Z80_UNKNOWN(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_UNKNOWN(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.PC-=1;	/* account for prefetch */
 	printf("ILLEGAL INSTRUCTION %08x\n",Z80_regs.PC);
 	DEB_PauseEmulation(DEB_Mode_Z80,"ILLEGAL INSTRUCTION");
 	return 0;
 }
 
-U32 Z80_TABLE_UNKNOWN(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_TABLE_UNKNOWN(U32 stage,U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixAdjust||Z80_regs.iyAdjust)
 		Z80_regs.PC-=2;															/* Only true if DDCB or FDCB (arse) */
 	Z80_regs.PC-=2;	/* account for prefetch */
@@ -289,16 +289,16 @@ void Z80_TABLE(Z80_Ins **Infos)
 	}	
 }
 
-U32 Z80_CB_TABLE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_CB_TABLE(U32 stage,U16* operands)
 {
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	switch (stage)
 	{
 	case 0:
@@ -316,21 +316,20 @@ U32 Z80_CB_TABLE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 		break;
 	}
 
-	return Z80_CB_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands[0],Z80_regs.operands[1],Z80_regs.operands[2],
-				Z80_regs.operands[3],Z80_regs.operands[4],Z80_regs.operands[5],Z80_regs.operands[6],Z80_regs.operands[7]);
+	return Z80_CB_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands);
 }
 
 /* May be problem with this (DD DD DD would execute in 1 cycle i think) */
-U32 Z80_DD_TABLE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_DD_TABLE(U32 stage,U16* operands)
 {
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	switch (stage)
 	{
 	case 0:
@@ -343,20 +342,19 @@ U32 Z80_DD_TABLE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	Z80_regs.ixAdjust=1;
 	Z80_regs.iyAdjust=0;
 
-	return Z80_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands[0],Z80_regs.operands[1],Z80_regs.operands[2],
-				Z80_regs.operands[3],Z80_regs.operands[4],Z80_regs.operands[5],Z80_regs.operands[6],Z80_regs.operands[7]);
+	return Z80_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands);
 }
 
-U32 Z80_ED_TABLE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_ED_TABLE(U32 stage,U16* operands)
 {
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	switch (stage)
 	{
 	case 0:
@@ -377,16 +375,16 @@ U32 Z80_ED_TABLE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 				Z80_regs.operands[3],Z80_regs.operands[4],Z80_regs.operands[5],Z80_regs.operands[6],Z80_regs.operands[7]);
 }
 
-U32 Z80_FD_TABLE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U32 Z80_FD_TABLE(U32 stage,U16* operands)
 {
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	switch (stage)
 	{
 	case 0:
@@ -399,8 +397,7 @@ U32 Z80_FD_TABLE(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 o
 	Z80_regs.ixAdjust=0;
 	Z80_regs.iyAdjust=1;
 
-	return Z80_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands[0],Z80_regs.operands[1],Z80_regs.operands[2],
-				Z80_regs.operands[3],Z80_regs.operands[4],Z80_regs.operands[5],Z80_regs.operands[6],Z80_regs.operands[7]);
+	return Z80_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands);
 }
 
 U16 Z80_DIS_TABLE(Z80_Ins **Infos,Z80_Decode *Decodes,U32 adr)
@@ -426,17 +423,17 @@ U16 Z80_DIS_TABLE(Z80_Ins **Infos,Z80_Decode *Decodes,U32 adr)
 	return ret;
 }
 
-U16 Z80_DIS_CB_TABLE(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 Z80_DIS_CB_TABLE(U32 adr,U16* operands)
 {
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	if (Z80_regs.ixDisAdjust || Z80_regs.iyDisAdjust)			/* DD CB dd Opcode (how annoying!) */
 	{
 		return Z80_DIS_TABLE(Z80_CB_Information,Z80_CB_DisTable,adr+1)+1;
@@ -444,49 +441,49 @@ U16 Z80_DIS_CB_TABLE(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16
 	return Z80_DIS_TABLE(Z80_CB_Information,Z80_CB_DisTable,adr);
 }
 
-U16 Z80_DIS_DD_TABLE(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 Z80_DIS_DD_TABLE(U32 adr,U16* operands)
 {
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.ixDisAdjust=1;
 	Z80_regs.iyDisAdjust=0;
 	return Z80_DIS_TABLE(Z80_Information,Z80_DisTable,adr);
 }
 
-U16 Z80_DIS_ED_TABLE(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 Z80_DIS_ED_TABLE(U32 adr,U16* operands)
 {
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 	Z80_regs.ixDisAdjust=0;
 	Z80_regs.iyDisAdjust=0;
 	return Z80_DIS_TABLE(Z80_ED_Information,Z80_ED_DisTable,adr);
 }
 
-U16 Z80_DIS_FD_TABLE(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8)
+U16 Z80_DIS_FD_TABLE(U32 adr,U16* operands)
 {
 	UNUSED_ARGUMENT(adr);
-	UNUSED_ARGUMENT(op1);
-	UNUSED_ARGUMENT(op2);
-	UNUSED_ARGUMENT(op3);
-	UNUSED_ARGUMENT(op4);
-	UNUSED_ARGUMENT(op5);
-	UNUSED_ARGUMENT(op6);
-	UNUSED_ARGUMENT(op7);
-	UNUSED_ARGUMENT(op8);
+	
+	
+	
+	
+	
+	
+	
+	
 
 	Z80_regs.ixDisAdjust=0;
 	Z80_regs.iyDisAdjust=1;
@@ -836,8 +833,7 @@ void Z80_Step()			/* needs to go at half speed of 68000! */
 		
 	}
 
-	Z80_regs.stage = Z80_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands[0],Z80_regs.operands[1],Z80_regs.operands[2],
-				Z80_regs.operands[3],Z80_regs.operands[4],Z80_regs.operands[5],Z80_regs.operands[6],Z80_regs.operands[7]);
+	Z80_regs.stage = Z80_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands);
 				
 	cycles++;
 }
@@ -895,8 +891,7 @@ int Z80_Cycle_Step()						/* Entry always assumed to be stage==0 */
 
 	do 
 	{
-		Z80_regs.stage = Z80_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands[0],Z80_regs.operands[1],Z80_regs.operands[2],
-				Z80_regs.operands[3],Z80_regs.operands[4],Z80_regs.operands[5],Z80_regs.operands[6],Z80_regs.operands[7]);
+		Z80_regs.stage = Z80_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands);
 	} while (Z80_regs.stage!=0);
 
 	return Z80Cycles;

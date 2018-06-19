@@ -61,11 +61,12 @@ typedef struct
 	U32	lastInstruction;		/* Used by debugger (since sub stage instruction emulation shifts PC as it goes) */
 }CPU_Regs;
 
-typedef U16 (*CPU_Decode)(U32 adr,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8);
-typedef U32 (*CPU_Function)(U32 stage,U16 op1,U16 op2,U16 op3,U16 op4,U16 op5,U16 op6,U16 op7,U16 op8);
+typedef U16 (*CPU_Decode)(U32 adr, U16* operands);
+typedef U32 (*CPU_Function)(U32 stage, U16* operands);
 
 typedef struct
 {
+	U8 index;
 	U8 baseTable[17];
 	char opcodeName[32];
 	CPU_Function opcode;
