@@ -17,12 +17,17 @@
 #include "memory.h"
 #include "mgaudio.h"
 
-#define EMU_TIMESTEP		(1.0f / (float)FRAMES_PER_SECOND_NTSC)
-#define EMU_CLOCK_DIV_68K	7
-#define EMU_CLOCK_DIV_Z80	15
-#define EMU_CLOCK_DIV_FM	7
-#define EMU_CLOCK_DIV_PSG	15
-#define EMU_MAX_TICK_FRAMES	2
+#define EMU_TIMESTEP			(1.0f / (float)FRAMES_PER_SECOND_NTSC)
+#define EMU_CLOCK_DIV_68K		7
+#define EMU_CLOCK_DIV_Z80		15
+#define EMU_CLOCK_DIV_FM		7
+#define EMU_CLOCK_DIV_PSG		15
+#define EMU_MAX_TICK_FRAMES		2
+
+//Threading
+#define EMU_LOCKSTEP_THREADS	1
+#define EMU_THREAD_SLEEP_68K	1
+#define EMU_THREAD_SLEEP_Z80	2
 
 #if defined DEBUG
 #define EMU_FRAME_SKIP		1
@@ -138,7 +143,7 @@ void EmulatorThread::TickEmulator(float deltaTime)
 				m_startTicks = ion::time::GetSystemTicks();
 			}
 
-#if EMU_THREADED
+#if EMU_THREADED && EMU_LOCKSTEP_THREADS
 			//Signal Z80, PSG, and FM to tick
 			m_Z80_PSG_FM_TickSema.Signal();
 #endif
@@ -198,6 +203,10 @@ void EmulatorThread::TickEmulator(float deltaTime)
 			m_renderCritSec.End();
 
 #if EMU_THREADED
+			ion::thread::Sleep(EMU_THREAD_SLEEP_68K);
+#endif
+
+#if EMU_THREADED && EMU_LOCKSTEP_THREADS
 			if (framesBehind <= 1)
 			{
 				//Wait for Z80/PSG/FM
@@ -205,11 +214,6 @@ void EmulatorThread::TickEmulator(float deltaTime)
 			}
 #endif
 		}
-	}
-
-	if (framesBehind == 0)
-	{
-		ion::thread::Sleep(5);
 	}
 
 	m_lastEmulatorState = debuggerRunning ? eState_Debugger : eState_Running;
@@ -243,9 +247,11 @@ void EmulatorThread_Z80_PSG_FM::Entry()
 
 void EmulatorThread_Z80_PSG_FM::Tick_Z80_PSG_FM(float deltaTime)
 {
-#if EMU_THREADED
+#if EMU_THREADED && EMU_LOCKSTEP_THREADS
 	m_emuThread68K.m_Z80_PSG_FM_TickSema.Wait();
+#endif
 
+#if EMU_THREADED
 	for (int i = 0; i < CYCLES_PER_FRAME_68K; i++)
 #endif
 	{
@@ -274,8 +280,11 @@ void EmulatorThread_Z80_PSG_FM::Tick_Z80_PSG_FM(float deltaTime)
 		AudioTick(deltaTime);
 	}
 
-#if EMU_THREADED
+#if EMU_THREADED && EMU_LOCKSTEP_THREADS
 	m_emuThread68K.m_Z80_PSG_FM_WaitSema.Signal();
-	ion::thread::Sleep(5);
+#endif
+
+#if EMU_THREADED
+	ion::thread::Sleep(EMU_THREAD_SLEEP_Z80);
 #endif
 }
