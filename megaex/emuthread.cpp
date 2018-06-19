@@ -39,6 +39,7 @@ ion::thread::CriticalSection TEST_CRIT_SEC;
 EmulatorThread::EmulatorThread()
 #if EMU_THREADED
 	: ion::thread::Thread("Emulator_68K")
+	, m_Z80_PSG_FM_TickSema(16)
 	, m_emuThread_Z80_PSG_FM(*this)
 #endif
 {
@@ -58,7 +59,7 @@ u64 m_startTicks = 0;
 void EmulatorThread::Entry()
 {
 	m_emuThread_Z80_PSG_FM.Run();
-	m_emuThread_Z80_PSG_FM.SetPriority(ion::thread::Thread::Priority::High);
+	m_emuThread_Z80_PSG_FM.SetPriority(ion::thread::Thread::Priority::Critical);
 
 	float deltaTime = 0.0f;
 	bool run = true;
@@ -180,6 +181,10 @@ void EmulatorThread::TickEmulator(float deltaTime)
 			}
 
 			m_renderCritSec.End();
+
+#if EMU_THREADED
+			m_Z80_PSG_FM_TickSema.Signal();
+#endif
 		}
 	}
 
@@ -220,6 +225,8 @@ void EmulatorThread_Z80_PSG_FM::Entry()
 void EmulatorThread_Z80_PSG_FM::Tick_Z80_PSG_FM(float deltaTime)
 {
 #if EMU_THREADED
+	m_emuThread68K.m_Z80_PSG_FM_TickSema.Wait();
+
 	for (int i = 0; i < CYCLES_PER_FRAME_68K; i++)
 #endif
 	{

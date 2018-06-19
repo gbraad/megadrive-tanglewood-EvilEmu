@@ -47,6 +47,7 @@ public:
 #endif
 
 	ion::thread::CriticalSection m_renderCritSec;
+	ion::thread::Semaphore m_Z80_PSG_FM_TickSema;
 
 protected:
 	virtual void Entry();
