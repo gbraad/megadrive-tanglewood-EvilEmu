@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "config.h"
 
@@ -34,8 +35,10 @@ THE SOFTWARE.
 #include "cpu.h"
 #include "memory.h"
 
-#define CPU_DEBUG_INFO 0
-#define CPU_USE_JUMP_INDEX_TABLE 1
+#define CPU_DEBUG_INFO				0
+#define CPU_USE_JUMP_INDEX_TABLE	1
+#define CPU_MAX_OPERANDS			4
+#define CPU_UNROLL_OPERANDS			1
 
 CPU_Regs	cpu_regs;
 
@@ -698,10 +701,21 @@ void CPU_Step()
 
 		cpu_ins = CPU_Information[cpu_regs.opcode];
 
+#if CPU_UNROLL_OPERANDS
+#if CPU_DEBUG_INFO
+		assert(cpu_ins->numOperands <= CPU_MAX_OPERANDS);
+#endif
+
+		cpu_regs.operands[0] = (cpu_regs.opcode & cpu_ins->operandMask[0]) >> cpu_ins->operandShift[0];
+		cpu_regs.operands[1] = (cpu_regs.opcode & cpu_ins->operandMask[1]) >> cpu_ins->operandShift[1];
+		cpu_regs.operands[2] = (cpu_regs.opcode & cpu_ins->operandMask[2]) >> cpu_ins->operandShift[2];
+		cpu_regs.operands[3] = (cpu_regs.opcode & cpu_ins->operandMask[3]) >> cpu_ins->operandShift[3];
+#else
 		for (a = 0; a < cpu_ins->numOperands; a++)
 		{
 			cpu_regs.operands[a] = (cpu_regs.opcode & cpu_ins->operandMask[a]) >> cpu_ins->operandShift[a];
 		}
+#endif
 		
 #if CPU_DEBUG_INFO
 		if (startDebug)
