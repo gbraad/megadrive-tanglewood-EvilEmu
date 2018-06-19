@@ -41,6 +41,8 @@ THE SOFTWARE.
 #include "debugger.h"
 #include "memory.h"
 
+#include "memory.inl"
+
 #include "font.h"
 
 ION_C_API unsigned char *vRam;

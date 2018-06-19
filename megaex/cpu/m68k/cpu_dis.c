@@ -32,6 +32,8 @@ THE SOFTWARE.
 #include "cpu_dis.h"
 #include "memory.h"
 
+#include "memory.inl"
+
 char mnemonicData[256];
 
 int decodeEffectiveAddress(U32 adr, U16 operand,int length)

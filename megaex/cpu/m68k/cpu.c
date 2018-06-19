@@ -35,6 +35,9 @@ THE SOFTWARE.
 #include "cpu.h"
 #include "memory.h"
 
+#include "cpu_ops.inl"
+#include "memory.inl"
+
 #define CPU_DEBUG_INFO				0
 #define CPU_USE_JUMP_INDEX_TABLE	1
 #define CPU_MAX_OPERANDS			4
@@ -642,7 +645,7 @@ void CPU_SignalInterrupt(S8 level)
 	}
 }
 
-void CPU_CheckForInterrupt()
+inline void CPU_CheckForInterrupt()
 {
 	/* Level 6 */
 	/* Frame interrupt */
@@ -859,5 +862,3 @@ void CPU_Step()
 #endif
 
 }
-
-#include "cpu_ops.inl"

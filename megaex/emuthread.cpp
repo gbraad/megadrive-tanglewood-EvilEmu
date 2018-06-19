@@ -17,6 +17,8 @@
 #include "memory.h"
 #include "mgaudio.h"
 
+#include "cpu_ops.inl"
+
 #define EMU_TIMESTEP			(1.0f / (float)FRAMES_PER_SECOND_NTSC)
 #define EMU_CLOCK_DIV_68K		7
 #define EMU_CLOCK_DIV_Z80		15
