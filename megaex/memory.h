@@ -48,6 +48,9 @@ ION_C_API void	MEM_setWord(U32 address,U16 word);
 ION_C_API U32	MEM_getLong(U32 address);
 ION_C_API void	MEM_setLong(U32 address,U32 dword);
 
+ION_C_API int	GetCRAMCacheDirty();
+ION_C_API void	SetCRAMCacheDirty(int dirty);
+
 typedef U8(*MEM_ReadByteMap)(U32 address, U32 upper24, U32 lower16);
 typedef void(*MEM_WriteByteMap)(U32 address, U32 upper24, U32 lower16, U8 byte);
 
@@ -59,6 +62,9 @@ ION_C_API MEM_WriteByteMap	mem_write[256];
 
 ION_C_API MEM_ReadWordMap	mem_read_word[256];
 ION_C_API MEM_WriteWordMap	mem_write_word[256];
+
+ION_C_API int cramCacheDirty;
+
 
 #endif
 

@@ -986,7 +986,7 @@ void kbHandler(GLFWwindow* window, int key, int scancode, int action, int modifi
 int captureMouse=0;
 U32 _32XLineCounter=0xFF;
 
-ION_C_API void VID_DrawScreen(int lineNo);
+ION_C_API void VID_DrawScreenRow(int lineNo);
 void DisplaySprites();
 void DisplayApproximationOfScreen(int x,int y,int winNumber);
 

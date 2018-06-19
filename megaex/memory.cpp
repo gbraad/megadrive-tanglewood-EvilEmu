@@ -1184,6 +1184,9 @@ void VDP_DataModeStart()
 
 					length--;
 				}
+
+				cramCacheDirty = 1;
+
 				return;
 			}
 
@@ -1285,6 +1288,8 @@ void VDP_ExecuteDataPortWrite()
 		cRam[(VDP_latchDstAddress & 0x7E)+1]=writeDataLatch&0xFF;
 
 		VDP_latchDstAddress += VDP_Registers[0x0F];
+
+		cramCacheDirty = 1;
 
 		return;
 
@@ -2407,4 +2412,6 @@ void MEM_Initialise(unsigned char *_romPtr, U32 romSize, unsigned int num64Banks
 
 
 	InitialiseStandardMemoryMap();
+
+	cramCacheDirty = 1;
 }

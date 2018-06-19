@@ -65,6 +65,8 @@ ION_C_API U8 YM2612_AddressLatch2;
 
 extern U8 CRAM[0x200];
 
+#define EMU_SUPPORT_WINDOW_PLANE 0
+
 #if ENABLE_DEBUGGER
 
 #define MAX_BPS	20
@@ -1647,27 +1649,27 @@ void SMS_DisplayFillBGColourLine(U32 *pixelPos,int w)
 	DisplayFillBGColourHiLoLine(r,gb,pixelPos,w);
 }
 
-int ComputeColourXY(int tx,int ty,U32 address,U32 flipH,U32 flipV)
+int ComputeTilePixelColourXY(int tx,int ty,U32 address,U32 flipH,U32 flipV)
 {
 	int colour;
 	int odd;
 
 	if (flipV)
 	{
-		address+=(7-ty)*4;
+		address+=(7-ty)<<2;
 	}
 	else
 	{
-		address+=ty*4;
+		address+=ty<<2;
 	}
 	if (flipH)
 	{
-		address+=(7-tx)/2;
+		address+=(7-tx)>>1;
 		odd=(7-tx)&1;
 	}
 	else
 	{
-		address+=tx/2;
+		address+=tx>>1;
 		odd=tx&1;
 	}
 	address&=0xFFFF;
@@ -1704,119 +1706,136 @@ void doPixelZ(int x,int y,U8 colHi,U8 colLo,U8 zValue)
 	}
 }*/
 
-/* ty should be 0-7; */
-/* tx should be 0-7; */
-void DrawTileXY(int tx,int ty,U32 address,int pal,U32 flipH,U32 flipV,U8 zValue,U32 *pixelPos,U8 *zPos)
+U32 paletteCache[16 * 4];
+
+void UpdatePaletteCache()
 {
-	if (*zPos<zValue)
+	for (int pal = 0; pal < 4; pal++)
 	{
-		int colour = ComputeColourXY(tx,ty,address,flipH,flipV);
-
-		if (colour!=0)
+		for (int colour = 0; colour < 16; colour++)
 		{
-			*zPos=zValue;
-
 			// 0BBB 0RRR 0000 0GGG
 			U16 cramWord = *(U16*)&cRam[pal * 2 * 16 + colour * 2];
 
 			// 0x0000BR0G
 			// to
 			// 0x00RRBBGG;
-			*pixelPos = ((cramWord & 0x0E00) << 12) | (cramWord & 0xE000) | ((cramWord & 0x000E) << 4);
+			paletteCache[(pal * 16) + colour] = ((cramWord & 0x0E00) << 12) | (cramWord & 0xE000) | ((cramWord & 0x000E) << 4);
 		}
 	}
 }
 
-void DrawScreenRow(int ty,int winNumber,U8 zValue,U32 *pixelPos,U8 *zPos)
+void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
 {
-	int tx,ox;
-	int displaySizeX = (VDP_Registers[12]&0x01) ? 40 : 32;
-	int windowSizeX,windowSizeY;
-	S32 scrollAmountY=((vsRam[2]&0x0F)<<8)|(vsRam[3]);
-	U32 scrollHTable = (VDP_Registers[13]&0x3F)<<10;
-	S32 scrollAmountX;
-	U32 address=(VDP_Registers[0x04])&0x07;
-	U32 baseAddress;
-	address<<=13;
-	if ((VDP_Registers[11]&0x03)==0x03)			/* do pixel scroll */
+	//Update CRAM cache first
+	if (cramCacheDirty)
 	{
-		scrollAmountX = ((vRam[scrollHTable+2 + ty*4]&0x07)<<8)|vRam[scrollHTable+3+ty*4];
+		UpdatePaletteCache();
+		cramCacheDirty = 0;
+	}
+
+	//Get display width
+	int displaySizeX = (VDP_Registers[12]&0x01) ? 40 : 32;
+	
+	//Get h-scroll table address
+	U32 scrollHTable = (VDP_Registers[13]&0x3F)<<10;
+
+	//Get plane A scroll mode
+	S32 a_scrollAmountX;
+
+	if ((VDP_Registers[11]&0x03) == 0x03)			/* do pixel scroll */
+	{
+		a_scrollAmountX = ((vRam[scrollHTable+0+ty*4]&0x07)<<8)|vRam[scrollHTable+1+ty*4];
 	}
 	else
 	{
 		if ((VDP_Registers[11]&0x03)==0x02)			/* do cell scroll */
 		{
-			scrollAmountX = ((vRam[scrollHTable+2 + (ty/8)*32]&0x07)<<8)|vRam[scrollHTable+3+(ty/8)*32];
+			a_scrollAmountX = ((vRam[scrollHTable+0+(ty/8)*32]&0x07)<<8)|vRam[scrollHTable+1+(ty/8)*32];
 		}
 		else
 		{
-			scrollAmountX = ((vRam[scrollHTable+2]&0x07)<<8)|vRam[scrollHTable+3];
+			a_scrollAmountX = ((vRam[scrollHTable+0]&0x07)<<8)|vRam[scrollHTable+1];
 		}
 	}
-	if (winNumber==0)
+
+	//Get plane B scroll mode
+	S32 b_scrollAmountX;
+
+	if ((VDP_Registers[11] & 0x03) == 0x03)			/* do pixel scroll */
 	{
-		if ((VDP_Registers[11]&0x03) == 0x03)			/* do pixel scroll */
+		b_scrollAmountX = ((vRam[scrollHTable + 2 + ty * 4] & 0x07) << 8) | vRam[scrollHTable + 3 + ty * 4];
+	}
+	else
+	{
+		if ((VDP_Registers[11] & 0x03) == 0x02)			/* do cell scroll */
 		{
-			scrollAmountX = ((vRam[scrollHTable+0+ty*4]&0x07)<<8)|vRam[scrollHTable+1+ty*4];
+			b_scrollAmountX = ((vRam[scrollHTable + 2 + (ty / 8) * 32] & 0x07) << 8) | vRam[scrollHTable + 3 + (ty / 8) * 32];
 		}
 		else
 		{
-			if ((VDP_Registers[11]&0x03)==0x02)			/* do cell scroll */
-			{
-				scrollAmountX = ((vRam[scrollHTable+0+(ty/8)*32]&0x07)<<8)|vRam[scrollHTable+1+(ty/8)*32];
-			}
-			else
-			{
-				scrollAmountX = ((vRam[scrollHTable+0]&0x07)<<8)|vRam[scrollHTable+1];
-			}
-		}
-		scrollAmountY=((vsRam[0]&0x0F)<<8)|(vsRam[1]);
-		address=(VDP_Registers[0x02])&0x38;
-		address<<=10;
-		if (VDP_Registers[0x12]&0x9F)
-		{
-			/* window enabled */
-			U8 windowLine = (VDP_Registers[0x12]&0x1F)<<3;
-			U8 useWindow=0;
-
-			if (VDP_Registers[0x12]&0x80)
-			{
-				if (ty>=windowLine)
-				{
-					useWindow=1;
-				}
-			}
-			else
-			{
-				if (ty<windowLine)
-				{
-					useWindow=1;
-				}
-			}
-
-			if (useWindow)
-			{
-				scrollAmountY=0;
-				scrollAmountX=0;
-				address=(VDP_Registers[0x03])&0x3E;		/* todo 40 cell clamp to 3C */
-				address<<=10;
-			}
+			b_scrollAmountX = ((vRam[scrollHTable + 2] & 0x07) << 8) | vRam[scrollHTable + 3];
 		}
 	}
-	baseAddress=address;
+
+	//Get plane A/B v-scroll values
+	S32 a_scrollAmountY = ((vsRam[0]&0x0F)<<8)|(vsRam[1]);
+	S32 b_scrollAmountY = ((vsRam[2]&0x0F)<<8)|(vsRam[3]);
+
+	//Get plane A/B map data addresses
+	U32 a_map_data_addr = ((VDP_Registers[0x02]) & 0x38) << 10;
+	U32 b_map_data_addr = ((VDP_Registers[0x04]) & 0x07) << 13;
+
+#if EMU_SUPPORT_WINDOW_PLANE
+	// Window plane
+	if (VDP_Registers[0x12]&0x9F)
+	{
+		U8 windowLine = (VDP_Registers[0x12]&0x1F)<<3;
+		U8 useWindow=0;
+
+		if (VDP_Registers[0x12]&0x80)
+		{
+			if (ty>=windowLine)
+			{
+				useWindow=1;
+			}
+		}
+		else
+		{
+			if (ty<windowLine)
+			{
+				useWindow=1;
+			}
+		}
+
+		if (useWindow)
+		{
+			a_scrollAmountY = 0;
+			a_scrollAmountX = 0;
+			a_address = ((VDP_Registers[0x03])&0x3E) << 10;		/* todo 40 cell clamp to 3C */
+		}
+	}
+#endif
+
+	U32 a_baseAddress = a_map_data_addr;
+	U32 b_baseAddress = b_map_data_addr;
+
+	//Get plane size
+	int planeSizeX;
+	int planeSizeY;
 
 	switch (VDP_Registers[16] & 0x30)
 	{
 	default:
 	case 0x20:			/* Marked Prohibited */
 	case 0x00:
-		windowSizeY=32;
+		planeSizeY=32;
 		break;
 	case 0x10:
-		windowSizeY=64;
+		planeSizeY =64;
 		break;
 	case 0x30:
-		windowSizeY=128;
+		planeSizeY =128;
 		break;
 	}
 	switch (VDP_Registers[16] & 0x03)
@@ -1824,48 +1843,85 @@ void DrawScreenRow(int ty,int winNumber,U8 zValue,U32 *pixelPos,U8 *zPos)
 	default:
 	case 2:			/* Marked Prohibited */
 	case 0:
-		windowSizeX=32;
+		planeSizeX=32;
 		break;
 	case 1:
-		windowSizeX=64;
+		planeSizeX =64;
 		break;
 	case 3:
-		windowSizeX=128;
+		planeSizeX =128;
 		break;
 	}
 
-	if (scrollAmountY&0x0800)
-		scrollAmountY|=0xFFFFF000;
-	if (scrollAmountX&0x0400)
-		scrollAmountX|=0xFFFFF800;
+	if (a_scrollAmountY & 0x0800)
+		a_scrollAmountY |= 0xFFFFF000;
+	if (a_scrollAmountX & 0x0400)
+		a_scrollAmountX |= 0xFFFFF800;
+	if (b_scrollAmountY & 0x0800)
+		b_scrollAmountY |= 0xFFFFF000;
+	if (b_scrollAmountX & 0x0400)
+		b_scrollAmountX |= 0xFFFFF800;
 
-	ty+=scrollAmountY;
-	ty&=(windowSizeY*8-1);
+	//Get map tile Y coord and wrap around plane height
+	int a_ty = (ty + a_scrollAmountY) & (planeSizeY * 8 - 1);
+	int b_ty = (ty + b_scrollAmountY) & (planeSizeY * 8 - 1);
 
-	for (ox=0;ox<displaySizeX*8;ox++)			/* base address is vertical adjusted..  */
+	int widthPixels = displaySizeX * 8;
+
+	for (int pixelX = 0; pixelX < widthPixels; pixelX++)			/* base address is vertical adjusted..  */
 	{
-		U16 tile;
-		U16 tileAddress;
-		int pal;
-		
-		tx=ox - scrollAmountX;
-		tx&=(windowSizeX*8-1);
-		address = baseAddress+(tx/8)*2 + (ty/8)*windowSizeX*2;
-		address&=0xFFFF;
-		tile = (vRam[address+0]<<8)|vRam[address+1];
-		tileAddress = tile & 0x07FF;			/* pccv hnnn nnnn nnnn */
+		//Get map tile X coord and wrap around plane width
+		int a_tx = (pixelX - a_scrollAmountX) & (planeSizeX * 8 - 1);
+		int b_tx = (pixelX - b_scrollAmountX) & (planeSizeX * 8 - 1);
 
-		pal = (tile & 0x6000)>>13;
+		//Get VRAM address of tile ID
+		U16 a_tile_addr = (a_map_data_addr + (a_tx/8)*2 + (a_ty/8)*planeSizeX*2) & 0xFFFF;
+		U16 b_tile_addr = (b_map_data_addr + (b_tx/8)*2 + (b_ty/8)*planeSizeX*2) & 0xFFFF;
 
-		tileAddress <<= 5;
+		//Get tile ID and flags
+		U16 a_tile = (vRam[a_tile_addr]<<8)|vRam[a_tile_addr+1];
+		U16 b_tile = (vRam[b_tile_addr]<<8)|vRam[b_tile_addr+1];
 
-		if (tile&0x8000)
+		//Get priority
+		int a_prio = (a_tile & 0x8000) ? 2<<4 : 2;
+		int b_prio = (b_tile & 0x8000) ? 1<<4 : 1;
+
+		// Draw pixel plane A
+		if (*zPos < a_prio)
 		{
-			DrawTileXY((tx&7),(ty&7),tileAddress,pal,tile&0x0800,tile&0x1000,zValue<<4,pixelPos,zPos);
+			//Get tile VRAM address
+			U16 a_tileAddress = (a_tile & 0x07FF) << 5;	// pccv hnnn nnnn nnnn << 5 = tileId to bytes
+
+			//Get palette
+			int a_pal = (a_tile & 0x6000) >> 13;
+
+			//Compute pixel colour
+			int colour = ComputeTilePixelColourXY((a_tx & 7), (a_ty & 7), a_tileAddress, a_tile & 0x0800, a_tile & 0x1000);
+
+			if (colour != 0)
+			{
+				*zPos = a_prio;
+				*pixelPos = paletteCache[(a_pal * 16) + colour];
+			}
 		}
-		else
+
+		// Draw pixel plane B
+		if (*zPos < b_prio)
 		{
-			DrawTileXY((tx&7),(ty&7),tileAddress,pal,tile&0x0800,tile&0x1000,zValue,pixelPos,zPos);
+			//Get tile VRAM address
+			U16 b_tileAddress = (b_tile & 0x07FF) << 5;	// pccv hnnn nnnn nnnn << 5 = tileId to bytes
+
+			//Get palette
+			int b_pal = (b_tile & 0x6000) >> 13;
+
+			//Compute pixel colour
+			int colour = ComputeTilePixelColourXY((b_tx & 7), (b_ty & 7), b_tileAddress, b_tile & 0x0800, b_tile & 0x1000);
+
+			if (colour != 0)
+			{
+				*zPos = b_prio;
+				*pixelPos = paletteCache[(b_pal * 16) + colour];
+			}
 		}
 
 		pixelPos++;
@@ -2220,10 +2276,12 @@ void Draw32XScreenRow(int y,U32* out,U8* zPos)
 #endif
 
 #if !SMS_MODE
-void VID_DrawScreen(int y)
+void VID_DrawScreenRow(int y)
 {
 	{
+		//Pixel output buffer + border
 		U32 *pixel = pixelPosition(128,128+y);
+
 		U8 *zPos = zBuffer;
 
 		DisplayFillBGColourLine(pixel,320);
@@ -2232,12 +2290,13 @@ void VID_DrawScreen(int y)
 #if ENABLE_32X_MODE
 		Draw32XScreenRow(y,pixel,zPos);
 #endif
-#if 1
-		DrawScreenRow(y,0,0x02,pixel,zPos);
-		DrawScreenRow(y,1,0x01,pixel,zPos);
+
+		//Draw plane A/B row
+		DrawScreenRow(y, pixel, zPos);
+
+		//Draw sprite row (at Y pos + sprite border)
 		DrawSpritesForLine(128+y,0x04);
 		ComputeSpritesForNextLine(128+y+1);
-#endif
 	}
 }
 #else
@@ -2504,7 +2563,7 @@ void SMS_DrawSpritesForLine(int curLine,U8 zValue)
 
 
 
-void VID_DrawScreen(int y)
+void VID_DrawScreenRow(int y)
 {
 /*
 	if (y==0)		is this correct.. should the y scroll latch?

@@ -30,8 +30,14 @@
 #define EMU_FRAME_SKIP		0
 #endif
 
+#if defined DEBUG
+#define EMU_DEBUG_OUTPUT	1
+#else
+#define EMU_DEBUG_OUTPUT	0
+#endif
+
 ION_C_API U8 VDP_Registers[0x20];
-ION_C_API void VID_DrawScreen(int lineNo);
+ION_C_API void VID_DrawScreenRow(int lineNo);
 
 float TEST_FPS = 0.0f;
 ion::thread::CriticalSection TEST_CRIT_SEC;
@@ -60,7 +66,7 @@ u64 m_startTicks = 0;
 void EmulatorThread::Entry()
 {
 	m_emuThread_Z80_PSG_FM.Run();
-	m_emuThread_Z80_PSG_FM.SetPriority(ion::thread::Thread::Priority::Critical);
+	m_emuThread_Z80_PSG_FM.SetPriority(ion::thread::Thread::Priority::High);
 
 	float deltaTime = 0.0f;
 	bool run = true;
@@ -97,11 +103,13 @@ void EmulatorThread::TickEmulator(float deltaTime)
 
 		framesBehind = (int)ion::maths::Floor(m_accumTime / EMU_TIMESTEP);
 
+#if EMU_DEBUG_OUTPUT
 		if (framesBehind > 1)
 		{
 			printf("Emulator lagging behind by %i frames (audio clock: %.4f prev clock: %.4f audio delta: %.4f accum time: %.4f)\n",
 				framesBehind, audioClock, m_prevAudioClock, audioClockDelta, m_accumTime);
 		}
+#endif
 
 		int framesToProcess = ion::maths::Min(framesBehind, EMU_MAX_TICK_FRAMES);
 
@@ -176,7 +184,7 @@ void EmulatorThread::TickEmulator(float deltaTime)
 					int displaySizeY = (VDP_Registers[1] & 0x08) ? 30 * 8 : 28 * 8;
 					if (lineNo < displaySizeY)
 					{
-						VID_DrawScreen(lineNo);
+						VID_DrawScreenRow(lineNo);
 					}
 				}
 
@@ -245,19 +253,19 @@ void EmulatorThread_Z80_PSG_FM::Tick_Z80_PSG_FM(float deltaTime)
 		m_clockFM += EMU_CLOCK_DIV_68K;
 		m_clockPSG += EMU_CLOCK_DIV_68K;
 
-		if (m_clockZ80 > EMU_CLOCK_DIV_Z80)
+		if (m_clockZ80 >= EMU_CLOCK_DIV_Z80)
 		{
 			Z80_Step();
 			m_clockZ80 -= EMU_CLOCK_DIV_Z80;
 		}
 
-		if (m_clockFM > EMU_CLOCK_DIV_FM)
+		if (m_clockFM >= EMU_CLOCK_DIV_FM)
 		{
 			AudioFMUpdate();
 			m_clockFM -= EMU_CLOCK_DIV_FM;
 		}
 
-		if (m_clockPSG > EMU_CLOCK_DIV_PSG)
+		if (m_clockPSG >= EMU_CLOCK_DIV_PSG)
 		{
 			AudioPSGUpdate();
 			m_clockPSG -= EMU_CLOCK_DIV_PSG;
