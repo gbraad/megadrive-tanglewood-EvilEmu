@@ -39,7 +39,8 @@ ion::thread::CriticalSection TEST_CRIT_SEC;
 EmulatorThread::EmulatorThread()
 #if EMU_THREADED
 	: ion::thread::Thread("Emulator_68K")
-	, m_Z80_PSG_FM_TickSema(16)
+	, m_Z80_PSG_FM_TickSema(1)
+	, m_Z80_PSG_FM_WaitSema(1)
 	, m_emuThread_Z80_PSG_FM(*this)
 #endif
 {
@@ -129,6 +130,11 @@ void EmulatorThread::TickEmulator(float deltaTime)
 				m_startTicks = ion::time::GetSystemTicks();
 			}
 
+#if EMU_THREADED
+			//Signal Z80, PSG, and FM to tick
+			m_Z80_PSG_FM_TickSema.Signal();
+#endif
+
 			m_renderCritSec.Begin();
 
 			m_accumTime -= EMU_TIMESTEP;
@@ -141,6 +147,7 @@ void EmulatorThread::TickEmulator(float deltaTime)
 				CPU_Step();
 
 #if !EMU_THREADED
+				//Tick Z80, PSG, and FM
 				m_emuThread_Z80_PSG_FM.Tick_Z80_PSG_FM(deltaTime);
 #endif
 
@@ -183,7 +190,11 @@ void EmulatorThread::TickEmulator(float deltaTime)
 			m_renderCritSec.End();
 
 #if EMU_THREADED
-			m_Z80_PSG_FM_TickSema.Signal();
+			if (framesBehind <= 1)
+			{
+				//Wait for Z80/PSG/FM
+				m_Z80_PSG_FM_WaitSema.Wait();
+			}
 #endif
 		}
 	}
@@ -256,6 +267,7 @@ void EmulatorThread_Z80_PSG_FM::Tick_Z80_PSG_FM(float deltaTime)
 	}
 
 #if EMU_THREADED
+	m_emuThread68K.m_Z80_PSG_FM_WaitSema.Signal();
 	ion::thread::Sleep(5);
 #endif
 }
