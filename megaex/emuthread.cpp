@@ -38,16 +38,14 @@ ion::thread::CriticalSection TEST_CRIT_SEC;
 
 EmulatorThread::EmulatorThread()
 #if EMU_THREADED
-	: ion::thread::Thread("Emulator")
+	: ion::thread::Thread("Emulator_68K")
+	, m_emuThread_Z80_PSG_FM(*this)
 #endif
 {
 	m_prevAudioClock = 0.0f;
 	m_accumTime = 0.0f;
 
 	m_clock68K = 0;
-	m_clockZ80 = 0;
-	m_clockFM = 0;
-	m_clockPSG = 0;
 
 	m_inVBlank = false;
 	m_inHBlank = false;
@@ -59,6 +57,9 @@ u64 m_startTicks = 0;
 
 void EmulatorThread::Entry()
 {
+	m_emuThread_Z80_PSG_FM.Run();
+	m_emuThread_Z80_PSG_FM.SetPriority(ion::thread::Thread::Priority::High);
+
 	float deltaTime = 0.0f;
 	bool run = true;
 	while (run)
@@ -135,29 +136,12 @@ void EmulatorThread::TickEmulator(float deltaTime)
 			for (int i = 0; i < cyclesPerFrame; i++)
 			{
 				m_clock68K += EMU_CLOCK_DIV_68K;
-				m_clockZ80 += EMU_CLOCK_DIV_68K;
-				m_clockFM += EMU_CLOCK_DIV_68K;
-				m_clockPSG += EMU_CLOCK_DIV_68K;
 
 				CPU_Step();
 
-				if (m_clockZ80 > EMU_CLOCK_DIV_Z80)
-				{
-					Z80_Step();
-					m_clockZ80 -= EMU_CLOCK_DIV_Z80;
-				}
-
-				if (m_clockFM > EMU_CLOCK_DIV_FM)
-				{
-					AudioFMUpdate();
-					m_clockFM -= EMU_CLOCK_DIV_FM;
-				}
-
-				if (m_clockPSG > EMU_CLOCK_DIV_PSG)
-				{
-					AudioPSGUpdate();
-					m_clockPSG -= EMU_CLOCK_DIV_PSG;
-				}
+#if !EMU_THREADED
+				m_emuThread_Z80_PSG_FM.Tick_Z80_PSG_FM(deltaTime);
+#endif
 
 				int lineNo = i / cyclesPerLine;
 				int colNo = i % cyclesPerLine;
@@ -193,13 +177,9 @@ void EmulatorThread::TickEmulator(float deltaTime)
 					CPU_SignalInterrupt(6);
 					Z80_SignalInterrupt(0);
 				}
-
-				AudioTick(deltaTime);
 			}
 
 			m_renderCritSec.End();
-
-			ion::thread::Sleep(1);
 		}
 	}
 
@@ -209,4 +189,66 @@ void EmulatorThread::TickEmulator(float deltaTime)
 	}
 
 	m_lastEmulatorState = debuggerRunning ? eState_Debugger : eState_Running;
+}
+
+EmulatorThread_Z80_PSG_FM::EmulatorThread_Z80_PSG_FM(EmulatorThread& emuThread68K)
+#if EMU_THREADED
+	: ion::thread::Thread("Emulator_Z80_PSG_FM")
+	, m_emuThread68K(emuThread68K)
+#endif
+{
+	m_clockZ80 = 0;
+	m_clockFM = 0;
+	m_clockPSG = 0;
+}
+
+void EmulatorThread_Z80_PSG_FM::Entry()
+{
+	float deltaTime = 0.0f;
+	bool run = true;
+	while (run)
+	{
+		u64 startTicks = ion::time::GetSystemTicks();
+
+		Tick_Z80_PSG_FM(deltaTime);
+
+		u64 endTicks = ion::time::GetSystemTicks();
+		deltaTime = (float)ion::time::TicksToSeconds(endTicks - startTicks);
+	}
+}
+
+void EmulatorThread_Z80_PSG_FM::Tick_Z80_PSG_FM(float deltaTime)
+{
+#if EMU_THREADED
+	for (int i = 0; i < CYCLES_PER_FRAME_68K; i++)
+#endif
+	{
+		m_clockZ80 += EMU_CLOCK_DIV_68K;
+		m_clockFM += EMU_CLOCK_DIV_68K;
+		m_clockPSG += EMU_CLOCK_DIV_68K;
+
+		if (m_clockZ80 > EMU_CLOCK_DIV_Z80)
+		{
+			Z80_Step();
+			m_clockZ80 -= EMU_CLOCK_DIV_Z80;
+		}
+
+		if (m_clockFM > EMU_CLOCK_DIV_FM)
+		{
+			AudioFMUpdate();
+			m_clockFM -= EMU_CLOCK_DIV_FM;
+		}
+
+		if (m_clockPSG > EMU_CLOCK_DIV_PSG)
+		{
+			AudioPSGUpdate();
+			m_clockPSG -= EMU_CLOCK_DIV_PSG;
+		}
+
+		AudioTick(deltaTime);
+	}
+
+#if EMU_THREADED
+	ion::thread::Sleep(5);
+#endif
 }
