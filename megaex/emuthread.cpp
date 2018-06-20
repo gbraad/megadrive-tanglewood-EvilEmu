@@ -218,6 +218,10 @@ void EmulatorThread::TickEmulator(float deltaTime)
 		}
 	}
 
+#if EMU_THREADED
+	ion::thread::Sleep(EMU_THREAD_SLEEP_68K);
+#endif
+
 	m_lastEmulatorState = debuggerRunning ? eState_Debugger : eState_Running;
 }
 
