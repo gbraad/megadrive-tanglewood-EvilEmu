@@ -350,8 +350,7 @@ U32 GetOpcodeLength(U32 address)
 		}
 	}
 			
-	insCount=CPU_DisTable[opcode](address+2,operands[0],operands[1],operands[2],
-						operands[3],operands[4],operands[5],operands[6],operands[7]);
+	insCount=CPU_DisTable[opcode](address+2,operands);
 
 	return insCount;
 }
@@ -376,8 +375,7 @@ U32 Z80_GetOpcodeLength(U32 address)
 		}
 	}
 			
-	insCount=Z80_DisTable[opcode](address+1,operands[0],operands[1],operands[2],
-						operands[3],operands[4],operands[5],operands[6],operands[7]);
+	insCount=Z80_DisTable[opcode](address+1,operands);
 
 	return insCount;
 }
