@@ -56,7 +56,7 @@ U32 CPU_RTS(U32 stage,U16* operands);
 U32 CPU_ILLEGAL(U32 stage,U16* operands);
 U32 CPU_ORd(U32 stage,U16* operands);
 U32 CPU_ADDQ(U32 stage,U16* operands);
-U32 CPU_CLR(U32 stage,U16* operands);
+U32 CPU_CLEAR(U32 stage,U16* operands);
 U32 CPU_ANDI(U32 stage,U16* operands);
 U32 CPU_EXG(U32 stage,U16* operands);
 U32 CPU_JSR(U32 stage,U16* operands);
