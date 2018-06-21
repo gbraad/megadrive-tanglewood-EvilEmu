@@ -825,7 +825,7 @@ void ParseRomHeader(unsigned char *header)
 }
 
 unsigned long romSize;
-unsigned char *load_rom(char *romName,unsigned int *numBanks,U32* _romSize)
+unsigned char *load_rom(const char *romName,unsigned int *numBanks,U32* _romSize)
 {
     FILE *inRom;
     unsigned char *romData;
@@ -1038,7 +1038,7 @@ void UpdateFPS()
 #define BASE_PATH	"/media/3848-3209/"
 #endif
 
-#define ROM(a,b)		char* romName=BASE_PATH a; char* romNameExt=BASE_PATH a b; char* saveName=BASE_PATH a ".srm";
+#define ROM(a,b)		const char* romName=BASE_PATH a; const char* romNameExt=BASE_PATH a b; const char* saveName=BASE_PATH a ".srm";
 
 #if SMS_MODE
 ROM("sprite",".sms")

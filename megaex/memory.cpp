@@ -931,7 +931,7 @@ U8 VDP_ReadByte(U16 offset)			/* see vdp quirks */
 	return 0xFF;
 }
 
-char *VDP_DumpRegisterName(U16 byte)
+const char *VDP_DumpRegisterName(U16 byte)
 {
 	switch(byte)
 	{
@@ -997,7 +997,7 @@ char *VDP_DumpRegisterName(U16 byte)
 	return "";
 }
 
-char *SMS_VDP_DumpRegisterName(U16 byte)
+const char *SMS_VDP_DumpRegisterName(U16 byte)
 {
 	switch(byte)
 	{
@@ -1547,7 +1547,7 @@ void MEM_setByte_Z80(U32 address, U32 upper24,U32 lower16,U8 byte)
 
 U8 ioRegisters[0x20];
 
-char *IO_DumpRegisterName(U16 byte)
+const char *IO_DumpRegisterName(U16 byte)
 {
 	switch(byte)
 	{

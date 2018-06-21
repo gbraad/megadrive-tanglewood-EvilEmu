@@ -1589,7 +1589,7 @@ int UpdateDebugger()
 	return g_pause;
 }
 
-void DEB_PauseEmulation(int pauseMode,char *reason)
+void DEB_PauseEmulation(int pauseMode,const char *reason)
 {
 	//dbMode=pauseMode;
 	//g_pause=1;
