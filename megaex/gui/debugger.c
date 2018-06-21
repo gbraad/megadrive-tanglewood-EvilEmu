@@ -1651,26 +1651,33 @@ void SMS_DisplayFillBGColourLine(U32 *pixelPos,int w)
 	DisplayFillBGColourHiLoLine(r,gb,pixelPos,w);
 }
 
-int ComputeTilePixelColourXY(int tx,int ty,U32 address,U32 flipH,U32 flipV)
+inline int ComputeTilePixelColourXY(int tx,int ty,U32 address,U32 flipH,U32 flipV)
 {
 	int colour;
 	int odd;
 
+	//If flipped Y
 	if (flipV)
 	{
+		//Invert Y, + offset in longwords
 		address+=(7-ty)<<2;
 	}
 	else
 	{
+		//+ offset in longwords
 		address+=ty<<2;
 	}
+
+	//If flipped X
 	if (flipH)
 	{
+		//Invert X, + offset in nibbles
 		address+=(7-tx)>>1;
 		odd=(7-tx)&1;
 	}
 	else
 	{
+		//+ offset in nibbles
 		address+=tx>>1;
 		odd=tx&1;
 	}
@@ -1678,10 +1685,12 @@ int ComputeTilePixelColourXY(int tx,int ty,U32 address,U32 flipH,U32 flipV)
 
 	if (odd==0)
 	{
+		//Even nibble
 		colour=(vRam[address]&0xF0)>>4;
 	}
 	else
 	{
+		//Odd nibble
 		colour=vRam[address]&0x0F;
 	}
 	
