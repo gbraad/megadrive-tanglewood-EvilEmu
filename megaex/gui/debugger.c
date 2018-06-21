@@ -41,7 +41,7 @@ THE SOFTWARE.
 #include "debugger.h"
 #include "memory.h"
 
-#include "memory.inl"
+//#include "memory.inl"
 
 #include "font.h"
 
@@ -350,8 +350,7 @@ U32 GetOpcodeLength(U32 address)
 		}
 	}
 			
-	insCount=CPU_DisTable[opcode](address+2,operands[0],operands[1],operands[2],
-						operands[3],operands[4],operands[5],operands[6],operands[7]);
+	insCount=CPU_DisTable[opcode](address+2,operands);
 
 	return insCount;
 }
@@ -376,8 +375,7 @@ U32 Z80_GetOpcodeLength(U32 address)
 		}
 	}
 			
-	insCount=Z80_DisTable[opcode](address+1,operands[0],operands[1],operands[2],
-						operands[3],operands[4],operands[5],operands[6],operands[7]);
+	insCount=Z80_DisTable[opcode](address+1,operands);
 
 	return insCount;
 }
@@ -1589,7 +1587,7 @@ int UpdateDebugger()
 	return g_pause;
 }
 
-void DEB_PauseEmulation(int pauseMode,char *reason)
+void DEB_PauseEmulation(int pauseMode,const char *reason)
 {
 	//dbMode=pauseMode;
 	//g_pause=1;

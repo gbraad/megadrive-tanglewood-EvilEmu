@@ -36,7 +36,7 @@ THE SOFTWARE.
 #include "memory.h"
 
 #include "cpu_ops.inl"
-#include "memory.inl"
+//#include "memory.inl"
 
 #define CPU_DEBUG_INFO				0
 #define CPU_USE_JUMP_INDEX_TABLE	1
@@ -379,7 +379,7 @@ CPU_Ins cpu_instructions[] =
 { 82,"0100111010aaaaaa","JSR",CPU_JSR,CPU_DIS_JSR,1,{ 0x003F },{ 0 },{ 7 },{ { "010rrr","101rrr","110rrr","111000","111001","111010","111011" } } },
 { 83,"1100rrr1mmmmmddd","EXG",CPU_EXG,CPU_DIS_EXG,3,{ 0x0E00,0x00F8,0x0007 },{ 9,3,0 },{ 1,3,1 },{ { "rrr" },{ "01000","01001","10001" },{ "rrr" } } },
 { 84,"00000010zzaaaaaa","ANDI",CPU_ANDI,CPU_DIS_ANDI,2,{ 0x00C0,0x003F },{ 6,0 },{ 3,8 },{ { "00","01","10" },{ "000rrr","010rrr","011rrr","100rrr","101rrr","110rrr","111000","111001" } } },
-{ 85,"01000010zzaaaaaa","CLR",CPU_CLR,CPU_DIS_CLR,2,{ 0x00C0,0x003F },{ 6,0 },{ 3,8 },{ { "00","01","10" },{ "000rrr","010rrr","011rrr","100rrr","101rrr","110rrr","111000","111001" } } },
+{ 85,"01000010zzaaaaaa","CLR",CPU_CLEAR,CPU_DIS_CLR,2,{ 0x00C0,0x003F },{ 6,0 },{ 3,8 },{ { "00","01","10" },{ "000rrr","010rrr","011rrr","100rrr","101rrr","110rrr","111000","111001" } } },
 { 86,"0101ddd0zzaaaaaa","ADDQ",CPU_ADDQ,CPU_DIS_ADDQ,3,{ 0x0E00,0x00C0,0x003F },{ 9,6,0 },{ 1,3,9 },{ { "rrr" },{ "00","01","10" },{ "000rrr","001!!!","010rrr","011rrr","100rrr","101rrr","110rrr","111000","111001" } } },
 { 87,"1000rrr1mmaaaaaa","OR",CPU_ORd,CPU_DIS_ORd,3,{ 0x0E00,0x00C0,0x003F },{ 9,6,0 },{ 1,3,7 },{ { "rrr" },{ "00","01","10" },{ "010rrr","011rrr","100rrr","101rrr","110rrr","111000","111001" } } },
 { 88,"0100111001110101","RTS",CPU_RTS,CPU_DIS_RTS,0,{ 0 },{ 0 },{ 0 },{ { "" } } },
@@ -824,7 +824,7 @@ void CPU_Step()
 		case 82:  cpu_regs.stage = CPU_JSR(cpu_regs.stage, cpu_regs.operands); break;
 		case 83:  cpu_regs.stage = CPU_EXG(cpu_regs.stage, cpu_regs.operands); break;
 		case 84:  cpu_regs.stage = CPU_ANDI(cpu_regs.stage, cpu_regs.operands); break;
-		case 85:  cpu_regs.stage = CPU_CLR(cpu_regs.stage, cpu_regs.operands); break;
+		case 85:  cpu_regs.stage = CPU_CLEAR(cpu_regs.stage, cpu_regs.operands); break;
 		case 86:  cpu_regs.stage = CPU_ADDQ(cpu_regs.stage, cpu_regs.operands); break;
 		case 87:  cpu_regs.stage = CPU_ORd(cpu_regs.stage, cpu_regs.operands); break;
 		case 88:  cpu_regs.stage = CPU_RTS(cpu_regs.stage, cpu_regs.operands); break;

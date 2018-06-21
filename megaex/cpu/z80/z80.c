@@ -371,8 +371,7 @@ U32 Z80_ED_TABLE(U32 stage,U16* operands)
 	Z80_regs.iyAdjust=0;
 
 
-	return Z80_ED_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands[0],Z80_regs.operands[1],Z80_regs.operands[2],
-				Z80_regs.operands[3],Z80_regs.operands[4],Z80_regs.operands[5],Z80_regs.operands[6],Z80_regs.operands[7]);
+	return Z80_ED_JumpTable[Z80_regs.opcode](Z80_regs.stage,Z80_regs.operands);
 }
 
 U32 Z80_FD_TABLE(U32 stage,U16* operands)
@@ -418,7 +417,7 @@ U16 Z80_DIS_TABLE(Z80_Ins **Infos,Z80_Decode *Decodes,U32 adr)
 		}
 	}
 			
-	ret = Decodes[opcode](adr+1,operands[0],operands[1],operands[2],operands[3],operands[4],operands[5],operands[6],operands[7]) + 1;
+	ret = Decodes[opcode](adr+1,operands) + 1;
 	Z80_regs.ixDisAdjust=Z80_regs.iyDisAdjust=0;
 	return ret;
 }
@@ -681,7 +680,8 @@ int Z80_CheckForInterrupt()
 			Z80_regs.IFF2 = Z80_regs.IFF1;
 			Z80_regs.IFF1 = 0;
 
-			Z80_RST(0,7,0,0,0,0,0,0,0);
+			U16 args[] = {7,0,0,0,0,0,0,0};
+			Z80_RST(0, args);
 			Z80Cycles=13;
 			Z80_regs.stopped=0;
 
@@ -726,7 +726,8 @@ int Z80_CheckForInterrupt()
 				Z80_regs.IFF2 = Z80_regs.IFF1;
 				Z80_regs.IFF1 = 0;
 
-				Z80_RST(0,7,0,0,0,0,0,0,0);				/* Spectrum BODGE! should execute instruction from bus */
+				U16 args[] = { 7,0,0,0,0,0,0,0 };
+				Z80_RST(0, args);				/* Spectrum BODGE! should execute instruction from bus */
 																					/*but speccy will always return 0xFF which is RST 38*/
 				Z80Cycles=13;
 				Z80_regs.stopped=0;
@@ -864,7 +865,8 @@ int Z80_Cycle_Step()						/* Entry always assumed to be stage==0 */
 	if (Z80_regs.stopped)
 	{
 		/* Perform NOP */
-		Z80_NOP(0,0,0,0,0,0,0,0,0);
+		U16 args[] = { 0,0,0,0,0,0,0,0 };
+		Z80_NOP(0, args);
 		return Z80Cycles;
 	}
 

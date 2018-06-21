@@ -37,7 +37,7 @@ THE SOFTWARE.
 ION_C_API void DisplayDebugger();
 ION_C_API int UpdateDebugger();
 
-ION_C_API void DEB_PauseEmulation(int mode,char *reason);
+ION_C_API void DEB_PauseEmulation(int mode,const char *reason);
 
 #else
 

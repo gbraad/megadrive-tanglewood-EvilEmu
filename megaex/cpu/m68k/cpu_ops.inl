@@ -2727,7 +2727,7 @@ inline U32 CPU_ADDQ(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_CLR(U32 stage, U16* operands)
+inline U32 CPU_CLEAR(U32 stage, U16* operands)
 {
 	U32 ret;
 

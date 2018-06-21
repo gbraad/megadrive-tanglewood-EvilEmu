@@ -32,7 +32,7 @@ THE SOFTWARE.
 #include "cpu_dis.h"
 #include "memory.h"
 
-#include "memory.inl"
+//#include "memory.inl"
 
 char mnemonicData[256];
 
