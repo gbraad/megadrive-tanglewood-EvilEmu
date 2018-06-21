@@ -23,7 +23,7 @@
 class StateGame : public ion::gamekit::State
 {
 public:
-	StateGame(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, const ion::Vector2i& windowSize, const ion::Vector2i& emulatorSize);
+	StateGame(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, const ion::Vector2i& windowSize, const ion::Vector2i& emulatorSize, ion::render::Window& window);
 
 	virtual void OnEnterState();
 	virtual void OnLeaveState();
@@ -40,6 +40,7 @@ private:
 	EmulatorThread* m_emulatorThread;
 	EmulatorState m_prevEmulatorState;
 
+	ion::render::Window& m_window;
 	ion::Vector2i m_windowSize;
 	ion::Vector2i m_emulatorSize;
 
@@ -51,4 +52,8 @@ private:
 	ion::render::Shader* m_vertexShader;
 	ion::render::Shader* m_pixelShader;
 #endif
+
+	//Timing
+	u64 m_frameCount;
+	u64 m_startTicks;
 };

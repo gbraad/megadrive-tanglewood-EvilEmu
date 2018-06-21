@@ -56,11 +56,11 @@ public:
 void AudioInitialise();
 void AudioBeginPlayback();
 void AudioStopPlayback();
-void AudioTick(float deltaTime);
+void AudioTick();
 void AudioFMUpdate();
 void AudioPSGUpdate();
 void AudioSetDAC(int channel, S16 dacValue);
-float AudioGetClock();
+double AudioGetClock();
 
 extern LJ_YM2612* ym2612_chip;
 

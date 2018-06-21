@@ -41,8 +41,9 @@ const ion::render::TexCoord StateGame::s_texCoordsDebugger[4] =
 	ion::Vector2(1.0f, 0.0f)
 };
 
-StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, const ion::Vector2i& windowSize, const ion::Vector2i& emulatorSize)
+StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, const ion::Vector2i& windowSize, const ion::Vector2i& emulatorSize, ion::render::Window& window)
 	: ion::gamekit::State(stateManager, resourceManager)
+	, m_window(window)
 	, m_windowSize(windowSize)
 	, m_emulatorSize(emulatorSize)
 {
@@ -161,6 +162,20 @@ void StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 	//Copy output pixels to render texture
 	m_emulatorThread->m_renderCritSec.Begin();
 	m_renderTexture->SetPixels(ion::render::Texture::eBGRA, videoMemory);
+
+	//Update FPS display
+	if (m_frameCount++ % 30 == 0)
+	{
+		//Set window title
+		std::stringstream text;
+		text.setf(std::ios::fixed, std::ios::floatfield);
+		text.precision(2);
+		text << "68000 FPS: " << m_emulatorThread->m_fpsCounterEmulator.GetLastFPS()
+			<< " :: Render FPS: " << m_emulatorThread->m_fpsCounterRender.GetLastFPS()
+			<< " :: Audio FPS: " << m_emulatorThread->m_fpsCounterAudio.GetLastFPS();
+		m_window.SetTitle(text.str().c_str());
+	}
+
 	m_emulatorThread->m_renderCritSec.End();
 }
 

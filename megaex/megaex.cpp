@@ -105,30 +105,6 @@ bool MegaEx::Update(float deltaTime)
 	//Update game state
 	bool gameStateQuit = !UpdateGameStates(deltaTime);
 
-	//Update FPS display
-	if (m_frameCount++ % 60 == 0)
-	{
-		//Get 60-frame end time and diff
-		u64 endTicks = ion::time::GetSystemTicks();
-		u64 diffTicks = endTicks - m_startTicks;
-
-		//Calc frame time and frames per second
-		float frameTime = (float)ion::time::TicksToSeconds(diffTicks) / 60.0f;
-		float framesPerSecond = 1.0f / frameTime;
-
-		//Set window title
-		std::stringstream text;
-		text.setf(std::ios::fixed, std::ios::floatfield);
-		text.precision(2);
-		TEST_CRIT_SEC.Begin();
-		text << "FPS: " << TEST_FPS; // framesPerSecond;
-		TEST_CRIT_SEC.End();
-		m_window->SetTitle(text.str().c_str());
-
-		//Reset timer
-		m_startTicks = ion::time::GetSystemTicks();
-	}
-
 	return !windowQuit && !inputQuit && !gameStateQuit;
 }
 
@@ -218,7 +194,7 @@ bool MegaEx::InitialiseGameStates()
 {
 	//Create states
 	m_stateControlsConfig = new StateControlsConfig(m_stateManager, *m_resourceManager, m_keyboardMap);
-	m_stateGame = new StateGame(m_stateManager, *m_resourceManager, ion::Vector2i(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight()), ion::Vector2i(WIDTH, HEIGHT));
+	m_stateGame = new StateGame(m_stateManager, *m_resourceManager, ion::Vector2i(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight()), ion::Vector2i(WIDTH, HEIGHT), *m_window);
 	m_stateMenu = new StateMenu(m_stateManager, *m_resourceManager, m_stateControlsConfig, m_stateGame);
 
 	//Push first state

@@ -63,7 +63,7 @@ void AudioStopPlayback()
 	}
 }
 
-void AudioTick(float deltaTime)
+void AudioTick()
 {
 	audioClock += 1.0;
 
@@ -71,20 +71,30 @@ void AudioTick(float deltaTime)
 	{
 		audioClock -= AUDIO_FILL_RATE;
 
-		//Get current DAC sample
+		//Get current DAC samplesw
 		S16 sample = (audioDAC[AUDIO_DAC_PSG] + audioDAC[AUDIO_DAC_FM]); // >> 1;
 
 		//Fill buffer
 		ionAudioBuffer->Add((const char*)&sample, AUDIO_BUFFER_FORMAT_SIZE);
 
 		//If buffer full
-		if(ionAudioBuffer->GetDataSize() == AUDIO_BUFFER_LEN_BYTES)
+		if (ionAudioBuffer->GetDataSize() == AUDIO_BUFFER_LEN_BYTES)
 		{
 			//Unlock buffer
 			ionAudioBuffer->Unlock();
-				
-			//Submit buffer
-			ionAudioVoice->SubmitBuffer(*ionAudioBuffer);
+
+			//Don't over fill
+			u32 bufferedBytes = ionAudioVoice->GetBufferedBytes();
+			//printf("Buffered bytes: %i\n", bufferedBytes);
+			if (bufferedBytes < AUDIO_BUFFER_LEN_BYTES * 8)
+			{
+				//Submit buffer
+				ionAudioVoice->SubmitBuffer(*ionAudioBuffer);
+			}
+			else
+			{
+				bool breakMe = true;
+			}
 
 			//Lock and reset buffer
 			ionAudioBuffer->Lock();
@@ -98,9 +108,9 @@ void AudioSetDAC(int channel, S16 dacValue)
 	audioDAC[channel] = dacValue;
 }
 
-float AudioGetClock()
+double AudioGetClock()
 {
-	return ionAudioVoice ? ionAudioVoice->GetPositionSeconds() : 0.0f;
+	return ionAudioVoice ? ionAudioVoice->GetPositionSeconds() : 0.0;
 }
 
 void AudioFMUpdate()
