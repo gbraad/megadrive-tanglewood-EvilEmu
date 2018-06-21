@@ -2727,6 +2727,11 @@ inline U32 CPU_ADDQ(U32 stage, U16* operands)
 	return 0;
 }
 
+// Ugly hack to work around the fact that it turns out that CPU_CLR is
+// defined on Linux (POSIX?), remove this if a new prefix is picked
+#undef CPU_CLR
+#define CPU_CLR CPU_CLR_
+
 inline U32 CPU_CLR(U32 stage, U16* operands)
 {
 	U32 ret;
