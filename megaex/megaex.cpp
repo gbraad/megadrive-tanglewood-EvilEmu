@@ -148,18 +148,18 @@ bool MegaEx::InitialiseRenderer()
 	m_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
 	m_camera->SetPosition(ion::Vector3(-(float)m_window->GetClientAreaWidth() / 2.0f, -(float)m_window->GetClientAreaHeight() / 2.0f, 0.1f));
 
+#if EMU_FULLSCREEN
 	//Attempt to resize to desktop
 	if (ChangeWindowSize(ion::Vector2i(m_window->GetDesktopWidth(), m_window->GetDesktopHeight()), true))
 	{
 		//Set fullscreen
-#if EMU_FULLSCREEN
 		if (!m_window->SetFullscreen(true))
 		{
 			//Failed, revert to original size
 			ChangeWindowSize(ion::Vector2i(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT), false);
 		}
-#endif
 	}
+#endif
 
 	return true;
 }
