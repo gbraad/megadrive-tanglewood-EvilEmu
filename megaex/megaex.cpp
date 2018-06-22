@@ -13,6 +13,12 @@
 
 #include <ion/core/time/Time.h>
 
+#if defined DEBUG
+#define EMU_FULLSCREEN 0
+#else
+#define EMU_FULLSCREEN 1
+#endif
+
 MegaEx::MegaEx() : ion::framework::Application("megaEx")
 {
 	m_renderer = NULL;
@@ -146,11 +152,13 @@ bool MegaEx::InitialiseRenderer()
 	if (ChangeWindowSize(ion::Vector2i(m_window->GetDesktopWidth(), m_window->GetDesktopHeight()), true))
 	{
 		//Set fullscreen
+#if EMU_FULLSCREEN
 		if (!m_window->SetFullscreen(true))
 		{
 			//Failed, revert to original size
 			ChangeWindowSize(ion::Vector2i(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT), false);
 		}
+#endif
 	}
 
 	return true;
