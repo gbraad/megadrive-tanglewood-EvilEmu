@@ -25,6 +25,8 @@ THE SOFTWARE.
 
 #include "mytypes.h"
 
+/*
+
 void CPU_GENERATE_EXCEPTION(U32 exceptionAddress);
 
 U32 CPU_LEA(U32 stage,U16* operands);
@@ -132,3 +134,5 @@ U32 CPU_ROLm(U32 stage,U16* operands);
 U32 CPU_RORm(U32 stage,U16* operands);
 U32 CPU_RESET(U32 stage,U16* operands);
 U32 CPU_LINEF(U32 stage,U16* operands);
+
+*/

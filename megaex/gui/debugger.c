@@ -1649,7 +1649,7 @@ void SMS_DisplayFillBGColourLine(U32 *pixelPos,int w)
 	DisplayFillBGColourHiLoLine(r,gb,pixelPos,w);
 }
 
-inline int ComputeTilePixelColourXY(int tx,int ty,U32 address,U32 flipH,U32 flipV)
+static inline int ComputeTilePixelColourXY(int tx,int ty,U32 address,U32 flipH,U32 flipV)
 {
 	int colour;
 	int odd;

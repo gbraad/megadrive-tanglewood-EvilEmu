@@ -645,7 +645,7 @@ void CPU_SignalInterrupt(S8 level)
 	}
 }
 
-inline void CPU_CheckForInterrupt()
+static inline void CPU_CheckForInterrupt()
 {
 	/* Level 6 */
 	/* Frame interrupt */

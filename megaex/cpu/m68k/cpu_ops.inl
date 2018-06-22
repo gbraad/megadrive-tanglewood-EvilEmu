@@ -1,14 +1,14 @@
 
 /*New support functionality for cpu with stage and bus arbitration */
 
-inline U32 BUS_Available(U32 ea)			/* TODO - Need to implement bus arbitration */
+static inline U32 BUS_Available(U32 ea)			/* TODO - Need to implement bus arbitration */
 {
 	UNUSED_ARGUMENT(ea);
 	return 1;
 }
 
 /* Applies a fudge to correct the cycle timings for some odd instructions (JMP) */
-inline U32 FUDGE_EA_CYCLES(U32 endCase, U32 offs, U32 stage, U16 operand)
+static inline U32 FUDGE_EA_CYCLES(U32 endCase, U32 offs, U32 stage, U16 operand)
 {
 	switch (operand)
 	{
@@ -138,7 +138,7 @@ inline U32 FUDGE_EA_CYCLES(U32 endCase, U32 offs, U32 stage, U16 operand)
 	return endCase;
 }
 
-inline int COMPUTE_CONDITION(U16 op)
+static inline int COMPUTE_CONDITION(U16 op)
 {
 	switch (op)
 	{
@@ -178,7 +178,7 @@ inline int COMPUTE_CONDITION(U16 op)
 	return 0;
 }
 
-inline U32 LOAD_EFFECTIVE_VALUE(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
+static inline U32 LOAD_EFFECTIVE_VALUE(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas, int length)
 {
 	if (op<0x10)
 	{
@@ -243,7 +243,7 @@ inline U32 LOAD_EFFECTIVE_VALUE(U32 endCase, U32 offs, U32 stage, U16 op, U32 *e
 	return endCase;
 }
 
-inline U32 STORE_EFFECTIVE_VALUE(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas)
+static inline U32 STORE_EFFECTIVE_VALUE(U32 endCase, U32 offs, U32 stage, U16 op, U32 *ead, U32 *eas)
 {
 	if (op<0x08)
 	{
@@ -314,7 +314,7 @@ inline U32 STORE_EFFECTIVE_VALUE(U32 endCase, U32 offs, U32 stage, U16 op, U32 *
 	return endCase;
 }
 
-inline U32 PUSH_VALUE(U32 endCase, U32 offs, U32 stage, U32 val, int length)
+static inline U32 PUSH_VALUE(U32 endCase, U32 offs, U32 stage, U32 val, int length)
 {
 	switch (length)
 	{
@@ -360,7 +360,7 @@ inline U32 PUSH_VALUE(U32 endCase, U32 offs, U32 stage, U32 val, int length)
 	return endCase;
 }
 
-inline U32 POP_VALUE(U32 endCase, U32 offs, U32 stage, U32 *val, int length)
+static inline U32 POP_VALUE(U32 endCase, U32 offs, U32 stage, U32 *val, int length)
 {
 	switch (length)
 	{
@@ -406,7 +406,7 @@ inline U32 POP_VALUE(U32 endCase, U32 offs, U32 stage, U32 *val, int length)
 	return endCase;
 }
 
-inline void OPCODE_SETUP_LENGTHM(U16 op)
+static inline void OPCODE_SETUP_LENGTHM(U16 op)
 {
 	switch (op)
 	{
@@ -431,7 +431,7 @@ inline void OPCODE_SETUP_LENGTHM(U16 op)
 	}
 }
 
-inline void OPCODE_SETUP_LENGTH(U16 op)
+static inline void OPCODE_SETUP_LENGTH(U16 op)
 {
 	switch (op)
 	{
@@ -456,7 +456,7 @@ inline void OPCODE_SETUP_LENGTH(U16 op)
 	}
 }
 
-inline void OPCODE_SETUP_LENGTHLW(U16 op)
+static inline void OPCODE_SETUP_LENGTHLW(U16 op)
 {
 	switch (op)
 	{
@@ -475,7 +475,7 @@ inline void OPCODE_SETUP_LENGTHLW(U16 op)
 	}
 }
 
-inline void COMPUTE_Z_BIT(U32 eas, U32 ead)
+static inline void COMPUTE_Z_BIT(U32 eas, U32 ead)
 {
 	if (ead & eas)
 		cpu_regs.SR &= ~CPU_STATUS_Z;
@@ -483,7 +483,7 @@ inline void COMPUTE_Z_BIT(U32 eas, U32 ead)
 		cpu_regs.SR |= CPU_STATUS_Z;
 }
 
-inline void COMPUTE_ZN_TESTS(U32 ea)
+static inline void COMPUTE_ZN_TESTS(U32 ea)
 {
 	if (ea & cpu_regs.nMask)
 		cpu_regs.SR |= CPU_STATUS_N;
@@ -495,7 +495,7 @@ inline void COMPUTE_ZN_TESTS(U32 ea)
 		cpu_regs.SR |= CPU_STATUS_Z;
 }
 
-inline void COMPUTE_ADD_XCV_TESTS(U32 eas, U32 ead, U32 ear)
+static inline void COMPUTE_ADD_XCV_TESTS(U32 eas, U32 ead, U32 ear)
 {
 	ear &= cpu_regs.nMask;
 	eas &= cpu_regs.nMask;
@@ -511,7 +511,7 @@ inline void COMPUTE_ADD_XCV_TESTS(U32 eas, U32 ead, U32 ear)
 		cpu_regs.SR &= ~CPU_STATUS_V;
 }
 
-inline void COMPUTE_SUB_XCV_TESTS(U32 eas, U32 ead, U32 ear)
+static inline void COMPUTE_SUB_XCV_TESTS(U32 eas, U32 ead, U32 ear)
 {
 	ear &= cpu_regs.nMask;
 	eas &= cpu_regs.nMask;
@@ -527,7 +527,7 @@ inline void COMPUTE_SUB_XCV_TESTS(U32 eas, U32 ead, U32 ear)
 		cpu_regs.SR &= ~CPU_STATUS_V;
 }
 
-inline void CPU_CHECK_SP(U16 old, U16 new_val)
+static inline void CPU_CHECK_SP(U16 old, U16 new_val)
 {
 	if (old & CPU_STATUS_S)
 	{
@@ -548,7 +548,7 @@ inline void CPU_CHECK_SP(U16 old, U16 new_val)
 }
 
 /* No end case on exception because its final act will be to return 0 */
-inline U32 PROCESS_EXCEPTION(U32 offs, U32 stage, U32 vector)
+static inline U32 PROCESS_EXCEPTION(U32 offs, U32 stage, U32 vector)
 {
 	switch (stage)
 	{
@@ -598,7 +598,7 @@ inline U32 PROCESS_EXCEPTION(U32 offs, U32 stage, U32 vector)
 
 /* OLD SUPPORT TO BE REMOVED WHEN ALL INSTRUCTIONS WORKING */
 
-inline U32 getEffectiveAddress(U16 operand, int length)
+static inline U32 getEffectiveAddress(U16 operand, int length)
 {
 	U16 tmp;
 	U32 ea = 0;
@@ -761,7 +761,7 @@ inline U32 getEffectiveAddress(U16 operand, int length)
 	return ea;
 }
 
-inline U32 getSourceEffectiveAddress(U16 operand, int length)
+static inline U32 getSourceEffectiveAddress(U16 operand, int length)
 {
 	U16 opt;
 	U32 eas;
@@ -789,7 +789,7 @@ inline U32 getSourceEffectiveAddress(U16 operand, int length)
 	return eas;
 }
 
-inline void CPU_GENERATE_EXCEPTION(U32 exceptionAddress)
+static inline void CPU_GENERATE_EXCEPTION(U32 exceptionAddress)
 {
 	U16 oldSR;
 
@@ -815,7 +815,7 @@ stage should be 0-4 on input
 
 */
 
-inline U32 COMPUTE_EFFECTIVE_ADDRESS(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
+static inline U32 COMPUTE_EFFECTIVE_ADDRESS(U32 endCase, U32 offs, U32 stage, U32 *ea, U16 operand, int length, int asSrc)
 {
 	switch (operand)
 	{
@@ -1057,7 +1057,7 @@ inline U32 COMPUTE_EFFECTIVE_ADDRESS(U32 endCase, U32 offs, U32 stage, U32 *ea, 
 	return endCase;
 }
 
-inline U32 CPU_LEA(U32 stage, U16* operands)
+static inline U32 CPU_LEA(U32 stage, U16* operands)
 {
 	if (stage == 0)
 		return 1;
@@ -1070,7 +1070,7 @@ inline U32 CPU_LEA(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVE(U32 stage, U16* operands)
+static inline U32 CPU_MOVE(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1141,7 +1141,7 @@ inline U32 CPU_MOVE(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SUBQ(U32 stage, U16* operands)
+static inline U32 CPU_SUBQ(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1218,7 +1218,7 @@ inline U32 CPU_SUBQ(U32 stage, U16* operands)
 }
 
 /* Redone timings on this after reaching bra and realising a mistake was made */
-inline U32 CPU_BCC(U32 stage, U16* operands)
+static inline U32 CPU_BCC(U32 stage, U16* operands)
 {
 
 
@@ -1276,7 +1276,7 @@ inline U32 CPU_BCC(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_CMPA(U32 stage, U16* operands)
+static inline U32 CPU_CMPA(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1333,7 +1333,7 @@ inline U32 CPU_CMPA(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_CMPI(U32 stage, U16* operands)
+static inline U32 CPU_CMPI(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1402,7 +1402,7 @@ inline U32 CPU_CMPI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVEA(U32 stage, U16* operands)
+static inline U32 CPU_MOVEA(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1450,7 +1450,7 @@ inline U32 CPU_MOVEA(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_DBCC(U32 stage, U16* operands)
+static inline U32 CPU_DBCC(U32 stage, U16* operands)
 {
 
 
@@ -1498,7 +1498,7 @@ inline U32 CPU_DBCC(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BRA(U32 stage, U16* operands)
+static inline U32 CPU_BRA(U32 stage, U16* operands)
 {
 
 
@@ -1541,7 +1541,7 @@ inline U32 CPU_BRA(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BTSTI(U32 stage, U16* operands)
+static inline U32 CPU_BTSTI(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1617,7 +1617,7 @@ inline U32 CPU_BTSTI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ADDs(U32 stage, U16* operands)
+static inline U32 CPU_ADDs(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1677,7 +1677,7 @@ inline U32 CPU_ADDs(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_NOT(U32 stage, U16* operands)
+static inline U32 CPU_NOT(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1743,7 +1743,7 @@ inline U32 CPU_NOT(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SUBA(U32 stage, U16* operands)
+static inline U32 CPU_SUBA(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1805,7 +1805,7 @@ inline U32 CPU_SUBA(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ADDA(U32 stage, U16* operands)
+static inline U32 CPU_ADDA(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1867,7 +1867,7 @@ inline U32 CPU_ADDA(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_TST(U32 stage, U16* operands)
+static inline U32 CPU_TST(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1913,7 +1913,7 @@ inline U32 CPU_TST(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_JMP(U32 stage, U16* operands)
+static inline U32 CPU_JMP(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -1953,7 +1953,7 @@ inline U32 CPU_JMP(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVEQ(U32 stage, U16* operands)
+static inline U32 CPU_MOVEQ(U32 stage, U16* operands)
 {
 
 
@@ -1979,7 +1979,7 @@ inline U32 CPU_MOVEQ(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_CMP(U32 stage, U16* operands)
+static inline U32 CPU_CMP(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2032,7 +2032,7 @@ inline U32 CPU_CMP(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SUBs(U32 stage, U16* operands)
+static inline U32 CPU_SUBs(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2092,7 +2092,7 @@ inline U32 CPU_SUBs(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_LSR(U32 stage, U16* operands)
+static inline U32 CPU_LSR(U32 stage, U16* operands)
 {
 
 
@@ -2152,7 +2152,7 @@ inline U32 CPU_LSR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SWAP(U32 stage, U16* operands)
+static inline U32 CPU_SWAP(U32 stage, U16* operands)
 {
 
 
@@ -2179,7 +2179,7 @@ inline U32 CPU_SWAP(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVEMs(U32 stage, U16* operands)
+static inline U32 CPU_MOVEMs(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2273,7 +2273,7 @@ inline U32 CPU_MOVEMs(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVEMd(U32 stage, U16* operands)
+static inline U32 CPU_MOVEMd(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2378,7 +2378,7 @@ inline U32 CPU_MOVEMd(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SUBI(U32 stage, U16* operands)
+static inline U32 CPU_SUBI(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2463,7 +2463,7 @@ inline U32 CPU_SUBI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BSR(U32 stage, U16* operands)
+static inline U32 CPU_BSR(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2523,7 +2523,7 @@ inline U32 CPU_BSR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_RTS(U32 stage, U16* operands)
+static inline U32 CPU_RTS(U32 stage, U16* operands)
 {
 
 
@@ -2554,7 +2554,7 @@ inline U32 CPU_RTS(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ILLEGAL(U32 stage, U16* operands)
+static inline U32 CPU_ILLEGAL(U32 stage, U16* operands)
 {
 
 
@@ -2592,7 +2592,7 @@ inline U32 CPU_ILLEGAL(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ORd(U32 stage, U16* operands)
+static inline U32 CPU_ORd(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2651,7 +2651,7 @@ inline U32 CPU_ORd(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ADDQ(U32 stage, U16* operands)
+static inline U32 CPU_ADDQ(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2727,7 +2727,7 @@ inline U32 CPU_ADDQ(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_CLEAR(U32 stage, U16* operands)
+static inline U32 CPU_CLEAR(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2793,7 +2793,7 @@ inline U32 CPU_CLEAR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ANDI(U32 stage, U16* operands)
+static inline U32 CPU_ANDI(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2878,7 +2878,7 @@ inline U32 CPU_ANDI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_EXG(U32 stage, U16* operands)
+static inline U32 CPU_EXG(U32 stage, U16* operands)
 {
 
 
@@ -2934,7 +2934,7 @@ inline U32 CPU_EXG(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_JSR(U32 stage, U16* operands)
+static inline U32 CPU_JSR(U32 stage, U16* operands)
 {
 	U32 ret;
 
@@ -2983,7 +2983,7 @@ inline U32 CPU_JSR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BCLRI(U32 stage, U16* operands)
+static inline U32 CPU_BCLRI(U32 stage, U16* operands)
 {
 #if 0
 	I AM HERE - NEED TO TIME INSTRUCTION ON REAL AMIGA FOR CASE OF VARIOUS BIT VALUES FOR REGISTER DIRECT MODE
@@ -3107,7 +3107,7 @@ inline U32 CPU_BCLRI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ANDs(U32 stage, U16* operands)
+static inline U32 CPU_ANDs(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -3174,7 +3174,7 @@ inline U32 CPU_ANDs(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SUBd(U32 stage, U16* operands)
+static inline U32 CPU_SUBd(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -3266,7 +3266,7 @@ inline U32 CPU_SUBd(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BSET(U32 stage, U16* operands)
+static inline U32 CPU_BSET(U32 stage, U16* operands)
 {
 	int len;
 	U32 ead, eas, eat;
@@ -3316,7 +3316,7 @@ inline U32 CPU_BSET(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BSETI(U32 stage, U16* operands)
+static inline U32 CPU_BSETI(U32 stage, U16* operands)
 {
 	int len;
 	U32 ead, eas, eat;
@@ -3367,7 +3367,7 @@ inline U32 CPU_BSETI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MULU(U32 stage, U16* operands)
+static inline U32 CPU_MULU(U32 stage, U16* operands)
 {
 	int len;
 	U32 ead, eas, ear;
@@ -3407,7 +3407,7 @@ inline U32 CPU_MULU(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_LSL(U32 stage, U16* operands)
+static inline U32 CPU_LSL(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -3504,7 +3504,7 @@ inline U32 CPU_LSL(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ADDI(U32 stage, U16* operands)
+static inline U32 CPU_ADDI(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -3615,7 +3615,7 @@ inline U32 CPU_ADDI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_EXT(U32 stage, U16* operands)
+static inline U32 CPU_EXT(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -3671,7 +3671,7 @@ inline U32 CPU_EXT(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MULS(U32 stage, U16* operands)
+static inline U32 CPU_MULS(U32 stage, U16* operands)
 {
 	int len;
 	S32 ead, eas, ear;
@@ -3711,7 +3711,7 @@ inline U32 CPU_MULS(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_NEG(U32 stage, U16* operands)
+static inline U32 CPU_NEG(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -3812,7 +3812,7 @@ inline U32 CPU_NEG(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVEUSP(U32 stage, U16* operands)
+static inline U32 CPU_MOVEUSP(U32 stage, U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
 
@@ -3844,7 +3844,7 @@ inline U32 CPU_MOVEUSP(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SCC(U32 stage, U16* operands)
+static inline U32 CPU_SCC(U32 stage, U16* operands)
 {
 	int cc = 0;
 	U32 eas, ead;
@@ -3932,7 +3932,7 @@ inline U32 CPU_SCC(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ORSR(U32 stage, U16* operands)
+static inline U32 CPU_ORSR(U32 stage, U16* operands)
 {
 	U16 oldSR;
 
@@ -3962,7 +3962,7 @@ inline U32 CPU_ORSR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_PEA(U32 stage, U16* operands)
+static inline U32 CPU_PEA(U32 stage, U16* operands)
 {
 	U32 ear;
 
@@ -3985,7 +3985,7 @@ inline U32 CPU_PEA(U32 stage, U16* operands)
 }
 
 /* NB: This is oddly not a supervisor instruction on MC68000 */
-inline U32 CPU_MOVEFROMSR(U32 stage, U16* operands)
+static inline U32 CPU_MOVEFROMSR(U32 stage, U16* operands)
 {
 	U32 ear;
 
@@ -4014,7 +4014,7 @@ inline U32 CPU_MOVEFROMSR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_RTE(U32 stage, U16* operands)
+static inline U32 CPU_RTE(U32 stage, U16* operands)
 {
 	U16 oldSR;
 
@@ -4048,7 +4048,7 @@ inline U32 CPU_RTE(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ANDSR(U32 stage, U16* operands)
+static inline U32 CPU_ANDSR(U32 stage, U16* operands)
 {
 	U16 oldSR;
 
@@ -4078,7 +4078,7 @@ inline U32 CPU_ANDSR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVETOSR(U32 stage, U16* operands)
+static inline U32 CPU_MOVETOSR(U32 stage, U16* operands)
 {
 	U16 oldSR;
 	U32 ear;
@@ -4109,7 +4109,7 @@ inline U32 CPU_MOVETOSR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_LINK(U32 stage, U16* operands)
+static inline U32 CPU_LINK(U32 stage, U16* operands)
 {
 	U32 ear;
 
@@ -4135,7 +4135,7 @@ inline U32 CPU_LINK(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_CMPM(U32 stage, U16* operands)
+static inline U32 CPU_CMPM(U32 stage, U16* operands)
 {
 	U32 zMask, nMask;
 	U32 ead, eas, ear;
@@ -4212,7 +4212,7 @@ inline U32 CPU_CMPM(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ADDd(U32 stage, U16* operands)
+static inline U32 CPU_ADDd(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -4304,7 +4304,7 @@ inline U32 CPU_ADDd(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_UNLK(U32 stage, U16* operands)
+static inline U32 CPU_UNLK(U32 stage, U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
 
@@ -4323,7 +4323,7 @@ inline U32 CPU_UNLK(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ORs(U32 stage, U16* operands)
+static inline U32 CPU_ORs(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -4390,7 +4390,7 @@ inline U32 CPU_ORs(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ANDd(U32 stage, U16* operands)
+static inline U32 CPU_ANDd(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -4473,7 +4473,7 @@ inline U32 CPU_ANDd(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ORI(U32 stage, U16* operands)
+static inline U32 CPU_ORI(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -4569,7 +4569,7 @@ inline U32 CPU_ORI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ASL(U32 stage, U16* operands)
+static inline U32 CPU_ASL(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -4681,7 +4681,7 @@ inline U32 CPU_ASL(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ASR(U32 stage, U16* operands)
+static inline U32 CPU_ASR(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -4802,7 +4802,7 @@ inline U32 CPU_ASR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_DIVU(U32 stage, U16* operands)
+static inline U32 CPU_DIVU(U32 stage, U16* operands)
 {
 	int len;
 	U32 ead, eas, eaq, ear;
@@ -4858,7 +4858,7 @@ inline U32 CPU_DIVU(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BCLR(U32 stage, U16* operands)
+static inline U32 CPU_BCLR(U32 stage, U16* operands)
 {
 	int len;
 	U32 ead, eas, eat;
@@ -4908,7 +4908,7 @@ inline U32 CPU_BCLR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_EORd(U32 stage, U16* operands)
+static inline U32 CPU_EORd(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -5001,7 +5001,7 @@ inline U32 CPU_EORd(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BTST(U32 stage, U16* operands)
+static inline U32 CPU_BTST(U32 stage, U16* operands)
 {
 	int len;
 	U32 ead, eas;
@@ -5035,7 +5035,7 @@ inline U32 CPU_BTST(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_STOP(U32 stage, U16* operands)
+static inline U32 CPU_STOP(U32 stage, U16* operands)
 {
 	U16 oldSR;
 
@@ -5068,7 +5068,7 @@ inline U32 CPU_STOP(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ROL(U32 stage, U16* operands)
+static inline U32 CPU_ROL(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -5154,7 +5154,7 @@ inline U32 CPU_ROL(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ROR(U32 stage, U16* operands)
+static inline U32 CPU_ROR(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -5241,7 +5241,7 @@ inline U32 CPU_ROR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_NOP(U32 stage, U16* operands)
+static inline U32 CPU_NOP(U32 stage, U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
 
@@ -5256,7 +5256,7 @@ inline U32 CPU_NOP(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BCHG(U32 stage, U16* operands)
+static inline U32 CPU_BCHG(U32 stage, U16* operands)
 {
 	int len;
 	U32 ead, eas, eat;
@@ -5315,7 +5315,7 @@ inline U32 CPU_BCHG(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_BCHGI(U32 stage, U16* operands)
+static inline U32 CPU_BCHGI(U32 stage, U16* operands)
 {
 	int len;
 	U32 ead, eas, eat;
@@ -5375,7 +5375,7 @@ inline U32 CPU_BCHGI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_LSRm(U32 stage, U16* operands)
+static inline U32 CPU_LSRm(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -5425,7 +5425,7 @@ inline U32 CPU_LSRm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_EORI(U32 stage, U16* operands)
+static inline U32 CPU_EORI(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -5521,7 +5521,7 @@ inline U32 CPU_EORI(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_EORICCR(U32 stage, U16* operands)
+static inline U32 CPU_EORICCR(U32 stage, U16* operands)
 {
 	U16 eas, ead;
 
@@ -5551,7 +5551,7 @@ inline U32 CPU_EORICCR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ROXL(U32 stage, U16* operands)
+static inline U32 CPU_ROXL(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -5650,7 +5650,7 @@ inline U32 CPU_ROXL(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ROXR(U32 stage, U16* operands)
+static inline U32 CPU_ROXR(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -5751,7 +5751,7 @@ inline U32 CPU_ROXR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVETOCCR(U32 stage, U16* operands)
+static inline U32 CPU_MOVETOCCR(U32 stage, U16* operands)
 {
 	U32 eas, ead;
 
@@ -5780,7 +5780,7 @@ inline U32 CPU_MOVETOCCR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_TRAP(U32 stage, U16* operands)
+static inline U32 CPU_TRAP(U32 stage, U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
 
@@ -5797,7 +5797,7 @@ inline U32 CPU_TRAP(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ADDX(U32 stage, U16* operands)
+static inline U32 CPU_ADDX(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -5871,7 +5871,7 @@ inline U32 CPU_ADDX(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_DIVS(U32 stage, U16* operands)
+static inline U32 CPU_DIVS(U32 stage, U16* operands)
 {
 	int len;
 	S32 ead, eas, eaq, ear;
@@ -5927,7 +5927,7 @@ inline U32 CPU_DIVS(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SUBX(U32 stage, U16* operands)
+static inline U32 CPU_SUBX(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -6001,7 +6001,7 @@ inline U32 CPU_SUBX(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ASRm(U32 stage, U16* operands)
+static inline U32 CPU_ASRm(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -6054,7 +6054,7 @@ inline U32 CPU_ASRm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ASLm(U32 stage, U16* operands)
+static inline U32 CPU_ASLm(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -6106,7 +6106,7 @@ inline U32 CPU_ASLm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ANDICCR(U32 stage, U16* operands)
+static inline U32 CPU_ANDICCR(U32 stage, U16* operands)
 {
 	U16 eas, ead;
 
@@ -6136,7 +6136,7 @@ inline U32 CPU_ANDICCR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ORICCR(U32 stage, U16* operands)
+static inline U32 CPU_ORICCR(U32 stage, U16* operands)
 {
 	U16 eas, ead;
 
@@ -6166,7 +6166,7 @@ inline U32 CPU_ORICCR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_NEGX(U32 stage, U16* operands)
+static inline U32 CPU_NEGX(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -6270,7 +6270,7 @@ inline U32 CPU_NEGX(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SBCD(U32 stage, U16* operands)
+static inline U32 CPU_SBCD(U32 stage, U16* operands)
 {
 	U32 nMask = 0x80, zMask = 0xFF;
 	U32 lMask = 0x0F, hMask = 0xF0;
@@ -6330,7 +6330,7 @@ inline U32 CPU_SBCD(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ABCD(U32 stage, U16* operands)
+static inline U32 CPU_ABCD(U32 stage, U16* operands)
 {
 	U32 nMask = 0x80, zMask = 0xFF;
 	U32 lMask = 0x0F, hMask = 0xF0;
@@ -6393,7 +6393,7 @@ inline U32 CPU_ABCD(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVEP_W_m(U32 stage, U16* operands)
+static inline U32 CPU_MOVEP_W_m(U32 stage, U16* operands)
 {
 	U32 eas, ead;
 
@@ -6418,7 +6418,7 @@ inline U32 CPU_MOVEP_W_m(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVEP_L_m(U32 stage, U16* operands)
+static inline U32 CPU_MOVEP_L_m(U32 stage, U16* operands)
 {
 	U32 eas, ead;
 
@@ -6445,7 +6445,7 @@ inline U32 CPU_MOVEP_L_m(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVEP_m_W(U32 stage, U16* operands)
+static inline U32 CPU_MOVEP_m_W(U32 stage, U16* operands)
 {
 	U32 eas, ead;
 
@@ -6472,7 +6472,7 @@ inline U32 CPU_MOVEP_m_W(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ABCDm(U32 stage, U16* operands)
+static inline U32 CPU_ABCDm(U32 stage, U16* operands)
 {
 	int len = 1;
 	U32 nMask = 0x80, zMask = 0xFF;
@@ -6535,7 +6535,7 @@ inline U32 CPU_ABCDm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ROXLm(U32 stage, U16* operands)
+static inline U32 CPU_ROXLm(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -6594,7 +6594,7 @@ inline U32 CPU_ROXLm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_MOVEP_m_L(U32 stage, U16* operands)
+static inline U32 CPU_MOVEP_m_L(U32 stage, U16* operands)
 {
 	U32 eas, ead;
 
@@ -6623,7 +6623,7 @@ inline U32 CPU_MOVEP_m_L(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_SBCDm(U32 stage, U16* operands)
+static inline U32 CPU_SBCDm(U32 stage, U16* operands)
 {
 	int len = 1;
 	U32 nMask = 0x80, zMask = 0xFF;
@@ -6687,7 +6687,7 @@ inline U32 CPU_SBCDm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_RTR(U32 stage, U16* operands)
+static inline U32 CPU_RTR(U32 stage, U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
 
@@ -6711,7 +6711,7 @@ inline U32 CPU_RTR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_EORISR(U32 stage, U16* operands)
+static inline U32 CPU_EORISR(U32 stage, U16* operands)
 {
 	U16 oldSR;
 
@@ -6741,7 +6741,7 @@ inline U32 CPU_EORISR(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_LSLm(U32 stage, U16* operands)
+static inline U32 CPU_LSLm(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -6791,7 +6791,7 @@ inline U32 CPU_LSLm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_TRAPV(U32 stage, U16* operands)
+static inline U32 CPU_TRAPV(U32 stage, U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
 
@@ -6811,7 +6811,7 @@ inline U32 CPU_TRAPV(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ROXRm(U32 stage, U16* operands)
+static inline U32 CPU_ROXRm(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -6870,7 +6870,7 @@ inline U32 CPU_ROXRm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_ROLm(U32 stage, U16* operands)
+static inline U32 CPU_ROLm(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -6927,7 +6927,7 @@ inline U32 CPU_ROLm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_RORm(U32 stage, U16* operands)
+static inline U32 CPU_RORm(U32 stage, U16* operands)
 {
 	int len;
 	U32 nMask, zMask;
@@ -6984,7 +6984,7 @@ inline U32 CPU_RORm(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_RESET(U32 stage, U16* operands)
+static inline U32 CPU_RESET(U32 stage, U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
 
@@ -7011,7 +7011,7 @@ inline U32 CPU_RESET(U32 stage, U16* operands)
 }
 
 
-inline U32 CPU_LINEF(U32 stage, U16* operands)
+static inline U32 CPU_LINEF(U32 stage, U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
 
@@ -7051,7 +7051,7 @@ inline U32 CPU_LINEF(U32 stage, U16* operands)
 	return 0;
 }
 
-inline U32 CPU_LINEA(U32 stage, U16* operands)
+static inline U32 CPU_LINEA(U32 stage, U16* operands)
 {
 	UNUSED_ARGUMENT(stage);
 
