@@ -48,8 +48,8 @@ StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::Resource
 	, m_emulatorSize(emulatorSize)
 {
 	m_renderTexture = NULL;
-	m_material = NULL;
-	m_quadPrimitive = NULL;
+	m_materialEmu = NULL;
+	m_quadPrimitiveEmu = NULL;
 
 #if defined ION_RENDERER_SHADER
 	m_vertexShader = NULL;
@@ -63,12 +63,12 @@ StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::Resource
 void StateGame::OnEnterState()
 {
 	m_renderTexture = ion::render::Texture::Create(m_emulatorSize.x, m_emulatorSize.y, ion::render::Texture::eBGRA, ion::render::Texture::eBGRA, ion::render::Texture::eBPP24, false, true, NULL);
-	m_material = new ion::render::Material();
-	m_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(m_windowSize.x / 2.0f, m_windowSize.y / 2.0f));
+	m_materialEmu = new ion::render::Material();
+	m_quadPrimitiveEmu = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(((float)m_window.GetClientAreaHeight() * DEFAULT_SCREEN_RATIO) / 2.0f, (float)m_window.GetClientAreaHeight() / 2.0f));
 
-	//Setup material
-	m_material->AddDiffuseMap(m_renderTexture);
-	m_material->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+	//Setup materials
+	m_materialEmu->AddDiffuseMap(m_renderTexture);
+	m_materialEmu->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
 
 #if defined ION_RENDERER_SHADER
 	//Create shaders
@@ -86,8 +86,8 @@ void StateGame::OnEnterState()
 		ion::debug::Error("Failed to load pixel shader\n");
 	}
 
-	m_material->SetVertexShader(m_vertexShader);
-	m_material->SetPixelShader(m_pixelShader);
+	m_materialEmu->SetVertexShader(m_vertexShader);
+	m_materialEmu->SetPixelShader(m_pixelShader);
 #endif
 
 	//Setup texture filtering
@@ -95,8 +95,13 @@ void StateGame::OnEnterState()
 	m_renderTexture->SetMagnifyFilter(ion::render::Texture::eFilterNearest);
 	m_renderTexture->SetWrapping(ion::render::Texture::eWrapClamp);
 
-	//Set default coords
-	m_quadPrimitive->SetTexCoords(s_texCoordsGame);
+	//Initialise emulator
+	m_quadPrimitiveEmu->SetTexCoords(s_texCoordsGame);
+
+	if (!InitialiseEmulator("ROMS/TANGLEWD_DEMO_0.9.37.BIN"))
+	{
+		ion::debug::error << "Unable to initialise emulator" << ion::debug::end;
+	}
 
 	//Create and run emulator thread
 	m_emulatorThread = new EmulatorThread();
@@ -106,11 +111,11 @@ void StateGame::OnEnterState()
 
 void StateGame::OnLeaveState()
 {
-	if(m_quadPrimitive)
-		delete m_quadPrimitive;
+	if(m_quadPrimitiveEmu)
+		delete m_quadPrimitiveEmu;
 
-	if(m_material)
-		delete m_material;
+	if(m_materialEmu)
+		delete m_materialEmu;
 
 #if defined ION_RENDERER_SHADER
 	if(m_pixelShader)
@@ -148,11 +153,11 @@ void StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 		//Emulator switched from running to debugger or back, change rendering mode
 		if(emulatorState == eState_Running)
 		{
-			m_quadPrimitive->SetTexCoords(s_texCoordsGame);
+			m_quadPrimitiveEmu->SetTexCoords(s_texCoordsGame);
 		}
 		else if(emulatorState = eState_Debugger)
 		{
-			m_quadPrimitive->SetTexCoords(s_texCoordsDebugger);
+			m_quadPrimitiveEmu->SetTexCoords(s_texCoordsDebugger);
 		}
 
 		m_prevEmulatorState = emulatorState;
@@ -182,7 +187,22 @@ void StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 void StateGame::Render(ion::render::Renderer& renderer, ion::render::Camera& camera)
 {
 	//Bind material and draw quad
-	m_material->Bind(ion::Matrix4(), camera.GetTransform().GetInverse(), renderer.GetProjectionMatrix());
-	renderer.DrawVertexBuffer(m_quadPrimitive->GetVertexBuffer(), m_quadPrimitive->GetIndexBuffer());
-	m_material->Unbind();
+	ion::Matrix4 emuMatrix;
+	emuMatrix.SetTranslation(ion::Vector3(0.0f, 0.0f, 1.0f));
+	m_materialEmu->Bind(emuMatrix, camera.GetTransform().GetInverse(), renderer.GetProjectionMatrix());
+	renderer.DrawVertexBuffer(m_quadPrimitiveEmu->GetVertexBuffer(), m_quadPrimitiveEmu->GetIndexBuffer());
+	m_materialEmu->Unbind();
+}
+
+void StateGame::ChangeWindowSize(const ion::Vector2i& size)
+{
+	//Recreate quad
+	if (m_quadPrimitiveEmu)
+	{
+		delete m_quadPrimitiveEmu;
+		m_quadPrimitiveEmu = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(m_window.GetClientAreaHeight() * DEFAULT_SCREEN_RATIO, m_window.GetClientAreaHeight()));
+		m_quadPrimitiveEmu->SetTexCoords(s_texCoordsGame);
+	}
+
+	m_windowSize = ion::Vector2i(m_window.GetClientAreaWidth(), m_window.GetClientAreaHeight());
 }

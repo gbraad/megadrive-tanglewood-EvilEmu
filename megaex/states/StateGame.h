@@ -33,6 +33,8 @@ public:
 	virtual void Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad);
 	virtual void Render(ion::render::Renderer& renderer, ion::render::Camera& camera);
 
+	void ChangeWindowSize(const ion::Vector2i& size);
+
 private:
 	static const ion::render::TexCoord s_texCoordsGame[4];
 	static const ion::render::TexCoord s_texCoordsDebugger[4];
@@ -45,8 +47,8 @@ private:
 	ion::Vector2i m_emulatorSize;
 
 	ion::render::Texture* m_renderTexture;
-	ion::render::Material* m_material;
-	ion::render::Quad* m_quadPrimitive;
+	ion::render::Material* m_materialEmu;
+	ion::render::Quad* m_quadPrimitiveEmu;
 
 #if defined ION_RENDERER_SHADER
 	ion::render::Shader* m_vertexShader;

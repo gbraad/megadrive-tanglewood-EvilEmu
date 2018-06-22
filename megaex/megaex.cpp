@@ -24,6 +24,9 @@ MegaEx::MegaEx() : ion::framework::Application("megaEx")
 	m_gamepad = NULL;
 	m_resourceManager = NULL;
 
+	m_materialBackground = NULL;
+	m_quadPrimitiveBackground = NULL;
+
 	m_stateControlsConfig = NULL;
 	m_stateGame = NULL;
 	m_stateMenu = NULL;
@@ -55,6 +58,7 @@ bool MegaEx::Initialise()
 {
 	//Create resource manager
 	m_resourceManager = new ion::io::ResourceManager();
+	m_resourceManager->SetResourceDirectory<ion::render::Texture>("textures");
 
 	if(!InitialiseRenderer())
 	{
@@ -66,20 +70,21 @@ bool MegaEx::Initialise()
 		return false;
 	}
 
-	if(!InitialiseEmulator("ROMS/TANGLEWD.BIN"))
-	{
-		return false;
-	}
-
 	if(!InitialiseGameStates())
 	{
 		return false;
 	}
 
-	//Set window title
-	m_window->SetTitle(EmulatorGetROMTitle());
-
-	//ChangeWindowSize(ion::Vector2i(m_viewport->GetWidth() * 2, m_viewport->GetHeight() * 2));
+	//Load background texture
+	m_textureBackground = ion::render::Texture::Create();
+	if (m_textureBackground->Load("textures/emu_bg.png"))
+	{
+		//Create background material and quad
+		m_materialBackground = new ion::render::Material();
+		m_quadPrimitiveBackground = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2((float)m_window->GetClientAreaWidth() / 2.0f, (float)m_window->GetClientAreaHeight() / 2.0f));
+		m_materialBackground->SetDiffuseColour(ion::Colour(0.0f, 0.0f, 1.0f));
+		m_materialBackground->AddDiffuseMap(m_textureBackground);
+	}
 
 	return true;
 }
@@ -90,9 +95,6 @@ void MegaEx::Shutdown()
 	ShutdownInput();
 	ShutdownRenderer();
 }
-
-extern float TEST_FPS;
-extern ion::thread::CriticalSection TEST_CRIT_SEC;
 
 bool MegaEx::Update(float deltaTime)
 {
@@ -114,6 +116,14 @@ void MegaEx::Render()
 	m_renderer->ClearColour();
 	m_renderer->ClearDepth();
 
+	//Draw BG quad
+	if (m_materialBackground)
+	{
+		m_materialBackground->Bind(ion::Matrix4(), m_camera->GetTransform().GetInverse(), m_renderer->GetProjectionMatrix());
+		m_renderer->DrawVertexBuffer(m_quadPrimitiveBackground->GetVertexBuffer(), m_quadPrimitiveBackground->GetIndexBuffer());
+		m_materialBackground->Unbind();
+	}
+
 	//Render current state
 	m_stateManager.Render(*m_renderer, *m_camera);
 
@@ -123,13 +133,25 @@ void MegaEx::Render()
 
 bool MegaEx::InitialiseRenderer()
 {
-	m_window = ion::render::Window::Create("megaEx", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, false);
+	//Initialise at default size, windowed, first
+	m_window = ion::render::Window::Create("TANGLEWOOD", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, false);
 	m_renderer = ion::render::Renderer::Create(m_window->GetDeviceContext());
 	m_viewport = new ion::render::Viewport(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight(), ion::render::Viewport::eOrtho2DAbsolute);
 	m_camera = new ion::render::Camera();
 
 	m_viewport->SetClearColour(ion::Colour(1.0f, 0.0f, 0.0f, 1.0f));
 	m_camera->SetPosition(ion::Vector3(-(float)m_window->GetClientAreaWidth() / 2.0f, -(float)m_window->GetClientAreaHeight() / 2.0f, 0.1f));
+
+	//Attempt to resize to desktop
+	if (ChangeWindowSize(ion::Vector2i(m_window->GetDesktopWidth(), m_window->GetDesktopHeight()), true))
+	{
+		//Set fullscreen
+		if (!m_window->SetFullscreen(true))
+		{
+			//Failed, revert to original size
+			ChangeWindowSize(ion::Vector2i(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT), false);
+		}
+	}
 
 	return true;
 }
@@ -221,15 +243,29 @@ bool MegaEx::UpdateGameStates(float deltaTime)
 	return true;
 }
 
-void MegaEx::ChangeWindowSize(const ion::Vector2i& size)
+bool MegaEx::ChangeWindowSize(const ion::Vector2i& size, bool fullscreen)
 {
-	m_window->Resize(size.x, size.y);
-	m_viewport->Resize(size.x, size.y);
-	m_camera->SetPosition(ion::Vector3(-size.x / 2.0f, -size.y / 2.0f, 0.1f));
-	m_renderer->OnResize(size.x, size.y);
+	if (m_window->Resize(size.x, size.y, !fullscreen))
+	{
+		m_viewport->Resize(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight());
+		m_camera->SetPosition(ion::Vector3(-(float)m_window->GetClientAreaWidth() / 2.0f, -(float)m_window->GetClientAreaHeight() / 2.0f, 0.1f));
+		m_renderer->OnResize(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight());
 
-	//Recreate quad
-	//delete m_quadPrimitive;
-	//m_quadPrimitive = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(size.x / 2, size.y / 2));
-	//m_quadPrimitive->SetTexCoords(s_texCoordsGame);
+		//Recreate BG quad
+		if (m_quadPrimitiveBackground)
+		{
+			delete m_quadPrimitiveBackground;
+			m_quadPrimitiveBackground = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2((float)m_window->GetClientAreaWidth() / 2.0f, (float)m_window->GetClientAreaHeight() / 2.0f));
+		}
+
+		//Notify game state
+		if (m_stateGame)
+		{
+			m_stateGame->ChangeWindowSize(size);
+		}
+
+		return true;
+	}
+
+	return false;
 }

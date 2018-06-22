@@ -50,7 +50,7 @@ private:
 	bool UpdateInput(float deltaTime);
 	bool UpdateGameStates(float deltaTime);
 
-	void ChangeWindowSize(const ion::Vector2i& size);
+	bool ChangeWindowSize(const ion::Vector2i& size, bool fullscreen);
 
 	ion::render::Renderer* m_renderer;
 	ion::render::Window* m_window;
@@ -61,11 +61,15 @@ private:
 	ion::input::Gamepad* m_gamepad;
 	ion::io::ResourceManager* m_resourceManager;
 
+	ion::render::Texture* m_textureBackground;
+	ion::render::Material* m_materialBackground;
+	ion::render::Quad* m_quadPrimitiveBackground;
+
 	//States
 	ion::gamekit::StateManager m_stateManager;
-	ion::gamekit::State* m_stateMenu;
-	ion::gamekit::State* m_stateGame;
-	ion::gamekit::State* m_stateControlsConfig;
+	StateMenu* m_stateMenu;
+	StateGame* m_stateGame;
+	StateControlsConfig* m_stateControlsConfig;
 
 	//Timing
 	u64 m_frameCount;
