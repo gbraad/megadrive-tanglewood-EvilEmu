@@ -14,7 +14,7 @@
 #include <ion/core/time/Time.h>
 
 #if defined DEBUG
-#define EMU_FULLSCREEN 0
+#define EMU_FULLSCREEN 1
 #else
 #define EMU_FULLSCREEN 1
 #endif

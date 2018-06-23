@@ -98,7 +98,7 @@ void StateGame::OnEnterState()
 	//Initialise emulator
 	m_quadPrimitiveEmu->SetTexCoords(s_texCoordsGame);
 
-	if (!InitialiseEmulator("ROMS/TANGLEWD_DEMO_0.9.37.BIN"))
+	if (!InitialiseEmulator("roms/TANGLEWD_DEMO_0.9.37.BIN"))
 	{
 		ion::debug::error << "Unable to initialise emulator" << ion::debug::end;
 	}
