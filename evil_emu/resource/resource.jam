@@ -1,0 +1,18 @@
+SubDir bigevilcorp tanglewood_emu resource ;
+
+IncludeModule c/rc ;
+
+rule ApplyResources TARGET : SRC
+{
+	if ( ( win32 in $(PLATFORM) ) | ( win64 in $(PLATFORM) ) )
+	{
+		C.Rc.IncludeDirectories $(TARGET) : resource ;
+
+		SRC +=
+			resource.h
+			resource.rc
+			;
+
+		SRC += [ C.Rc $(TARGET) : resource.rc ] ;
+	}
+}

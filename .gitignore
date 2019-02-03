@@ -1,6 +1,4 @@
-out/*.o
 ion
 buildtools
-roms
 bigevilcorp.jamrules
-megaex/_build
+evil_emu/_Build
