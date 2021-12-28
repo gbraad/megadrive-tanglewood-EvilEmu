@@ -19,9 +19,9 @@ public:
 
 private:
 	void Update68KRegs();
-	void UpdateGameVars();
+	void UpdateZ80Regs();
+	void UpdateFMRegs();
 
-	ion::gui::GUI& m_gui;
 	EmulatorThread& m_emulator;
 
 	struct
@@ -32,16 +32,25 @@ private:
 		ion::gui::TextBox aregs[8];
 	} m_regs68k;
 
-#if EVIL_EMU_GAME_TANGLEWOOD
 	struct
 	{
-		ion::gui::TextBox password;
-		ion::gui::TextBox levelIdx;
-		ion::gui::TextBox levelAddr;
-		ion::gui::TextBox firefliesAct;
-		ion::gui::TextBox firefliesGame;
-		ion::gui::TextBox firefliesSave;
-		ion::gui::TextBox boulderDrops;
+		ion::gui::TextBox pc;
+	} m_regsZ80;
+
+	struct
+	{
+		ion::gui::TextBox timerA;
+		ion::gui::TextBox timerB;
+	} m_regsFM;
+
+	struct
+	{
+		ion::gui::TextBox windowFPS;
+		ion::gui::TextBox m68kFPS;
+		ion::gui::TextBox deltaTime;
+		ion::gui::TextBox audioClock;
+		ion::gui::TextBox audioBuffersQueued;
 	} m_gameVars;
-#endif
+
+	FPSCounter m_fpsCounter;
 };

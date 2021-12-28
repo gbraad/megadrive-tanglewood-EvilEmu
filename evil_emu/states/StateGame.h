@@ -17,22 +17,25 @@
 #include <ion/renderer/Primitive.h>
 #include <ion/renderer/TexCoord.h>
 #include <ion/gui/GUI.h>
-#include <ion/io/Serialise.h>
+#include <ion/core/io/Serialise.h>
+#include <ion/services/User.h>
+#include <ion/services/UserManager.h>
+
+#if EMU_USE_INPUT_CALLBACKS
+#include <ion/input/Keyboard.h>
+#include <ion/input/Gamepad.h>
+#endif
 
 #include "constants.h"
 #include "emulator.h"
 #include "emuthread.h"
-#include "memwatch.h"
+#include "databridge.h"
 #include "debugger/DebuggerUI.h"
 #include "StatePause.h"
 #include "savegame.h"
 #include "settings.h"
 
 #include "menu/MenuSaveSlots.h"
-
-#if defined ION_ONLINE
-#include "achievements.h"
-#endif
 
 class StateGame : public ion::gamekit::State
 {
@@ -44,20 +47,87 @@ public:
 	virtual void OnPauseState();
 	virtual void OnResumeState();
 
-	virtual bool Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad);
+	virtual bool Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, const std::vector<ion::input::Gamepad*>& gamepads);
 	virtual void Render(ion::render::Renderer& renderer, const ion::render::Camera& camera, ion::render::Viewport& viewport);
 
 	void ApplySettings();
 
+protected:
+	void SetupRendering();
+
+	void OnSystemMenu(ion::platform::SystemMenu, bool opened);
+
+#if defined ION_SERVICES
+	//Begin async query for current user and save game data
+	void QueryLoginSaves();
+
+	virtual void OnUserLoggedIn(ion::services::UserManager::LoginResult result, ion::services::User* user);
+	virtual void OnUserLoggedOut(ion::services::User& user);
+
+	//Currently logged in user
+	ion::services::User* m_currentUser;
+#endif
+
+#if EVIL_EMU_USE_SAVES
+	//Notify the game that save data is available
+	virtual void OnSaveDataLoaded() {}
+#endif
+
+#if EVIL_EMU_USE_DATA_BRIDGE
+	//68K memory watcher/injector
+	DataBridge m_dataBridge;
+#endif
+
+#if EVIL_EMU_USE_SAVES
+	//Save game manager
+	SaveManager m_saveManager;
+
+	//Current save game
+	Save m_save;
+
+#if EVIL_EMU_MULTIPLE_SAVESLOTS
+	//Multiple save slots menu
+	MenuSaveSlots* m_saveSlotsMenu;
+#endif
+#endif
+
+	ion::render::Window& m_window;
+	ion::gui::GUI* m_gui;
+
 private:
-	void OnSaveGame(u32 watchAddress, int watchSize, u32 watchValue);
-	void OnGetSaveAvailable(u32 watchAddress, int watchSize, u32 watchValue);
-	void OnGetSaveData(u32 watchAddress, int watchSize, u32 watchValue);
 
-	void InitSaves();
-	void ApplySaveData(int slot);
+#if EMU_USE_INPUT_CALLBACKS
+	//Read and supply gamepad input on demand, directly from Mega Drive IO port read routine. Reduces input latency.
+	U16 OnInputRequest(int gamepadIdx, bool latch6button);
+	ion::input::Keyboard* m_keyboard;
+	std::vector<ion::input::Gamepad*> m_gamepads;
+	u64 m_lastInputRequestTime;
+	bool m_windowHasFocus;
+#endif
 
-#if EMU_USE_SCANLINES
+#if defined ION_SERVICES
+	//Mini state machine to login and load save game asynchronously
+	enum class LoginSaveQueryState
+	{
+		Idle,
+		LoggingIn,
+		LoggedIn,
+		SaveInitialising,
+		SaveQuerying,
+		SaveLoaded,
+		SaveInjected,
+		Error
+	};
+
+	void UpdateLoginSaveQueryState();
+#endif
+
+#if EVIL_EMU_USE_SAVES
+	void LoadSavesAsync();
+	bool SavesAvailable();
+#endif
+
+#if EVIL_EMU_USE_SCANLINES
 	void DrawScanlineTexture(const ion::Colour& colour);
 #endif
 
@@ -68,49 +138,41 @@ private:
 	EmulatorState m_prevEmulatorState;
 	bool m_emulatorThreadRunning;
 
-	ion::render::Window& m_window;
 	ion::Vector2i m_windowSize;
 	ion::Vector2i m_emulatorSize;
 
-#if EMU_USE_2X_BUFFER
+#if EVIL_EMU_USE_2X_BUFFER
 	u32* m_pixelScaleBuffer;
 #endif
 
-#if EMU_USE_SCANLINES
-	ion::render::Texture* m_scanlineTexture;
+#if EVIL_EMU_USE_SCANLINES
+	ion::io::ResourceHandle<ion::render::Texture> m_scanlineTexture;
 	ion::render::Material* m_scanlineMaterial;
 #endif
 
-	ion::render::Texture* m_renderTextures[EMU_NUM_RENDER_BUFFERS];
-	ion::render::Material* m_renderMaterials[EMU_NUM_RENDER_BUFFERS];
+	ion::io::ResourceHandle<ion::render::Texture> m_renderTextures[EVIL_EMU_NUM_RENDER_BUFFERS];
+	ion::render::Material* m_renderMaterials[EVIL_EMU_NUM_RENDER_BUFFERS];
 	ion::render::Quad* m_quadPrimitiveEmu;
 
 	int m_currentBufferIdx;
 
 #if defined ION_RENDERER_SHADER
-	ion::render::Shader* m_vertexShader;
-	ion::render::Shader* m_pixelShader;
+	ion::io::ResourceHandle<ion::render::Shader> m_shaderFlatTextured;
 #endif
 
 	Settings& m_settings;
-	StatePause& m_pauseState;
 
-	ion::gui::GUI* m_gui;
+#if defined ION_PLATFORM_DESKTOP
+	StatePause& m_pauseState;
+#endif
+
 	DebuggerUI* m_debuggerUI;
 
-	MemWatcher m_memWatcher;
-
-	SaveManager m_saveManager;
-	Save m_save;
-	MenuSaveSlots* m_saveSlotsMenu;
-
-#if EVIL_EMU_ACHEVEMENTS
-	Achievements m_achievements;
+#if defined ION_SERVICES
+	LoginSaveQueryState m_loginSaveQueryState;
 #endif
 
 	//Timing
-	u64 m_frameCount;
-	u64 m_startTicks;
 	float m_emuStartTimer;
 
 	FPSCounter m_fpsCounter;

@@ -15,20 +15,14 @@
 
 #include <ion/core/time/Time.h>
 
-EvilEmu::EvilEmu() : ion::framework::Application("EvilEmu")
-{
-	m_renderer = NULL;
-	m_window = NULL;
-	m_viewport = NULL;
-	m_camera = NULL;
-	m_keyboard = NULL;
-	m_mouse = NULL;
-	m_gamepad = NULL;
-	m_resourceManager = NULL;
+#include <ion/engine/Engine.h>
 
+#include "tanglewood/GameStateTanglewood.h"
+
+EvilEmu::EvilEmu() : ion::framework::Application(EVIL_EMU_APP_TITLE)
+{
 	m_materialBackground = NULL;
 	m_quadPrimitiveBackground = NULL;
-	m_textureBackground = NULL;
 
 	m_statePause = NULL;
 	m_stateGame = NULL;
@@ -39,54 +33,34 @@ EvilEmu::EvilEmu() : ion::framework::Application("EvilEmu")
 
 bool EvilEmu::Initialise()
 {
-#if ION_ONLINE_STEAM
-	//Initialise Steam API
-	m_steamInterface = new ion::online::Steam();
-#elif ION_ONLINE_GALAXY
-	//Initialise GOG API
-	m_galaxyInterface = new ion::online::Galaxy(EVIL_EMU_APP_ID_GALAXY, EVIL_EMU_APP_KEY_GALAXY);
-#endif
-
-	//Create filesystem
-	m_fileSystem = new ion::io::FileSystem();
-
-	//Create resource manager
-	m_resourceManager = new ion::io::ResourceManager();
-	m_resourceManager->SetResourceDirectory<ion::render::Texture>("textures", ".ion.texture");
-
 	//Create save system
-	m_saveManager = new SaveManager(*m_fileSystem);
+	m_saveManager = new SaveManager(*ion::engine.io.fileSystem);
 
-	if(!InitialiseRenderer())
-	{
-		ion::debug::Log("Failed to intialise renderer - please check your graphics device drivers");
-		return false;
-	}
-
-	if(!InitialiseInput())
-	{
-		ion::debug::Log("Failed to intialise input system - please check your device drivers");
-		return false;
-	}
+	//Load and apply settings (or create default)
+	LoadSettings();
+	ApplySettings();
 
 	if(!InitialiseGameStates())
 	{
 		return false;
 	}
 
-	//Load and apply settings (or create default)
-	LoadSettings();
-	ApplySettings();
+	//Subscribe to resolution changes
+	ion::engine.render.window->RegisterDisplayChangedCallback(std::bind(&EvilEmu::OnDisplayChanged, this, std::placeholders::_1, std::placeholders::_2));
+
+	//Centre camera
+	ion::engine.render.camera->SetPosition(ion::Vector3(-(float)ion::engine.render.window->GetClientAreaWidth() / 2.0f, -(float)ion::engine.render.window->GetClientAreaHeight() / 2.0f, 0.1f));
 
 	//Hide mouse cursor
-	m_window->ShowCursor(false);
+	ion::engine.render.window->ShowCursor(false);
 
-	ion::debug::Log("\nT A N G L E W O O D");
-#if EVIL_EMU_GAME_TYPE==EVIL_EMU_GAME_TYPE_DEMO
-	ion::debug::Log("-- DEMO --");
+#if defined ION_RENDERER_SHADER
+	//Load shaders
+	m_shaderFlatTextured = ion::engine.io.resourceManager->GetResource<ion::render::Shader>("flattextured");
 #endif
-	ion::debug::Log("Copyright (C) 2018 Big Evil Corporation Ltd");
-	ion::debug::Log("http://www.evil_emugame.com\n");
+
+	//Wait for all resources to load
+	ion::engine.io.resourceManager->WaitForResources();
 
 	return true;
 }
@@ -94,134 +68,62 @@ bool EvilEmu::Initialise()
 void EvilEmu::Shutdown()
 {
 	ShutdownGameStates();
-	ShutdownInput();
-	ShutdownRenderer();
 
 	delete m_quadPrimitiveBackground;
-	delete m_textureBackground;
+	m_textureBackground.Clear();
 	delete m_saveManager;
-	delete m_resourceManager;
-	delete m_fileSystem;
 
-#if ION_ONLINE_STEAM
-	delete m_steamInterface;
-#endif
+	ion::engine.Shutdown();
 }
 
 bool EvilEmu::Update(float deltaTime)
 {
-	//Update input
-	bool inputQuit = !UpdateInput(deltaTime);
-
-	//Update window
-	bool windowQuit = !m_window->Update();
+	//Engine update
+	bool engineQuit = !ion::engine.Update(deltaTime);
 
 	//Update game state
 	bool gameStateQuit = !UpdateGameStates(deltaTime);
 
-	//Update online system
-#if ION_ONLINE_GALAXY
-	m_galaxyInterface->Update();
-#endif
-
-	return !windowQuit && !inputQuit && !gameStateQuit;
+	return !engineQuit && !gameStateQuit;
 }
 
 void EvilEmu::Render()
 {
-	m_renderer->BeginFrame(*m_viewport, m_window->GetDeviceContext());
-
 	if (m_settings.videoBorder == VideoBorder::VDPColour)
 	{
 		u32 bgColour = VDP_GetBackgroundColourRGBA();
-		m_renderer->SetClearColour(ion::Colour(bgColour));
+		ion::engine.render.viewport->SetClearColour(ion::Colour(bgColour));
 	}
 
-	m_renderer->ClearColour();
-	m_renderer->ClearDepth();
+	ion::engine.BeginRenderFrame();
 
 	//Draw BG quad
 	if (m_quadPrimitiveBackground && m_materialBackground)
 	{
-		m_materialBackground->Bind(ion::Matrix4(), m_camera->GetTransform().GetInverse(), m_renderer->GetProjectionMatrix());
-		m_renderer->SetAlphaBlending(ion::render::Renderer::eNoBlend);
-		m_renderer->DrawVertexBuffer(m_quadPrimitiveBackground->GetVertexBuffer(), m_quadPrimitiveBackground->GetIndexBuffer());
-		m_materialBackground->Unbind();
+#if defined ION_RENDERER_SHADER
+		if (m_materialBackground->GetShader())
+#endif
+		{
+			ion::Matrix4 emuMatrix;
+			emuMatrix.SetTranslation(ion::Vector3(0.0f, 0.0f, 1.0f));
+			ion::engine.render.renderer->BindMaterial(*m_materialBackground, emuMatrix, ion::engine.render.camera->GetTransform().GetInverse(), ion::engine.render.renderer->GetProjectionMatrix());
+			ion::engine.render.renderer->SetAlphaBlending(ion::render::Renderer::AlphaBlendType::None);
+			ion::engine.render.renderer->DrawVertexBuffer(m_quadPrimitiveBackground->GetVertexBuffer(), m_quadPrimitiveBackground->GetIndexBuffer());
+			ion::engine.render.renderer->UnbindMaterial(*m_materialBackground);
+		}
 	}
 
 	//Render current state
-	m_stateManager.Render(*m_renderer, *m_camera, *m_viewport);
+	m_stateManager.Render(*ion::engine.render.renderer, *ion::engine.render.camera, *ion::engine.render.viewport);
 
-	m_renderer->SwapBuffers();
-	m_renderer->EndFrame();
-}
-
-bool EvilEmu::InitialiseRenderer()
-{
-	//Initialise windowed (will go fullscreen when settings applied)
-	m_window = ion::render::Window::Create("EVIL_EMU", m_settings.resolution.x, m_settings.resolution.y, false);
-	m_renderer = ion::render::Renderer::Create(m_window->GetDeviceContext());
-	m_viewport = new ion::render::Viewport(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight(), ion::render::Viewport::eOrtho2DAbsolute);
-	m_camera = new ion::render::Camera();
-
-	m_viewport->SetClearColour(ion::Colour(0.0f, 0.0f, 0.0f, 1.0f));
-	m_camera->SetPosition(ion::Vector3(-(float)m_window->GetClientAreaWidth() / 2.0f, -(float)m_window->GetClientAreaHeight() / 2.0f, 0.1f));
-
-	return true;
-}
-
-void EvilEmu::ShutdownRenderer()
-{
-	//Exit fullscreen mode
-	m_window->SetFullscreen(false, 0);
-
-	if(m_camera)
-		delete m_camera;
-
-	if(m_viewport)
-		delete m_viewport;
-
-	if(m_renderer)
-		delete m_renderer;
-
-	if(m_window)
-		delete m_window;
-}
-
-bool EvilEmu::InitialiseInput()
-{
-	m_keyboard = new ion::input::Keyboard();
-	m_mouse = new ion::input::Mouse();
-	m_gamepad = new ion::input::Gamepad();
-	return true;
-}
-
-void EvilEmu::ShutdownInput()
-{
-	if(m_gamepad)
-		delete m_gamepad;
-
-	if(m_mouse)
-		delete m_mouse;
-
-	if(m_keyboard)
-		delete m_keyboard;
-}
-
-bool EvilEmu::UpdateInput(float deltaTime)
-{
-	m_keyboard->Update();
-	m_mouse->Update();
-	m_gamepad->Update();
-
-	return true;
+	ion::engine.EndRenderFrame();
 }
 
 bool EvilEmu::InitialiseGameStates()
 {
 	//Create states
-	m_statePause = new StatePause(*this, m_settings, m_stateManager, *m_resourceManager, *m_fileSystem, *m_window);
-	m_stateGame = new StateGame(m_stateManager, *m_resourceManager, m_settings, *m_saveManager, ion::Vector2i(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight()), ion::Vector2i(WIDTH, HEIGHT), *m_window, *m_statePause);
+	m_statePause = new StatePause(*this, m_settings, m_stateManager, *ion::engine.io.resourceManager, *ion::engine.io.fileSystem, *ion::engine.render.window);
+	m_stateGame = new GameStateType(m_stateManager, *ion::engine.io.resourceManager, m_settings, *m_saveManager, ion::Vector2i(ion::engine.render.window->GetClientAreaWidth(), ion::engine.render.window->GetClientAreaHeight()), ion::Vector2i(DRAW_BUFFER_WIDTH, DRAW_BUFFER_HEIGHT), *ion::engine.render.window, *m_statePause);
 
 	//Push first state
 	m_stateManager.PushState(*m_stateGame);
@@ -237,7 +139,14 @@ void EvilEmu::ShutdownGameStates()
 
 bool EvilEmu::UpdateGameStates(float deltaTime)
 {
-	return m_stateManager.Update(deltaTime, m_keyboard, m_mouse, m_gamepad);
+	return m_stateManager.Update(deltaTime, ion::engine.input.keyboard, ion::engine.input.mouse, ion::engine.input.gamepads);
+}
+
+void EvilEmu::OnDisplayChanged(int displayIdx, const ion::Vector2i& resolution)
+{
+	m_settings.resolution.x = resolution.x;
+	m_settings.resolution.y = resolution.y;
+	ApplySettings();
 }
 
 void EvilEmu::ResetSettings()
@@ -245,10 +154,10 @@ void EvilEmu::ResetSettings()
 	m_settings = Settings();
 
 	//Get desktop screen size
-	m_settings.resolution.x = m_window->GetDesktopWidth(m_settings.displayIdx);
-	m_settings.resolution.y = m_window->GetDesktopHeight(m_settings.displayIdx);
+	m_settings.resolution.x = ion::engine.render.window->GetDesktopWidth(m_settings.displayIdx);
+	m_settings.resolution.y = ion::engine.render.window->GetDesktopHeight(m_settings.displayIdx);
 
-#if EMU_FULLSCREEN
+#if EVIL_EMU_FULLSCREEN
 	m_settings.fullscreen = true;
 #else
 	m_settings.fullscreen = false;
@@ -257,59 +166,62 @@ void EvilEmu::ResetSettings()
 
 void EvilEmu::LoadSettings()
 {
+#if EVIL_EMU_STORE_SETTINGS
 	if (!m_saveManager->LoadSettings(m_settings))
 	{
 		ResetSettings();
 		SaveSettings();
 	}
+#else
+	ResetSettings();
+#endif
 }
 
 void EvilEmu::SaveSettings()
 {
+#if EVIL_EMU_STORE_SETTINGS
 	m_saveManager->SaveSettings(m_settings);
+#endif
 }
 
 void EvilEmu::ApplySettings()
 {
-	if (m_window && m_renderer)
+	if (ion::engine.render.window && ion::engine.render.renderer)
 	{
 		ion::Vector2i resolution = m_settings.resolution;
 
+#if EVIL_EMU_FULLSCREEN
 		if (m_settings.fullscreen)
 		{
 			//Fullscreen uses desktop resolution
-			resolution.x = m_window->GetDesktopWidth(m_settings.displayIdx);
-			resolution.y = m_window->GetDesktopHeight(m_settings.displayIdx);
+			resolution.x = ion::engine.render.window->GetDesktopWidth(m_settings.displayIdx);
+			resolution.y = ion::engine.render.window->GetDesktopHeight(m_settings.displayIdx);
 		}
+#endif
 
 		//If display changed, un-fullscreen first
-		if (m_window->GetFullscreen() && (m_settings.displayIdx != m_currentdisplayIdx))
+		if (ion::engine.render.window->GetFullscreen() && (m_settings.displayIdx != m_currentdisplayIdx))
 		{
-			m_window->SetFullscreen(false, m_settings.displayIdx);
+			ion::engine.render.window->SetFullscreen(false, m_settings.displayIdx);
 			m_currentdisplayIdx = m_settings.displayIdx;
 		}
 
 		//Try resizing
-		if (m_window->Resize(resolution.x, resolution.y, !m_settings.fullscreen))
+		if (ion::engine.render.window->Resize(resolution.x, resolution.y, !m_settings.fullscreen))
 		{
-			bool fullscreenChanged = m_window->GetFullscreen() != m_settings.fullscreen;
+#if EVIL_EMU_FULLSCREEN
+			bool fullscreenChanged = ion::engine.render.window->GetFullscreen() != m_settings.fullscreen;
 
-#if EMU_FULLSCREEN
 			//Set fullscreen
-			if (fullscreenChanged && !m_window->SetFullscreen(m_settings.fullscreen, m_settings.displayIdx))
-			{
-				//Failed, revert to original size
-				m_window->Resize(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, true);
-			}
-			else
+			if (!fullscreenChanged || ion::engine.render.window->SetFullscreen(m_settings.fullscreen, m_settings.displayIdx))
 #endif
 			{
-				m_viewport->Resize(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight());
-				m_camera->SetPosition(ion::Vector3(-(float)m_window->GetClientAreaWidth() / 2.0f, -(float)m_window->GetClientAreaHeight() / 2.0f, 0.1f));
-				m_renderer->OnResize(m_window->GetClientAreaWidth(), m_window->GetClientAreaHeight());
+				ion::engine.render.viewport->Resize(ion::engine.render.window->GetClientAreaWidth(), ion::engine.render.window->GetClientAreaHeight());
+				ion::engine.render.camera->SetPosition(ion::Vector3(-(float)ion::engine.render.window->GetClientAreaWidth() / 2.0f, -(float)ion::engine.render.window->GetClientAreaHeight() / 2.0f, 0.1f));
+				ion::engine.render.renderer->OnResize(ion::engine.render.window->GetClientAreaWidth(), ion::engine.render.window->GetClientAreaHeight());
 
 				//Reset clear colour
-				m_renderer->SetClearColour(ion::Colour(0.0f, 0.0f, 0.0f, 0.0f));
+				ion::engine.render.renderer->SetClearColour(ion::Colour(0.0f, 0.0f, 0.0f, 0.0f));
 
 				//Recreate BG quad
 				if (m_quadPrimitiveBackground)
@@ -318,94 +230,102 @@ void EvilEmu::ApplySettings()
 					m_quadPrimitiveBackground = nullptr;
 				}
 
-				if (m_textureBackground)
-				{
-					delete m_textureBackground;
-					m_textureBackground = nullptr;
-				}
+				m_textureBackground.Clear();
 
 				//Load background texture
 				switch (m_settings.videoBorder)
 				{
 					case VideoBorder::ImageGameCover:
 					{
-						m_quadPrimitiveBackground = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2((float)m_window->GetClientAreaWidth() / 2.0f, (float)m_window->GetClientAreaHeight() / 2.0f));
-						m_textureBackground = ion::render::Texture::Create();
-						if (m_textureBackground->Load("textures/emu_bg.png"))
-						{
-							m_materialBackground = new ion::render::Material();
-							m_materialBackground->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
-							m_materialBackground->AddDiffuseMap(m_textureBackground);
-						}
+						m_quadPrimitiveBackground = new ion::render::Quad(ion::render::Quad::Axis::xy, ion::Vector2((float)ion::engine.render.window->GetClientAreaWidth() / 2.0f, (float)ion::engine.render.window->GetClientAreaHeight() / 2.0f));
+						m_textureBackground = ion::engine.io.resourceManager->GetResource<ion::render::Texture>("emu_bg.png");
+						m_materialBackground = new ion::render::Material();
+						m_materialBackground->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+						m_materialBackground->AddDiffuseMap(m_textureBackground);
+
+#if defined ION_RENDERER_SHADER
+						m_materialBackground->SetShader(m_shaderFlatTextured);
+#endif
 
 						break;
 					}
 
 					case VideoBorder::ImageBlackGrid:
 					{
-						m_quadPrimitiveBackground = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2((float)m_window->GetClientAreaWidth() / 2.0f, (float)m_window->GetClientAreaHeight() / 2.0f));
-						m_textureBackground = ion::render::Texture::Create();
-						if (m_textureBackground->Load("textures/emu_bg_black_grid.png"))
+						m_quadPrimitiveBackground = new ion::render::Quad(ion::render::Quad::Axis::xy, ion::Vector2((float)ion::engine.render.window->GetClientAreaWidth() / 2.0f, (float)ion::engine.render.window->GetClientAreaHeight() / 2.0f));
+						m_textureBackground = ion::engine.io.resourceManager->GetResource<ion::render::Texture>("emu_bg_black_grid.png");
+						m_materialBackground = new ion::render::Material();
+						m_materialBackground->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+						m_materialBackground->AddDiffuseMap(m_textureBackground);
+						m_textureBackground->SetWrapping(ion::render::Texture::Wrapping::Repeat);
+						m_textureBackground->SetMinifyFilter(ion::render::Texture::Filter::Nearest);
+						m_textureBackground->SetMagnifyFilter(ion::render::Texture::Filter::Nearest);
+
+#if defined ION_RENDERER_SHADER
+						m_materialBackground->SetShader(m_shaderFlatTextured);
+#endif
+
+						float coordx = (float)ion::engine.render.window->GetClientAreaWidth() / (float)m_textureBackground->GetWidth();
+						float coordy = (float)ion::engine.render.window->GetClientAreaHeight() / (float)m_textureBackground->GetHeight();
+
+						ion::render::TexCoord texCoords[4] =
 						{
-							m_materialBackground = new ion::render::Material();
-							m_materialBackground->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
-							m_materialBackground->AddDiffuseMap(m_textureBackground);
-							m_textureBackground->SetWrapping(ion::render::Texture::Wrapping::Repeat);
-							m_textureBackground->SetMinifyFilter(ion::render::Texture::Filter::Nearest);
-							m_textureBackground->SetMagnifyFilter(ion::render::Texture::Filter::Nearest);
+							ion::Vector2(0.0f, 0.0f),
+							ion::Vector2(0.0f, coordy),
+							ion::Vector2(coordx, coordy),
+							ion::Vector2(coordx, 0.0f)
+						};
 
-							float coordx = (float)m_window->GetClientAreaWidth() / (float)m_textureBackground->GetWidth();
-							float coordy = (float)m_window->GetClientAreaHeight() / (float)m_textureBackground->GetHeight();
-
-							ion::render::TexCoord texCoords[4] =
-							{
-								ion::Vector2(0.0f, 0.0f),
-								ion::Vector2(0.0f, coordy),
-								ion::Vector2(coordx, coordy),
-								ion::Vector2(coordx, 0.0f)
-							};
-
-							m_quadPrimitiveBackground->SetTexCoords(texCoords);
-						}
+						m_quadPrimitiveBackground->SetTexCoords(texCoords);
 
 						break;
 					}
 
 					case VideoBorder::ImageBlueBorder:
 					{
-						m_quadPrimitiveBackground = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2((float)m_window->GetClientAreaWidth() / 2.0f, (float)m_window->GetClientAreaHeight() / 2.0f));
-						m_textureBackground = ion::render::Texture::Create();
-						if (m_textureBackground->Load("textures/emu_bg_blue_border.png"))
+						m_quadPrimitiveBackground = new ion::render::Quad(ion::render::Quad::Axis::xy, ion::Vector2((float)ion::engine.render.window->GetClientAreaWidth() / 2.0f, (float)ion::engine.render.window->GetClientAreaHeight() / 2.0f));
+						m_textureBackground = ion::engine.io.resourceManager->GetResource<ion::render::Texture>("emu_bg_blue_border.png");
+						m_materialBackground = new ion::render::Material();
+						m_materialBackground->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+						m_materialBackground->AddDiffuseMap(m_textureBackground);
+						m_textureBackground->SetWrapping(ion::render::Texture::Wrapping::Repeat);
+						m_textureBackground->SetMinifyFilter(ion::render::Texture::Filter::Nearest);
+						m_textureBackground->SetMagnifyFilter(ion::render::Texture::Filter::Nearest);
+
+#if defined ION_RENDERER_SHADER
+						m_materialBackground->SetShader(m_shaderFlatTextured);
+#endif
+
+						float coordx = (float)ion::engine.render.window->GetClientAreaWidth() / (float)m_textureBackground->GetWidth();
+						float coordy = (float)ion::engine.render.window->GetClientAreaHeight() / (float)m_textureBackground->GetHeight();
+
+						ion::render::TexCoord texCoords[4] =
 						{
-							m_materialBackground = new ion::render::Material();
-							m_materialBackground->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
-							m_materialBackground->AddDiffuseMap(m_textureBackground);
-							m_textureBackground->SetWrapping(ion::render::Texture::Wrapping::Repeat);
-							m_textureBackground->SetMinifyFilter(ion::render::Texture::Filter::Nearest);
-							m_textureBackground->SetMagnifyFilter(ion::render::Texture::Filter::Nearest);
+							ion::Vector2(0.0f, 0.0f),
+							ion::Vector2(0.0f, coordy),
+							ion::Vector2(coordx, coordy),
+							ion::Vector2(coordx, 0.0f)
+						};
 
-							float coordx = (float)m_window->GetClientAreaWidth() / (float)m_textureBackground->GetWidth();
-							float coordy = (float)m_window->GetClientAreaHeight() / (float)m_textureBackground->GetHeight();
-
-							ion::render::TexCoord texCoords[4] =
-							{
-								ion::Vector2(0.0f, 0.0f),
-								ion::Vector2(0.0f, coordy),
-								ion::Vector2(coordx, coordy),
-								ion::Vector2(coordx, 0.0f)
-							};
-
-							m_quadPrimitiveBackground->SetTexCoords(texCoords);
-						}
+						m_quadPrimitiveBackground->SetTexCoords(texCoords);
 
 						break;
 					}
+
+					default:
+						break;
 				};
 			}
 		}
+		else
+		{
+			//Failed to set video mode, revert to default size, windowed
+			ion::engine.render.window->SetFullscreen(false, m_settings.displayIdx);
+			ion::engine.render.window->Resize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, true);
+		}
 
 		//Apply vsync
-		m_renderer->EnableVSync(m_settings.vsync);
+		ion::engine.render.renderer->EnableVSync(m_settings.vsync);
 	}
 
 	//Notify game state
@@ -414,5 +334,7 @@ void EvilEmu::ApplySettings()
 		m_stateGame->ApplySettings();
 	}
 
+#if EVIL_EMU_STORE_SETTINGS
 	SaveSettings();
+#endif
 }

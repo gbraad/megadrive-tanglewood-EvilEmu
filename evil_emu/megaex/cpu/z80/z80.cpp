@@ -27,14 +27,12 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 
-#include "config.h"
-
-#include "z80_dis.h"
-#include "z80_ops.h"
-#include "z80.h"
-#include "memory.h"
-
-#include "gui/debugger.h"
+#include "megaex/config.h"
+#include "megaex/cpu/z80/z80_dis.h"
+#include "megaex/cpu/z80/z80_ops.h"
+#include "megaex/cpu/z80/z80.h"
+#include "megaex/memory.h"
+#include "megaex/gui/debugger.h"
 
 Z80_Regs Z80::Z80_regs;
 
@@ -251,9 +249,9 @@ U32 Z80_UNKNOWN(U32 stage,U16* operands)
 	
 	Z80::Z80_regs.PC-=1;	/* account for prefetch */
 	#if defined _DEBUG
-	printf("ILLEGAL INSTRUCTION %08x\n",Z80::Z80_regs.PC);
+	EMU_PRINTF("ILLEGAL INSTRUCTION %08x\n",Z80::Z80_regs.PC);
 	#endif
-	DEB_PauseEmulation(DEB_Mode_Z80,"ILLEGAL INSTRUCTION");
+	DEB_PauseEmulation(DebugMode::Z80,"ILLEGAL INSTRUCTION");
 	return 0;
 }
 
@@ -271,10 +269,8 @@ U32 Z80_TABLE_UNKNOWN(U32 stage,U16* operands)
 	if (Z80::Z80_regs.ixAdjust||Z80::Z80_regs.iyAdjust)
 		Z80::Z80_regs.PC-=2;															/* Only true if DDCB or FDCB (arse) */
 	Z80::Z80_regs.PC-=2;	/* account for prefetch */
-	#if defined _DEBUG
-	printf("ILLEGAL INSTRUCTION %08x\n",Z80::Z80_regs.PC);
-	#endif
-	DEB_PauseEmulation(DEB_Mode_Z80,"ILLEGAL INSTRUCTION");
+	EMU_PRINTF("ILLEGAL INSTRUCTION %08x\n",Z80::Z80_regs.PC);
+	DEB_PauseEmulation(DebugMode::Z80,"ILLEGAL INSTRUCTION");
 	return 0;
 }
 
@@ -530,7 +526,7 @@ U8 Z80_ValidateOpcode(int insNum,U8 opcode,Z80_Ins *Z80_Table)
 					mask = Z80_Table[insNum].validEffectiveAddress[operandNum][b];
 					while (*mask!=0)
 					{
-						c=strlen(mask)-1;
+						c=(int)strlen(mask)-1;
 						switch (*mask)
 						{
 						case '0':
@@ -633,12 +629,12 @@ void Z80_BuildCurTable(Z80_Function *Z80_Funcs,Z80_Decode *Z80_Decodes,Z80_Ins *
 			if (validOpcode)
 			{
 /* 
-				printf("Opcode Coding : %s : %02X %s\n", Z80_Table[a].opcodeName, opcode,z80_byte_to_binary(opcode));
+				EMU_PRINTF("Opcode Coding : %s : %02X %s\n", Z80_Table[a].opcodeName, opcode,z80_byte_to_binary(opcode));
 */
 				if (Z80_Funcs[opcode]!=Unknown)
 				{
 					#if defined _DEBUG
-					printf("[ERR] Cpu Coding For Instruction Overlap\n");
+					EMU_PRINTF("[ERR] Cpu Coding For Instruction Overlap\n");
 					#endif
 					exit(-1);
 				}
@@ -656,14 +652,16 @@ void Z80_BuildCurTable(Z80_Function *Z80_Funcs,Z80_Decode *Z80_Decodes,Z80_Ins *
 	}
 
 	#if defined _DEBUG
-	printf("Table contains %d / 256 entries\n",numInstructions);
+	EMU_PRINTF("Table contains %d / 256 entries\n",numInstructions);
 	#endif
 }
 
 void Z80_BuildTable()
 {
 	Z80::Z80_regs.resetLine=0;
-	Z80::Z80_regs.stopped=1;
+	Z80::Z80_regs.busRequested=1;
+	Z80::Z80_regs.busTaken=1;
+	Z80::Z80_regs.halted=0;
 	Z80_BuildCurTable(Z80_JumpTable,Z80_DisTable,Z80_Information,Z80_instructions,Z80_UNKNOWN);
 	Z80_BuildCurTable(Z80_CB_JumpTable,Z80_CB_DisTable,Z80_CB_Information,Z80_CB_instructions,Z80_TABLE_UNKNOWN);
 	Z80_BuildCurTable(Z80_ED_JumpTable,Z80_ED_DisTable,Z80_ED_Information,Z80_ED_instructions,Z80_TABLE_UNKNOWN);
@@ -693,7 +691,7 @@ int Z80_CheckForInterrupt()
 			U16 args[] = {7,0,0,0,0,0,0,0};
 			Z80_RST(0, args);
 			Z80Cycles=13;
-			Z80::Z80_regs.stopped=0;
+			Z80::Z80_regs.halted=0;
 
 			return 1;
 		}
@@ -725,7 +723,7 @@ int Z80_CheckForInterrupt()
 
 				Z80Cycles=19;
 
-				Z80::Z80_regs.stopped=0;
+				Z80::Z80_regs.halted =0;
 
 				return 1;
 			}
@@ -740,16 +738,18 @@ int Z80_CheckForInterrupt()
 				Z80_RST(0, args);				/* Spectrum BODGE! should execute instruction from bus */
 																					/*but speccy will always return 0xFF which is RST 38*/
 				Z80Cycles=13;
-				Z80::Z80_regs.stopped=0;
+				Z80::Z80_regs.halted=0;
 
 				return 1;
 			}
 		}
 	}
+#if Z80_DISCARD_MISSED_INTS
 	else
 	{
-		Z80_signal=-1;			/* throw away request.. opertunity missed*/
+		Z80_signal=-1;			/* throw away request.. opportunity missed*/
 	}
+#endif
 
 	return 0;
 }
@@ -787,12 +787,13 @@ void Z80_Step()			/* needs to go at half speed of 68000! */
 	static int cycles=0;
 	int a;
 
+	Z80::Z80_regs.busTaken = Z80::Z80_regs.busRequested;
+
 	if (Z80::Z80_regs.resetLine)
 	{
 		Z80_Reset();
-		Z80::Z80_regs.resetLine=0;			/* probably should wait 3 cycles for completion */
 /*
-		DEB_PauseEmulation(DEB_Mode_Z80,"");
+		DEB_PauseEmulation(DebugMode::Z80,"");
 */
 		return;
 	}
@@ -822,7 +823,7 @@ void Z80_Step()			/* needs to go at half speed of 68000! */
 
 		Z80_CheckForInterrupt();
 
-		if (Z80::Z80_regs.stopped)
+		if (Z80::Z80_regs.busTaken)
 			return;
 
 		Z80::Z80_regs.lastInstruction = Z80::Z80_regs.PC;
@@ -833,6 +834,8 @@ void Z80_Step()			/* needs to go at half speed of 68000! */
 
 		if (Z80_Information[Z80::Z80_regs.opcode])
 		{
+			//printf("0x%08x : 0x%04x : %s\n", Z80::Z80_regs.lastInstruction, Z80::Z80_regs.opcode, Z80_Information[Z80::Z80_regs.opcode]->opcodeName);
+
 			for (a=0;a<Z80_Information[Z80::Z80_regs.opcode]->numOperands;a++)
 			{
 				Z80::Z80_regs.operands[a] = (Z80::Z80_regs.opcode & Z80_Information[Z80::Z80_regs.opcode]->operandMask[a]) >> 
@@ -872,7 +875,7 @@ int Z80_Cycle_Step()						/* Entry always assumed to be stage==0 */
 	if (Z80_CheckForInterrupt())
 		return Z80Cycles;
 
-	if (Z80::Z80_regs.stopped)
+	if (Z80::Z80_regs.busTaken)
 	{
 		/* Perform NOP */
 		U16 args[] = { 0,0,0,0,0,0,0,0 };

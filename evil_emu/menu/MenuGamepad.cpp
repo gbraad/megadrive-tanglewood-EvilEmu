@@ -3,6 +3,8 @@
 #include "MenuCommon.h"
 #include "emulator.h"
 
+#if EVIL_EMU_USE_UTILITY_MENUS
+
 MenuGamepad::MenuGamepad(ion::gui::GUI& gui, Settings& settings, ion::render::Window& appWindow, const ion::Vector2i& position, const ion::Vector2i& size)
 	: ion::gui::Window("Gamepad", position, size)
 	, m_gui(gui)
@@ -73,3 +75,5 @@ void MenuGamepad::OnButtonBack(const ion::gui::Button& button)
 {
 	m_gui.PopWindow();
 }
+
+#endif

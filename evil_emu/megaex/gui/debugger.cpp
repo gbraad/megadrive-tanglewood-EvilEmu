@@ -23,26 +23,40 @@ THE SOFTWARE.
 
  */
 
-#if ENABLE_DEBUGGER
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 
-#include "config.h"
-#include "platform.h"
-#include "callbacks.h"
-#include "globals.h"
-#include "cpu/m68k/cpu.h"
-#include "cpu/m68k/cpu_dis.h"
-#include "cpu/z80/z80.h"
-#include "cpu/z80/z80_dis.h"
-#include "vdp/vdp.h"
-#include "mytypes.h"
-#include "debugger.h"
-#include "memory.h"
-#include "font.h"
+#include "megaex/config.h"
+#include "megaex/platform.h"
+#include "megaex/callbacks.h"
+#include "megaex/globals.h"
+#include "megaex/emulator.h"
+#include "megaex/cpu/m68k/cpu.h"
+#include "megaex/cpu/m68k/cpu_dis.h"
+#include "megaex/cpu/z80/z80.h"
+#include "megaex/cpu/z80/z80_dis.h"
+#include "megaex/vdp/vdp.h"
+#include "megaex/mytypes.h"
+#include "megaex/memory.h"
+#include "megaex/gui/debugger.h"
+#include "megaex/gui/font.h"
+
+DebugState stageCheck = DebugState::Idle;
+DebugMode dbMode = DebugMode::Off;
+
+DebugMode DEB_GetDebugMode()
+{
+	return dbMode;
+}
+
+DebugState DEB_GetDebugState()
+{
+	return stageCheck;
+}
+
+#if EMU_ENABLE_68K_DEBUGGER
 
 #define MAX_BPS	20
 U32 bpAddresses[MAX_BPS]={0x30c};
@@ -52,17 +66,34 @@ int Z80_numBps=0;
 
 int copNum=0;
 
+int debugDrawX = 128;
+int debugDrawY = 128;
+
 extern U8 CRAM[0x200];
 extern CPU_Ins* CPU_Information[65536];
 extern CPU_Decode CPU_DisTable[65536];
 extern Z80_Decode Z80_DisTable[256];
 extern Z80_Ins* Z80_Information[256];
 
-void DEB_PauseEmulation(int pauseMode, const char *reason)
+static ion::input::Keycode debuggerKeyBreak = ion::input::Keycode::TAB;
+static ion::input::Keycode debuggerKeyContinue = ion::input::Keycode::F5;
+static ion::input::Keycode debuggerKeyStepInstruction = ion::input::Keycode::F10;
+static ion::input::Keycode debuggerKeyStepFrame = ion::input::Keycode::F8;
+static ion::input::Keycode debuggerKeyToggleBreakpoint = ion::input::Keycode::F9;
+static ion::input::Keycode debuggerKeySaveState = ion::input::Keycode::F11;
+static ion::input::Keycode debuggerKeyLoadState = ion::input::Keycode::F12;
+static ion::input::Keycode debuggerKeyScrollUp = ion::input::Keycode::UP;
+static ion::input::Keycode debuggerKeyScrollDown = ion::input::Keycode::DOWN;
+static ion::input::Keycode debuggerKey68KMode = ion::input::Keycode::F1;
+static ion::input::Keycode debuggerKeyZ80Mode = ion::input::Keycode::F2;
+static ion::input::Keycode debuggerKeySpriteMode = ion::input::Keycode::F3;
+static ion::input::Keycode debuggerKey68KHistoryMode = ion::input::Keycode::F4;
+
+void DEB_PauseEmulation(DebugMode pauseMode, const char *reason)
 {
-	//dbMode=pauseMode;
-	//g_pause=1;
-	printf("Invoking debugger due to %s\n", reason);
+	dbMode=pauseMode;
+	Globals::g_pause=1;
+	EMU_PRINTF("Invoking debugger due to %s\n", reason);
 }
 
 void DrawChar(U32 x,U32 y, char c,int cMask1,int cMask2)
@@ -77,7 +108,7 @@ void DrawChar(U32 x,U32 y, char c,int cMask1,int cMask2)
 	{
 		for (b=0;b<6;b++)
 		{
-			doPixel(x+b+1,y+a,(*fontChar) * cMask1,(*fontChar) * cMask2);
+			doPixelNoScale(x+b+1,y+a,(*fontChar) * cMask1,(*fontChar) * cMask2);
 			fontChar++;
 		}
 	}
@@ -114,7 +145,7 @@ void DisplayWindow32(U32 x,U32 y, U32 w, U32 h, U32 colour)
 	{
 		for (xx=x;xx<w;xx++)
 		{
-			doPixel32(xx,yy,colour);
+			doPixel32NoScale(xx,yy,colour);
 		}
 	}
 }
@@ -132,7 +163,7 @@ void DisplayWindow(U32 x,U32 y, U32 w, U32 h, U8 AR, U8 GB)
 	{
 		for (xx=x;xx<w;xx++)
 		{
-			doPixel(xx,yy,AR,GB);
+			doPixelNoScale(xx,yy,AR,GB);
 		}
 	}
 }
@@ -141,15 +172,15 @@ void ShowZ80State(int offs)
 {
 	UNUSED_ARGUMENT(offs);
 	DisplayWindow(0,0,66,11,0,0);
-	PrintAt(0x0F,0xFF,1,1," A=%02X  B=%02X  C=%02x  D=%02x",Z80::Z80_regs.R[Z80_REG_A],Z80::Z80_regs.R[Z80_REG_B],Z80::Z80_regs.R[Z80_REG_C],Z80::Z80_regs.R[Z80_REG_D]);
-	PrintAt(0x0F,0xFF,1,2," E=%02X  F=%02X  H=%02x  L=%02x",Z80::Z80_regs.R[Z80_REG_E],Z80::Z80_regs.R[Z80_REG_F],Z80::Z80_regs.R[Z80_REG_H],Z80::Z80_regs.R[Z80_REG_L]);
-	PrintAt(0x0F,0xFF,1,3,"A'=%02X B'=%02X C'=%02x D'=%02x",Z80::Z80_regs.R_[Z80_REG_A],Z80::Z80_regs.R_[Z80_REG_B],Z80::Z80_regs.R_[Z80_REG_C],Z80::Z80_regs.R_[Z80_REG_D]);
-	PrintAt(0x0F,0xFF,1,4,"E'=%02X F'=%02X H'=%02x L'=%02x",Z80::Z80_regs.R_[Z80_REG_E],Z80::Z80_regs.R_[Z80_REG_F],Z80::Z80_regs.R_[Z80_REG_H],Z80::Z80_regs.R_[Z80_REG_L]);
-  PrintAt(0x0F,0xFF,1,5,"AF=%02X%02X BC=%02X%02X DE=%02X%02X HL=%02X%02X IR=%04X",Z80::Z80_regs.R[Z80_REG_A],Z80::Z80_regs.R[Z80_REG_F],
+	PrintAt(debugDrawX,debugDrawY,1,1," A=%02X  B=%02X  C=%02x  D=%02x",Z80::Z80_regs.R[Z80_REG_A],Z80::Z80_regs.R[Z80_REG_B],Z80::Z80_regs.R[Z80_REG_C],Z80::Z80_regs.R[Z80_REG_D]);
+	PrintAt(debugDrawX,debugDrawY,1,2," E=%02X  F=%02X  H=%02x  L=%02x",Z80::Z80_regs.R[Z80_REG_E],Z80::Z80_regs.R[Z80_REG_F],Z80::Z80_regs.R[Z80_REG_H],Z80::Z80_regs.R[Z80_REG_L]);
+	PrintAt(debugDrawX,debugDrawY,1,3,"A'=%02X B'=%02X C'=%02x D'=%02x",Z80::Z80_regs.R_[Z80_REG_A],Z80::Z80_regs.R_[Z80_REG_B],Z80::Z80_regs.R_[Z80_REG_C],Z80::Z80_regs.R_[Z80_REG_D]);
+	PrintAt(debugDrawX,debugDrawY,1,4,"E'=%02X F'=%02X H'=%02x L'=%02x",Z80::Z80_regs.R_[Z80_REG_E],Z80::Z80_regs.R_[Z80_REG_F],Z80::Z80_regs.R_[Z80_REG_H],Z80::Z80_regs.R_[Z80_REG_L]);
+  PrintAt(debugDrawX,debugDrawY,1,5,"AF=%02X%02X BC=%02X%02X DE=%02X%02X HL=%02X%02X IR=%04X",Z80::Z80_regs.R[Z80_REG_A],Z80::Z80_regs.R[Z80_REG_F],
 		Z80::Z80_regs.R[Z80_REG_B],Z80::Z80_regs.R[Z80_REG_C],Z80::Z80_regs.R[Z80_REG_D],Z80::Z80_regs.R[Z80_REG_E],Z80::Z80_regs.R[Z80_REG_H],Z80::Z80_regs.R[Z80_REG_L],Z80::Z80_regs.IR);
-	PrintAt(0x0F,0xFF,1,6,"IX=%04X IY=%04X SP=%04X IFF1=%01X IFF2=%01X\n",Z80::Z80_regs.IX,Z80::Z80_regs.IY,Z80::Z80_regs.SP,Z80::Z80_regs.IFF1,Z80::Z80_regs.IFF2);
-	PrintAt(0x0F,0xFF,1,8,"[  S: Z:B5: H:B3:PV: N: C ]  Interrupt Mode = %d",Z80::Z80_regs.InterruptMode);
-	PrintAt(0x0F,0xFF,1,9,"[ %s:%s:%s:%s:%s:%s:%s:%s ]  Bank Address = %08X",				/* Bank address is not part of z80, but convenient to show here for now */
+	PrintAt(debugDrawX,debugDrawY,1,6,"IX=%04X IY=%04X SP=%04X IFF1=%01X IFF2=%01X\n",Z80::Z80_regs.IX,Z80::Z80_regs.IY,Z80::Z80_regs.SP,Z80::Z80_regs.IFF1,Z80::Z80_regs.IFF2);
+	PrintAt(debugDrawX,debugDrawY,1,8,"[  S: Z:B5: H:B3:PV: N: C ]  Interrupt Mode = %d",Z80::Z80_regs.InterruptMode);
+	PrintAt(debugDrawX,debugDrawY,1,9,"[ %s:%s:%s:%s:%s:%s:%s:%s ]  Bank Address = %08X",				/* Bank address is not part of z80, but convenient to show here for now */
 		   Z80::Z80_regs.R[Z80_REG_F] & 0x80 ? " 1" : " 0",
 		   Z80::Z80_regs.R[Z80_REG_F] & 0x40 ? " 1" : " 0",
 		   Z80::Z80_regs.R[Z80_REG_F] & 0x20 ? " 1" : " 0",
@@ -157,20 +188,20 @@ void ShowZ80State(int offs)
 		   Z80::Z80_regs.R[Z80_REG_F] & 0x08 ? " 1" : " 0",
 		   Z80::Z80_regs.R[Z80_REG_F] & 0x04 ? " 1" : " 0",
 		   Z80::Z80_regs.R[Z80_REG_F] & 0x02 ? " 1" : " 0",
-		   Z80::Z80_regs.R[Z80_REG_F] & 0x01 ? " 1" : " 0",bankAddress);
+		   Z80::Z80_regs.R[Z80_REG_F] & 0x01 ? " 1" : " 0", Memory::bankAddress);
 }
 
 
 void ShowCPUState(int offs)
 {
 	DisplayWindow(0,0+offs,66,10,0,0);
-    PrintAt(0x0F,0xFF,1,1+offs," D0=%08X  D1=%08X  D2=%08x  D3=%08x",M68K::cpu_regs.D[0],M68K::cpu_regs.D[1],M68K::cpu_regs.D[2],M68K::cpu_regs.D[3]);
-    PrintAt(0x0F,0xFF,1,2+offs," D4=%08X  D5=%08X  D6=%08x  D7=%08x",M68K::cpu_regs.D[4],M68K::cpu_regs.D[5],M68K::cpu_regs.D[6],M68K::cpu_regs.D[7]);
-    PrintAt(0x0F,0xFF,1,3+offs," A0=%08X  A1=%08X  A2=%08x  A3=%08x",M68K::cpu_regs.A[0],M68K::cpu_regs.A[1],M68K::cpu_regs.A[2],M68K::cpu_regs.A[3]);
-    PrintAt(0x0F,0xFF,1,4+offs," A4=%08X  A5=%08X  A6=%08x  A7=%08x",M68K::cpu_regs.A[4],M68K::cpu_regs.A[5],M68K::cpu_regs.A[6],M68K::cpu_regs.A[7]);
-    PrintAt(0x0F,0xFF,1,5+offs,"USP=%08X ISP=%08x\n",M68K::cpu_regs.USP,M68K::cpu_regs.ISP);
-    PrintAt(0x0F,0xFF,1,7+offs,"          [ T1:T0: S: M:  :I2:I1:I0:  :  :  : X: N: Z: V: C ]");
-    PrintAt(0x0F,0xFF,1,8+offs," SR=%04X  [ %s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s ]", M68K::cpu_regs.SR, 
+    PrintAt(debugDrawX,debugDrawY,1,1+offs," D0=%08X  D1=%08X  D2=%08x  D3=%08x",M68K::cpu_regs.D[0],M68K::cpu_regs.D[1],M68K::cpu_regs.D[2],M68K::cpu_regs.D[3]);
+    PrintAt(debugDrawX,debugDrawY,1,2+offs," D4=%08X  D5=%08X  D6=%08x  D7=%08x",M68K::cpu_regs.D[4],M68K::cpu_regs.D[5],M68K::cpu_regs.D[6],M68K::cpu_regs.D[7]);
+    PrintAt(debugDrawX,debugDrawY,1,3+offs," A0=%08X  A1=%08X  A2=%08x  A3=%08x",M68K::cpu_regs.A[0],M68K::cpu_regs.A[1],M68K::cpu_regs.A[2],M68K::cpu_regs.A[3]);
+    PrintAt(debugDrawX,debugDrawY,1,4+offs," A4=%08X  A5=%08X  A6=%08x  A7=%08x",M68K::cpu_regs.A[4],M68K::cpu_regs.A[5],M68K::cpu_regs.A[6],M68K::cpu_regs.A[7]);
+    PrintAt(debugDrawX,debugDrawY,1,5+offs,"USP=%08X ISP=%08x\n",M68K::cpu_regs.USP,M68K::cpu_regs.ISP);
+    PrintAt(debugDrawX,debugDrawY,1,7+offs,"          [ T1:T0: S: M:  :I2:I1:I0:  :  :  : X: N: Z: V: C ]");
+    PrintAt(debugDrawX,debugDrawY,1,8+offs," SR=%04X  [ %s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s ]", M68K::cpu_regs.SR, 
 		   M68K::cpu_regs.SR & 0x8000 ? " 1" : " 0",
 		   M68K::cpu_regs.SR & 0x4000 ? " 1" : " 0",
 		   M68K::cpu_regs.SR & 0x2000 ? " 1" : " 0",
@@ -200,15 +231,15 @@ extern SH2_State* slave;
 void ShowSH2State(SH2_State* cpu)
 {
 	DisplayWindow(0,1+0,66,10,0,0);
-	PrintAt(0x0F,0xFF,1,1+1,"R00 =%08X\tR01 =%08X\tR02 =%08X\tR03 =%08X\n",cpu->R[0],cpu->R[1],cpu->R[2],cpu->R[3]);
-	PrintAt(0x0F,0xFF,1,1+2,"R04 =%08X\tR05 =%08X\tR06 =%08X\tR07 =%08X\n",cpu->R[4],cpu->R[5],cpu->R[6],cpu->R[7]);
-	PrintAt(0x0F,0xFF,1,1+3,"R08 =%08X\tR09 =%08X\tR10 =%08X\tR11 =%08X\n",cpu->R[8],cpu->R[9],cpu->R[10],cpu->R[11]);
-	PrintAt(0x0F,0xFF,1,1+4,"R12 =%08X\tR13 =%08X\tR14 =%08X\tR15 =%08X\n",cpu->R[12],cpu->R[13],cpu->R[14],cpu->R[15]);
-	PrintAt(0x0F,0xFF,1,1+5,"\n");
-	PrintAt(0x0F,0xFF,1,1+6,"MACH=%08X\tMACL=%08X\tPR  =%08X\tPC  =%08X\n",cpu->MACH,cpu->MACL,cpu->PR,cpu->PC);
-	PrintAt(0x0F,0xFF,1,1+7,"GBR =%08X\tVBR =%08X\n",cpu->GBR,cpu->VBR);
-	PrintAt(0x0F,0xFF,1,1+9,"          [   :  :  :  :  :  : M: Q:I3:I2:I1:I0:  :  : S: T ]\n");
-	PrintAt(0x0F,0xFF,1,1+10,"SR = %04X [ %s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s ]\n", cpu->SR&0xFFFF, 
+	PrintAt(debugDrawX,debugDrawY,1,1+1,"R00 =%08X\tR01 =%08X\tR02 =%08X\tR03 =%08X\n",cpu->R[0],cpu->R[1],cpu->R[2],cpu->R[3]);
+	PrintAt(debugDrawX,debugDrawY,1,1+2,"R04 =%08X\tR05 =%08X\tR06 =%08X\tR07 =%08X\n",cpu->R[4],cpu->R[5],cpu->R[6],cpu->R[7]);
+	PrintAt(debugDrawX,debugDrawY,1,1+3,"R08 =%08X\tR09 =%08X\tR10 =%08X\tR11 =%08X\n",cpu->R[8],cpu->R[9],cpu->R[10],cpu->R[11]);
+	PrintAt(debugDrawX,debugDrawY,1,1+4,"R12 =%08X\tR13 =%08X\tR14 =%08X\tR15 =%08X\n",cpu->R[12],cpu->R[13],cpu->R[14],cpu->R[15]);
+	PrintAt(debugDrawX,debugDrawY,1,1+5,"\n");
+	PrintAt(debugDrawX,debugDrawY,1,1+6,"MACH=%08X\tMACL=%08X\tPR  =%08X\tPC  =%08X\n",cpu->MACH,cpu->MACL,cpu->PR,cpu->PC);
+	PrintAt(debugDrawX,debugDrawY,1,1+7,"GBR =%08X\tVBR =%08X\n",cpu->GBR,cpu->VBR);
+	PrintAt(debugDrawX,debugDrawY,1,1+9,"          [   :  :  :  :  :  : M: Q:I3:I2:I1:I0:  :  : S: T ]\n");
+	PrintAt(debugDrawX,debugDrawY,1,1+10,"SR = %04X [ %s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s ]\n", cpu->SR&0xFFFF, 
 		cpu->SR & 0x8000 ? " 1" : " 0",
 		cpu->SR & 0x4000 ? " 1" : " 0",
 		cpu->SR & 0x2000 ? " 1" : " 0",
@@ -225,8 +256,8 @@ void ShowSH2State(SH2_State* cpu)
 		cpu->SR & 0x0004 ? " 1" : " 0",
 		cpu->SR & 0x0002 ? " 1" : " 0",
 		cpu->SR & 0x0001 ? " 1" : " 0");
-	PrintAt(0x0F,0xFF,1,1+12,"PipeLine : %d\t%d\t%d\t%d\t%d\n",cpu->pipeLine[0].stage,cpu->pipeLine[1].stage,cpu->pipeLine[2].stage,cpu->pipeLine[3].stage,cpu->pipeLine[4].stage);
-	PrintAt(0x0F,0xFF,1,1+13,"PipeLine : %04X\t%04X\t%04X\t%04X\t%04X\n",cpu->pipeLine[0].opcode,cpu->pipeLine[1].opcode,cpu->pipeLine[2].opcode,cpu->pipeLine[3].opcode,cpu->pipeLine[4].opcode);
+	PrintAt(debugDrawX,debugDrawY,1,1+12,"PipeLine : %d\t%d\t%d\t%d\t%d\n",cpu->pipeLine[0].stage,cpu->pipeLine[1].stage,cpu->pipeLine[2].stage,cpu->pipeLine[3].stage,cpu->pipeLine[4].stage);
+	PrintAt(debugDrawX,debugDrawY,1,1+13,"PipeLine : %04X\t%04X\t%04X\t%04X\t%04X\n",cpu->pipeLine[0].opcode,cpu->pipeLine[1].opcode,cpu->pipeLine[2].opcode,cpu->pipeLine[3].opcode,cpu->pipeLine[4].opcode);
 }
 
 extern SH2_Ins		*SH2_Information[65536];
@@ -442,20 +473,18 @@ U32 DissasembleAddress(U32 x,U32 y,U32 address,int cursor)
 	return insCount+2;
 }
 
-U32 stageCheck=0;
-
 void DisplayHelp()
 {
 	DisplayWindow(84,0,30,20,0,0);
 
-	PrintAt(0x0F,0xFF,85,1,"T - Step Instruction");
-	PrintAt(0x0F,0xFF,85,2,"H - Step hardware cycle");
-	PrintAt(0x0F,0xFF,85,3,"G - Toggle Run in debugger");
-	PrintAt(0x0F,0xFF,85,4,"<space> - Toggle Breakpoint");
-	PrintAt(0x0F,0xFF,85,5,"<up/dn> - Move cursor");
-	PrintAt(0x0F,0xFF,85,6,"M - Switch to cpu debug");
-	PrintAt(0x0F,0xFF,85,7,"C - Show active copper");
-	PrintAt(0x0F,0xFF,85,8,"P - Show cpu history");
+	PrintAt(debugDrawX,debugDrawY,85,1,"%s - Step Instruction", ion::input::KeycodeNames[(int)debuggerKeyStepInstruction]);
+	PrintAt(debugDrawX,debugDrawY,85,2, "%s - Step Frame", ion::input::KeycodeNames[(int)debuggerKeyStepFrame]);
+	PrintAt(debugDrawX,debugDrawY,85,3,"%s - Continue", ion::input::KeycodeNames[(int)debuggerKeyContinue]);
+	PrintAt(debugDrawX,debugDrawY,85,4,"%s - Toggle Breakpoint", ion::input::KeycodeNames[(int)debuggerKeyToggleBreakpoint]);
+	PrintAt(debugDrawX,debugDrawY,85,5,"%s/%s - Move cursor", ion::input::KeycodeNames[(int)debuggerKeyScrollUp], ion::input::KeycodeNames[(int)debuggerKeyScrollDown]);
+	PrintAt(debugDrawX,debugDrawY,85,6,"%s - 68K debugger", ion::input::KeycodeNames[(int)debuggerKey68KMode]);
+	PrintAt(debugDrawX,debugDrawY,85,7,"%s - Z80 debugger", ion::input::KeycodeNames[(int)debuggerKeyZ80Mode]);
+	PrintAt(debugDrawX,debugDrawY,85,8,"%s - Sprite debugger", ion::input::KeycodeNames[(int)debuggerKeySpriteMode]);
 }
 
 /* Debug Function */
@@ -492,19 +521,19 @@ void DrawTile(int xx,int yy,U32 address,int pal,U32 flipH,U32 flipV)
 				}
 				if (flipH && flipV)
 				{
-					doPixel((7-x)+xx,(7-y)+yy,r,gb);
+					doPixelNoScale((7-x)+xx,(7-y)+yy,r,gb);
 				}
 				if (!flipH && flipV)
 				{
-					doPixel(x+xx,(7-y)+yy,r,gb);
+					doPixelNoScale(x+xx,(7-y)+yy,r,gb);
 				}
 				if (flipH && !flipV)
 				{
-					doPixel((7-x)+xx,y+yy,r,gb);
+					doPixelNoScale((7-x)+xx,y+yy,r,gb);
 				}
 				if (!flipH && !flipV)
 				{
-					doPixel(x+xx,y+yy,r,gb);
+					doPixelNoScale(x+xx,y+yy,r,gb);
 				}
 			}
 		}
@@ -553,19 +582,19 @@ void SMS_DrawTile(int xx,int yy,U32 address,int pal,U32 flipH,U32 flipV)
 				}
 				if (flipH && flipV)
 				{
-					doPixel((7-x)+xx,(7-y)+yy,r,gb);
+					doPixelNoScale((7-x)+xx,(7-y)+yy,r,gb);
 				}
 				if (!flipH && flipV)
 				{
-					doPixel(x+xx,(7-y)+yy,r,gb);
+					doPixelNoScale(x+xx,(7-y)+yy,r,gb);
 				}
 				if (flipH && !flipV)
 				{
-					doPixel((7-x)+xx,y+yy,r,gb);
+					doPixelNoScale((7-x)+xx,y+yy,r,gb);
 				}
 				if (!flipH && !flipV)
 				{
-					doPixel(x+xx,y+yy,r,gb);
+					doPixelNoScale(x+xx,y+yy,r,gb);
 				}
 			}
 		}
@@ -607,19 +636,19 @@ void DrawTileClipped(int xx,int yy,U32 address,int pal,U32 flipH,U32 flipV)
 				}
 				if (flipH && flipV)
 				{
-					doPixelClipped((7-x)+xx,(7-y)+yy,r,gb);
+					doPixelClippedNoScale((7-x)+xx,(7-y)+yy,r,gb);
 				}
 				if (!flipH && flipV)
 				{
-					doPixelClipped(x+xx,(7-y)+yy,r,gb);
+					doPixelClippedNoScale(x+xx,(7-y)+yy,r,gb);
 				}
 				if (flipH && !flipV)
 				{
-					doPixelClipped((7-x)+xx,y+yy,r,gb);
+					doPixelClippedNoScale((7-x)+xx,y+yy,r,gb);
 				}
 				if (!flipH && !flipV)
 				{
-					doPixelClipped(x+xx,y+yy,r,gb);
+					doPixelClippedNoScale(x+xx,y+yy,r,gb);
 				}
 			}
 		}
@@ -909,11 +938,11 @@ void DisplayComm()
 
 	for (y=0;y<8;y++)
 	{
-		PrintAt(0x0F,0xFF,60+y*4,0x12+39,"%04X",FIFO_BUFFER[y]);
+		PrintAt(debugDrawX,debugDrawY,60+y*4,0x12+39,"%04X",FIFO_BUFFER[y]);
 	}
 	for (y=0;y<16;y++)
 	{
-		PrintAt(0x0F,0xFF,60+y*2,0x12+40,"%02X",SH2_68K_COMM_REGISTER[y]);
+		PrintAt(debugDrawX,debugDrawY,60+y*2,0x12+40,"%02X",SH2_68K_COMM_REGISTER[y]);
 	}
 }
 #endif
@@ -927,17 +956,17 @@ void DisplayCustomRegs()
 	for (y=0;y<0x20;y++)
 	{
 		VDP_GetRegisterContents(y,buffer);
-		PrintAt(0x0F,0xFF,1, y+32, buffer);
+		PrintAt(debugDrawX,debugDrawY,1, y+32, buffer);
 	}
 
 	for (y=0;y<0x20;y+=2)
 	{
 		IO_GetRegisterContents(y,buffer);
-		PrintAt(0x0F,0xFF,30,y/2+32,buffer);
+		PrintAt(debugDrawX,debugDrawY,30,y/2+32,buffer);
 	}
 
-	sprintf(buffer,"Line %03d, Col %03d",lineNo,colNo);
-	PrintAt(0x0F,0xFF,30,0x12+32,buffer);
+	sprintf(buffer,"Line %03d, Col %03d", Globals::lineNo, Globals::colNo);
+	PrintAt(debugDrawX,debugDrawY,30,0x12+32,buffer);
 
 	DisplayPalette();
 	DisplaySomeTiles();
@@ -967,7 +996,7 @@ void SMS_DisplayCustomRegs()
 	for (y=0;y<0x10;y++)
 	{
 		VDP_GetRegisterContents(y,buffer);
-		PrintAt(0x0F,0xFF,1, y+32, buffer);
+		PrintAt(debugDrawX,debugDrawY,1, y+32, buffer);
 	}
 
 	SMS_DisplayPalette();
@@ -978,35 +1007,33 @@ void SMS_DisplayCustomRegs()
 
 	for (y=0;y<4;y++)
 	{
-		PrintAt(0x0F,0xFF,30,y+32,"TN %04X", PSG_RegsCounters[y]);
-		PrintAt(0x0F,0xFF,40,y+32,"TC %04X",PSG_ToneCounter[y]);
-		PrintAt(0x0F,0xFF,50,y+32,"TO %04X",PSG_ToneOut[y]);
-		PrintAt(0x0F,0xFF,60,y+32,"V  %02X", PSG_RegsAttenuation[y]);
+		PrintAt(debugDrawX,debugDrawY,30,y+32,"TN %04X", PSG_RegsCounters[y]);
+		PrintAt(debugDrawX,debugDrawY,40,y+32,"TC %04X",PSG_ToneCounter[y]);
+		PrintAt(debugDrawX,debugDrawY,50,y+32,"TO %04X",PSG_ToneOut[y]);
+		PrintAt(debugDrawX,debugDrawY,60,y+32,"V  %02X", PSG_RegsAttenuation[y]);
 	}
-	PrintAt(0x0F,0xFF,30,4+32,"Noise %04X",PSG_NoiseShiftRegister);
+	PrintAt(debugDrawX,debugDrawY,30,4+32,"Noise %04X",PSG_NoiseShiftRegister);
 
-	PrintAt(0x0F,0xFF,30,6+32,"MemSelect %02X",SMS_MemPageRegister);
-	PrintAt(0x0F,0xFF,30,7+32,"Page 0 %08X",SMS_Slot0_Bank);
-	PrintAt(0x0F,0xFF,30,8+32,"Page 1 %08X",SMS_Slot1_Bank);
-	PrintAt(0x0F,0xFF,30,9+32,"Page 2 %08X",SMS_Slot2_Bank);
-	PrintAt(0x0F,0xFF,30,10+32,"Ram Control %02X",SMS_Ram_Control);
+	PrintAt(debugDrawX,debugDrawY,30,6+32,"MemSelect %02X",SMS_MemPageRegister);
+	PrintAt(debugDrawX,debugDrawY,30,7+32,"Page 0 %08X",SMS_Slot0_Bank);
+	PrintAt(debugDrawX,debugDrawY,30,8+32,"Page 1 %08X",SMS_Slot1_Bank);
+	PrintAt(debugDrawX,debugDrawY,30,9+32,"Page 2 %08X",SMS_Slot2_Bank);
+	PrintAt(debugDrawX,debugDrawY,30,10+32,"Ram Control %02X",SMS_Ram_Control);
 	
 /*
 	for (y=0;y<0x20;y+=2)
 	{
 		IO_GetRegisterContents(y,buffer);
-		PrintAt(0x0F,0xFF,30,y/2+32,buffer);
+		PrintAt(debugDrawX,debugDrawY,30,y/2+32,buffer);
 	}
 
 	sprintf(buffer,"Line %03d, Col %03d",lineNo,colNo);
-	PrintAt(0x0F,0xFF,30,0x12+32,buffer);
+	PrintAt(debugDrawX,debugDrawY,30,0x12+32,buffer);
 
 	DisplayPalette();
 */
 }
 #endif
-
-int dbMode=3;
 
 U32 lastPC;
 #define PCCACHESIZE	1000
@@ -1023,7 +1050,7 @@ void DecodePCHistory(int offs)
 	{
 		if (a+offs < PCCACHESIZE)
 		{
-			PrintAt(0x0F,0xFF,1,1+a,"%d : PC History : %08X\n",a+offs,pcCache[a+offs]);
+			PrintAt(debugDrawX,debugDrawY,1,1+a,"%d : PC History : %08X\n",a+offs,pcCache[a+offs]);
 		}
 	}
 }
@@ -1108,7 +1135,7 @@ void DecodeSpriteTable()
 
 		if (actualOffset==0)
 		{
-			PrintAt(0x0F,0xFF,1,1+line,"%d->%d : %d,%d [%d,%d]",curLink,link,xPos,yPos,(hSize+1)*8,(vSize+1)*8);
+			PrintAt(debugDrawX,debugDrawY,1,1+line,"%d->%d : %d,%d [%d,%d]",curLink,link,xPos,yPos,(hSize+1)*8,(vSize+1)*8);
 
 			line++;
 			if (line>=64)
@@ -1157,8 +1184,6 @@ void DisplayZ80Dis(int offs)
 	}
 }
 
-extern U8 YM2612_Regs[2][256];
-
 void ShowYM2612()
 {
 	int a,b;
@@ -1169,14 +1194,14 @@ void ShowYM2612()
 	{
 		for (a=0;a<32;a++)
 		{
-			PrintAt(0x0F,0xFF,60+b*26+ 0,a,"%02X",YM2612_Regs[b][a*8+0]);
-			PrintAt(0x0F,0xFF,60+b*26+ 3,a,"%02X",YM2612_Regs[b][a*8+1]);
-			PrintAt(0x0F,0xFF,60+b*26+ 6,a,"%02X",YM2612_Regs[b][a*8+2]);
-			PrintAt(0x0F,0xFF,60+b*26+ 9,a,"%02X",YM2612_Regs[b][a*8+3]);
-			PrintAt(0x0F,0xFF,60+b*26+12,a,"%02X",YM2612_Regs[b][a*8+4]);
-			PrintAt(0x0F,0xFF,60+b*26+15,a,"%02X",YM2612_Regs[b][a*8+5]);
-			PrintAt(0x0F,0xFF,60+b*26+18,a,"%02X",YM2612_Regs[b][a*8+6]);
-			PrintAt(0x0F,0xFF,60+b*26+21,a,"%02X",YM2612_Regs[b][a*8+7]);
+			PrintAt(debugDrawX,debugDrawY,60+b*26+ 0,a,"%02X",Memory::YM2612_Regs[b][a*8+0]);
+			PrintAt(debugDrawX,debugDrawY,60+b*26+ 3,a,"%02X",Memory::YM2612_Regs[b][a*8+1]);
+			PrintAt(debugDrawX,debugDrawY,60+b*26+ 6,a,"%02X",Memory::YM2612_Regs[b][a*8+2]);
+			PrintAt(debugDrawX,debugDrawY,60+b*26+ 9,a,"%02X",Memory::YM2612_Regs[b][a*8+3]);
+			PrintAt(debugDrawX,debugDrawY,60+b*26+12,a,"%02X",Memory::YM2612_Regs[b][a*8+4]);
+			PrintAt(debugDrawX,debugDrawY,60+b*26+15,a,"%02X",Memory::YM2612_Regs[b][a*8+5]);
+			PrintAt(debugDrawX,debugDrawY,60+b*26+18,a,"%02X",Memory::YM2612_Regs[b][a*8+6]);
+			PrintAt(debugDrawX,debugDrawY,60+b*26+21,a,"%02X",Memory::YM2612_Regs[b][a*8+7]);
 		}
 	}
 }
@@ -1184,7 +1209,11 @@ void ShowYM2612()
 void Display68000Dis(int offs)
 {
 	int a;
+#if CPU_DEBUG_CALLTRACE
 	U32 address = M68K::cpu_regs.lastInstruction;
+#else
+	U32 address = M68K::cpu_regs.PC;
+#endif
 
 	if (M68K::cpu_regs.stage==0)
 	{
@@ -1208,9 +1237,11 @@ void DisplayDebugger()
 {
 	int y;
 
-	if (g_pause || (stageCheck==3) || (stageCheck==6))
+	VDP_WriteLock();
+
+	if (Globals::g_pause || (stageCheck == DebugState::Continue68K) || (stageCheck == DebugState::ContinueZ80))
 	{
-		if (dbMode==0)
+		if (dbMode == DebugMode::M68K)
 		{
 			ShowCPUState(0);
 		
@@ -1222,15 +1253,15 @@ void DisplayDebugger()
 #endif	
 			Display68000Dis(0);
 		}
-		if (dbMode==1)
+		if (dbMode== DebugMode::M68K_History)
 		{
 			DecodePCHistory(hisOffs);
 		}
-		if (dbMode==2)
+		if (dbMode== DebugMode::Sprites)
 		{
 			DecodeSpriteTable();
 		}
-		if (dbMode==3)
+		if (dbMode== DebugMode::Z80)
 		{
 			ShowZ80State(0);
 		
@@ -1245,12 +1276,12 @@ void DisplayDebugger()
 
 			for (y=0;y<4;y++)
 			{
-				PrintAt(0x0F,0xFF,60,y+32,"TN %04X", PSG_RegsCounters[y]);
-				PrintAt(0x0F,0xFF,70,y+32,"TC %04X",PSG_ToneCounter[y]);
-				PrintAt(0x0F,0xFF,80,y+32,"TO %04X",PSG_ToneOut[y]);
-				PrintAt(0x0F,0xFF,90,y+32,"V  %02X", PSG_RegsAttenuation[y]);
+				PrintAt(debugDrawX,debugDrawY,60,y+32,"TN %04X", PSG_RegsCounters[y]);
+				PrintAt(debugDrawX,debugDrawY,70,y+32,"TC %04X",PSG_ToneCounter[y]);
+				PrintAt(debugDrawX,debugDrawY,80,y+32,"TO %04X",PSG_ToneOut[y]);
+				PrintAt(debugDrawX,debugDrawY,90,y+32,"V  %02X", PSG_RegsAttenuation[y]);
 			}
-			PrintAt(0x0F,0xFF,60,4+32,"Noise %04X",PSG_NoiseShiftRegister);
+			PrintAt(debugDrawX,debugDrawY,60,4+32,"Noise %04X",PSG_NoiseShiftRegister);
 
 #else
 			SMS_DisplayCustomRegs();
@@ -1278,72 +1309,142 @@ void DisplayDebugger()
 		}
 #endif
 		
-		g_newScreenNotify=1;
+		Globals::g_newScreenNotify=1;
 	}
+
+	VDP_WriteUnlock();
 }
 
 extern U32 Z80Cycles;
 
-#define ENABLE_PC_HISTORY		0
-int UpdateDebugger()
+void DebuggerStep()
 {
-#if 0
-	int a;
+	if (stageCheck != DebugState::Idle)
+	{
+		if (stageCheck == DebugState::Step68K)
+		{
+			if (M68K::cpu_regs.stage == 0)
+			{
+				Globals::g_pause = 1;		/* single step cpu */
+				stageCheck = DebugState::Idle;
+			}
+		}
+		if (stageCheck == DebugState::StepHardware)
+		{
+			Globals::g_pause = 1;			/* single step hardware */
+			stageCheck = DebugState::Idle;
+		}
+		if (stageCheck == DebugState::StepZ80)
+		{
+			if ((Z80::Z80_regs.stage == 0) && (Z80Cycles == 0))
+			{
+				Globals::g_pause = 1;
+				stageCheck = DebugState::Idle;
+			}
+		}
+		if (stageCheck == DebugState::StepFrame68K)
+		{
+			Globals::g_pause = 1;
+		}
+		if (stageCheck == DebugState::StepFrameZ80)
+		{
+			Globals::g_pause = 1;
+		}
 
-	if (M68K::cpu_regs.stage==0)
+#if ENABLE_32X_MODE
+		if (stageCheck == (DEB_Mode_SH2_Master + 1))
+		{
+			Globals::g_pause = 1;
+			stageCheck = 0;
+		}
+#endif
+	}
+
+	if (M68K::cpu_regs.stage == 0)
+	{
+		for (int a = 0; a < numBps; a++)
+		{
+			if (bpAddresses[a] == M68K::cpu_regs.PC)
+			{
+				if (!Globals::g_pause)
+				{
+					dbMode = DebugMode::M68K;
+				}
+				Globals::g_pause = 1;
+			}
+		}
+	}
+	if (Z80::Z80_regs.stage == 0)
+	{
+		for (int a = 0; a < Z80_numBps; a++)
+		{
+			if (Z80_bpAddresses[a] == Z80::Z80_regs.PC)
+			{
+				if (!Globals::g_pause)
+				{
+					dbMode = DebugMode::Z80;
+				}
+				Globals::g_pause = 1;
+			}
+		}
+	}
+}
+
+#define ENABLE_PC_HISTORY		0
+int UpdateDebugger(const ion::input::Keyboard& keyboard)
+{
+#if 1
+	if (M68K::cpu_regs.stage == 0)
 	{
 #if ENABLE_PC_HISTORY
-		lastPC=M68K::cpu_regs.PC;
+		lastPC = M68K::cpu_regs.PC;
 
-		if (cachePos<PCCACHESIZE)
+		if (cachePos < PCCACHESIZE)
 		{
-			if (pcCache[cachePos]!=lastPC)
+			if (pcCache[cachePos] != lastPC)
 			{
-				pcCache[cachePos++]=lastPC;
+				pcCache[cachePos++] = lastPC;
 			}
 		}
 		else
 		{
-			if (pcCache[PCCACHESIZE-1]!=lastPC)
+			if (pcCache[PCCACHESIZE - 1] != lastPC)
 			{
-				memmove(pcCache,pcCache+1,(PCCACHESIZE-1)*sizeof(U32));
+				memmove(pcCache, pcCache + 1, (PCCACHESIZE - 1) * sizeof(U32));
 
-				pcCache[PCCACHESIZE-1]=lastPC;
+				pcCache[PCCACHESIZE - 1] = lastPC;
 			}
 		}
 #endif
-
-		for (a=0;a<numBps;a++)
-		{
-			if ((bpAddresses[a]==M68K::cpu_regs.PC))
-			{
-				if (!g_pause)
-				{
-					dbMode=0;
-				}
-				g_pause=1;
-			}
-		}
 	}
-	if (Z80::Z80_regs.stage==0)
+
+	//Break to debugger
+	if (keyboard.KeyPressedThisFrame(debuggerKeyBreak))
 	{
-		for (a=0;a<Z80_numBps;a++)
-		{
-			if ((Z80_bpAddresses[a]==Z80::Z80_regs.PC))
-			{
-				if (!g_pause)
-				{
-					dbMode=3;
-				}
-				g_pause=1;
-			}
-		}
+		Globals::g_pause = !Globals::g_pause;
+		stageCheck = DebugState::Idle;
+
+		if(Globals::g_pause)
+			dbMode = DebugMode::M68K;
+		else
+			dbMode = DebugMode::Off;
 	}
 
-	if (CheckKey(GLFW_KEY_PAGE_UP))
-		g_pause=!g_pause;
+	//Mode select
+	if (keyboard.KeyPressedThisFrame(debuggerKeyZ80Mode))
+		dbMode = DebugMode::Z80;
 
-	if (CheckKey(GLFW_KEY_KP_0))
+	if (keyboard.KeyPressedThisFrame(debuggerKey68KMode))
+		dbMode = DebugMode::M68K;
+
+	if (keyboard.KeyPressedThisFrame(debuggerKey68KHistoryMode))
+		dbMode = DebugMode::M68K_History;
+
+	if (keyboard.KeyPressedThisFrame(debuggerKeySpriteMode))
+		dbMode = DebugMode::Sprites;
+
+	//Save/load state
+	if (keyboard.KeyPressedThisFrame(debuggerKeySaveState))
 	{
 		/* Save state */
 		FILE *save=fopen("mega_save.dmp","wb");
@@ -1353,116 +1454,75 @@ int UpdateDebugger()
 
 		fclose(save);
 	}
-	if (CheckKey(GLFW_KEY_KP_MULTIPLY))
+	if (keyboard.KeyPressedThisFrame(debuggerKeyLoadState))
 	{
 		/* Load state */
 
 		FILE *load=fopen("mega_save.dmp","rb");
 
-		MEM_LoadState(load);
-		CPU_LoadState(load);
-
-		fclose(load);
-	}
-
-	if (stageCheck)
-	{
-		if (stageCheck==1)
+		if (load)
 		{
-			if (M68K::cpu_regs.stage==0)
-			{
-				g_pause=1;		/* single step cpu */
-				stageCheck=0;
-			}
-		}
-		if (stageCheck==2)
-		{
-			g_pause=1;			/* single step hardware */
-			stageCheck=0;
-		}
-		if (stageCheck==4)
-		{
-			if ((Z80::Z80_regs.stage==0) && (Z80Cycles==0))
-			{
-				g_pause=1;
-				stageCheck=0;
-			}
-		}
-		if (stageCheck==5)
-		{
-			g_pause=1;
-			stageCheck=0;
-		}
-
-		if (stageCheck==(DEB_Mode_SH2_Master+1))
-		{
-			g_pause=1;
-			stageCheck=0;
+			MEM_LoadState(load);
+			CPU_LoadState(load);
+			fclose(load);
 		}
 	}
 
-	if (g_pause || (stageCheck==3) || (stageCheck==6) || (stageCheck==9))
+	if (Globals::g_pause || (stageCheck == DebugState::Continue68K) || (stageCheck == DebugState::ContinueZ80)) // || (stageCheck==6) || (stageCheck==9))
 	{
-		if (dbMode==DEB_Mode_SH2_Master || dbMode==DEB_Mode_SH2_Slave)
-		{
-			if (CheckKey('T'))
-			{
-				stageCheck=DEB_Mode_SH2_Master+1;
-				g_pause=0;
-			}
-		}
-		if (dbMode==3)
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+		// Z80 MODE
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+		if (dbMode== DebugMode::Z80)
 		{
 			/* While paused - enable debugger keys */
-			if (CheckKey('T'))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyStepInstruction))
 			{
 				/* cpu step into instruction */
-				stageCheck=4;
+				stageCheck = DebugState::StepZ80;
 
-				g_pause=0;
+				Globals::g_pause=0;
 			}
-			if (CheckKey('H'))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyStepFrame))
 			{
-				stageCheck=5;
-				g_pause=0;
+				//Step one render frame
+				stageCheck= DebugState::StepFrameZ80;
+				Globals::g_pause=0;
 			}
-			if (CheckKey('G'))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyContinue))
 			{
-				if (stageCheck==6)
+				if (stageCheck==DebugState::ContinueZ80)
 				{
-					stageCheck=0;
-					g_pause=1;
+					stageCheck= DebugState::Idle;
+					dbMode = DebugMode::Off;
+					Globals::g_pause=1;
 				}
 				else
 				{
-					stageCheck=6;
-					g_pause=0;
+					stageCheck= DebugState::ContinueZ80;
+					Globals::g_pause=0;
 				}
 			}
-			if (CheckKey(' '))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyToggleBreakpoint))
 				bpAt=Z80Offs;
-			if (CheckKey(GLFW_KEY_UP) && Z80Offs>0)
+			if (keyboard.KeyPressedThisFrame(debuggerKeyScrollUp) && Z80Offs>0)
 				Z80Offs--;
-			if (CheckKey(GLFW_KEY_DOWN) && Z80Offs<9)
+			if (keyboard.KeyPressedThisFrame(debuggerKeyScrollDown) && Z80Offs<9)
 				Z80Offs++;
 		}
 
-		if (CheckKey('9'))
-			dbMode=DEB_Mode_SH2_Master;
-		if (CheckKey('0'))
-			dbMode=DEB_Mode_SH2_Slave;
-
-		if (CheckKey('P'))
-			dbMode=1;
-		if (dbMode==1)
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+		// 68K HISTORY MODE
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+		if (dbMode== DebugMode::M68K_History)
 		{
-			if (CheckKey(GLFW_KEY_UP))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyScrollUp))
 			{
 				hisOffs-=32;
 				if (hisOffs<0)
 					hisOffs=0;
 			}
-			if (CheckKey(GLFW_KEY_DOWN))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyScrollDown))
 			{
 				hisOffs+=32;
 				if (hisOffs>=PCCACHESIZE)
@@ -1472,9 +1532,10 @@ int UpdateDebugger()
 		if (CheckKey('C'))
 			Z80_Reset();
 
-		if (CheckKey('X'))
-			dbMode=2;
-		if (dbMode==2)
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+		// SPRITES MODE
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+		if (dbMode== DebugMode::Sprites)
 		{
 			if (CheckKey('W'))
 			{
@@ -1487,36 +1548,38 @@ int UpdateDebugger()
 				spriteOffset++;
 			}
 		}
-		if (CheckKey('N'))
-			dbMode=3;
-		if (CheckKey('M'))
-			dbMode=0;
-		if (dbMode==0)
+
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+		// 68K MODE
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+		if (dbMode== DebugMode::M68K)
 		{
 			/* While paused - enable debugger keys */
-			if (CheckKey('T'))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyStepInstruction))
 			{
 				/* cpu step into instruction */
-				stageCheck=1;
+				stageCheck= DebugState::Step68K;
 
-				g_pause=0;
+				Globals::g_pause=0;
 			}
-			if (CheckKey('H'))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyStepFrame))
 			{
-				stageCheck=2;
-				g_pause=0;
+				//Step one render frame
+				stageCheck= DebugState::StepFrame68K;
+				Globals::g_pause=0;
 			}
-			if (CheckKey('G'))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyContinue))
 			{
-				if (stageCheck==3)
+				if (stageCheck== DebugState::Continue68K)
 				{
-					stageCheck=0;
-					g_pause=1;
+					stageCheck= DebugState::Idle;
+					dbMode = DebugMode::Off;
+					Globals::g_pause=1;
 				}
 				else
 				{
-					stageCheck=3;
-					g_pause=0;
+					stageCheck= DebugState::Continue68K;
+					Globals::g_pause=0;
 				}
 			}
 			if (CheckKey('Q'))
@@ -1533,37 +1596,15 @@ int UpdateDebugger()
 			{
 				tileOffset+=20*32;
 			}
-			if (CheckKey(GLFW_KEY_UP) && cpuOffs>0)
+			if (keyboard.KeyPressedThisFrame(debuggerKeyScrollUp) && cpuOffs>0)
 				cpuOffs--;
-			if (CheckKey(GLFW_KEY_DOWN) && cpuOffs<9)
+			if (keyboard.KeyPressedThisFrame(debuggerKeyScrollDown) && cpuOffs<9)
 				cpuOffs++;
-			if (CheckKey(' '))
+			if (keyboard.KeyPressedThisFrame(debuggerKeyToggleBreakpoint))
 				bpAt=cpuOffs;
 		}
-		ClearKey(' ');
-		ClearKey(GLFW_KEY_LEFT);
-		ClearKey(GLFW_KEY_UP);
-		ClearKey(GLFW_KEY_DOWN);
-		ClearKey('P');
-		ClearKey('C');
-		ClearKey('N');
-		ClearKey('M');
-		ClearKey('T');
-		ClearKey('H');
-		ClearKey('G');
-		ClearKey('W');
-		ClearKey('S');
-		ClearKey('X');
-		ClearKey('A');
-		ClearKey('Z');
-		ClearKey('Q');
-		ClearKey('9');
-		ClearKey('0');
 	}
-	ClearKey(GLFW_KEY_KP_0);
-	ClearKey(GLFW_KEY_KP_MULTIPLY);
-	ClearKey(GLFW_KEY_PAGE_UP);
 #endif
-	return g_pause;
+	return Globals::g_pause;
 }
 #endif

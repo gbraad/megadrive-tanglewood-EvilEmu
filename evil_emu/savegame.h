@@ -1,11 +1,14 @@
 #pragma once
 
 #include <ion/core/time/Time.h>
-#include <ion/io/FileSystem.h>
-#include <ion/io/Archive.h>
+#include <ion/core/io/FileSystem.h>
+#include <ion/core/io/Archive.h>
+#include <ion/services/User.h>
 
 #include "settings.h"
 #include "constants.h"
+
+#include <functional>
 
 struct Save
 {
@@ -29,7 +32,8 @@ struct Save
 				&& levelIdx == rhs.levelIdx
 				&& firefliesAct == rhs.firefliesAct
 				&& firefliesGame == rhs.firefliesGame
-				&& saveVersion == rhs.saveVersion;
+				&& saveVersion == rhs.saveVersion
+				&& fireflyData == rhs.fireflyData;
 		}
 
 		void Serialise(ion::io::Archive& archive)
@@ -43,6 +47,7 @@ struct Save
 			archive.Serialise(saveVersion, "saveVersion");
 			archive.Serialise(timeStamp.time, "timeStamp");
 			archive.Serialise(serialiseData, "serialiseData");
+			archive.Serialise(fireflyData, "fireflyData");
 		}
 
 		u32 gameType;
@@ -54,6 +59,7 @@ struct Save
 		u16 saveVersion;
 		ion::time::TimeStamp timeStamp;
 		std::vector<u8> serialiseData;
+		std::vector<u8> fireflyData;
 	};
 
 	std::vector<SaveSlot> m_saveSlots;
@@ -62,13 +68,18 @@ struct Save
 class SaveManager
 {
 public:
+	typedef std::function<void(bool success)> OnInitCompleted;
+	typedef std::function<void(bool success)> OnSaveCompleted;
+	typedef std::function<void(Save& saveData, bool success)> OnLoadCompleted;
+
 	SaveManager(ion::io::FileSystem& filesystem);
 
 	bool LoadSettings(Settings& settings);
 	void SaveSettings(Settings& settings);
 
-	bool LoadGame(Save& saveGame);
-	void SaveGame(Save& saveGame);
+	void InitSave(ion::services::User& user, OnInitCompleted const& onInitCompleted);
+	void LoadGame(ion::services::User& user, OnLoadCompleted const& onLoadCompleted);
+	void SaveGame(ion::services::User& user, Save& saveGame, OnSaveCompleted const& onSaveCompleted);
 
 private:
 	void CreateUserDirectory();

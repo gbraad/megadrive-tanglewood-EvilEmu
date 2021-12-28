@@ -30,15 +30,14 @@ THE SOFTWARE.
 
 #include "config.h"
 
-#include "cpu_dis.h"
-#include "cpu_ops.h"
-#include "cpu.h"
-#include "memory.h"
-#include "gui/debugger.h"
-#include "vdp/vdp.h"
+#include "megaex/cpu/m68k/cpu_dis.h"
+#include "megaex/cpu/m68k/cpu_ops.h"
+#include "megaex/cpu/m68k/cpu.h"
+#include "megaex/memory.h"
+#include "megaex/gui/debugger.h"
+#include "megaex/vdp/vdp.h"
 
-#include "cpu_ops.inl"
-//#include "memory.inl"
+#include "megaex/cpu/m68k/cpu_ops.inl"
 
 CPU_Regs M68K::cpu_regs;
 char M68K::mnemonicData[256];
@@ -75,8 +74,8 @@ void CPU_Reset()
 	M68K::cpu_regs.PC = MEM_getLong(/*0xFC0004*/4);
 
 	#if defined _DEBUG
-	printf("A7 Reset %08x : %08x\n",MEM_getLong(0xFC0000),M68K::cpu_regs.A[7]);
-	printf("PC Reset %08x : %08x\n",MEM_getLong(0xFC0004),M68K::cpu_regs.PC);
+	EMU_PRINTF("A7 Reset %08x : %08x\n",MEM_getLong(0xFC0000),M68K::cpu_regs.A[7]);
+	EMU_PRINTF("PC Reset %08x : %08x\n",MEM_getLong(0xFC0004),M68K::cpu_regs.PC);
 	#endif
 
 	for (a=0;a<65536;a++)
@@ -433,9 +432,9 @@ U32 CPU_UNKNOWN(U32 stage, U16* operands)
 	UNUSED_ARGUMENT(operands);
 	M68K::cpu_regs.PC-=2;	/* account for prefetch */
 	#if defined _DEBUG
-	printf("ILLEGAL INSTRUCTION %08x\n",M68K::cpu_regs.PC);
+	EMU_PRINTF("ILLEGAL INSTRUCTION %08x\n",M68K::cpu_regs.PC);
 	#endif
-	DEB_PauseEmulation(DEB_Mode_68000,"ILLEGAL INSTRUCTION");
+	DEB_PauseEmulation(DebugMode::M68K,"ILLEGAL INSTRUCTION");
 	return 0;
 }
 
@@ -475,7 +474,7 @@ U8 ValidateOpcode(int insNum,U16 opcode)
 				mask = cpu_instructions[insNum].validEffectiveAddress[operandNum][b];
 				while (*mask!=0)
 				{
-					c=strlen(mask)-1;
+					c=(int)strlen(mask)-1;
 					switch (*mask)
 					{
 						case '0':
@@ -584,12 +583,12 @@ void CPU_BuildTable()
 			if (validOpcode)
 			{
 /*
-				printf("Opcode Coding : %s : %04X %s\n", cpu_instructions[a].opcodeName, opcode,byte_to_binary(opcode));
+				EMU_PRINTF("Opcode Coding : %s : %04X %s\n", cpu_instructions[a].opcodeName, opcode,byte_to_binary(opcode));
 */
 				if (CPU_JumpTable[opcode]!=CPU_UNKNOWN)
 				{
 					#if defined _DEBUG
-					printf("[ERR] Cpu Coding For Instruction Overlap\n");
+					EMU_PRINTF("[ERR] Cpu Coding For Instruction Overlap\n");
 					#endif
 					exit(-1);
 				}
@@ -608,21 +607,22 @@ void CPU_BuildTable()
 	}
 
 	#if defined _DEBUG
-	printf("68000 %d out of %d instructions\n",numInstructions,65536);
+	EMU_PRINTF("68000 %d out of %d instructions\n",numInstructions,65536);
 	#endif
 }
 
 void DumpEmulatorState()
 {
-    printf("\n");
-    printf("D0=%08X\tD1=%08X\tD2=%08x\tD3=%08x\n",M68K::cpu_regs.D[0],M68K::cpu_regs.D[1],M68K::cpu_regs.D[2],M68K::cpu_regs.D[3]);
-    printf("D4=%08X\tD5=%08X\tD6=%08x\tD7=%08x\n",M68K::cpu_regs.D[4],M68K::cpu_regs.D[5],M68K::cpu_regs.D[6],M68K::cpu_regs.D[7]);
-    printf("A0=%08X\tA1=%08X\tA2=%08x\tA3=%08x\n",M68K::cpu_regs.A[0],M68K::cpu_regs.A[1],M68K::cpu_regs.A[2],M68K::cpu_regs.A[3]);
-    printf("A4=%08X\tA5=%08X\tA6=%08x\tA7=%08x\n",M68K::cpu_regs.A[4],M68K::cpu_regs.A[5],M68K::cpu_regs.A[6],M68K::cpu_regs.A[7]);
-    printf("USP=%08X,ISP=%08x\n",M68K::cpu_regs.USP,M68K::cpu_regs.ISP);
-    printf("\n");
-    printf("          [ T1:T0: S: M:  :I2:I1:I0:  :  :  : X: N: Z: V: C ]\n");
-    printf("SR = %04X [ %s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s ]\n", M68K::cpu_regs.SR, 
+    EMU_PRINTF("\n");
+	EMU_PRINTF("PC=%08X\n", M68K::cpu_regs.PC);
+    EMU_PRINTF("D0=%08X\tD1=%08X\tD2=%08x\tD3=%08x\n",M68K::cpu_regs.D[0],M68K::cpu_regs.D[1],M68K::cpu_regs.D[2],M68K::cpu_regs.D[3]);
+    EMU_PRINTF("D4=%08X\tD5=%08X\tD6=%08x\tD7=%08x\n",M68K::cpu_regs.D[4],M68K::cpu_regs.D[5],M68K::cpu_regs.D[6],M68K::cpu_regs.D[7]);
+    EMU_PRINTF("A0=%08X\tA1=%08X\tA2=%08x\tA3=%08x\n",M68K::cpu_regs.A[0],M68K::cpu_regs.A[1],M68K::cpu_regs.A[2],M68K::cpu_regs.A[3]);
+    EMU_PRINTF("A4=%08X\tA5=%08X\tA6=%08x\tA7=%08x\n",M68K::cpu_regs.A[4],M68K::cpu_regs.A[5],M68K::cpu_regs.A[6],M68K::cpu_regs.A[7]);
+    EMU_PRINTF("USP=%08X,ISP=%08x\n",M68K::cpu_regs.USP,M68K::cpu_regs.ISP);
+    EMU_PRINTF("\n");
+    EMU_PRINTF("          [ T1:T0: S: M:  :I2:I1:I0:  :  :  : X: N: Z: V: C ]\n");
+    EMU_PRINTF("SR = %04X [ %s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s ]\n", M68K::cpu_regs.SR, 
 		   M68K::cpu_regs.SR & 0x8000 ? " 1" : " 0",
 		   M68K::cpu_regs.SR & 0x4000 ? " 1" : " 0",
 		   M68K::cpu_regs.SR & 0x2000 ? " 1" : " 0",
@@ -639,7 +639,7 @@ void DumpEmulatorState()
 		   M68K::cpu_regs.SR & 0x0004 ? " 1" : " 0",
 		   M68K::cpu_regs.SR & 0x0002 ? " 1" : " 0",
 		   M68K::cpu_regs.SR & 0x0001 ? " 1" : " 0");
-    printf("\n");
+    EMU_PRINTF("\n");
 }
 
 S8 CPU_signal = -1;
@@ -689,7 +689,6 @@ U32 CPU_Step()
 {
 	int cycles = 0;
 
-    int a;
 	CPU_Ins* cpu_ins;
 
 #if DEBUG
@@ -706,7 +705,7 @@ U32 CPU_Step()
 
 #if CPU_DEBUG_INFO
 		if (M68K::cpu_regs.stopped)
-			return;
+			return 0;
 #endif
 
 #if CPU_DEBUG_CALLTRACE
@@ -728,6 +727,11 @@ U32 CPU_Step()
 #endif
 
 		cpu_ins = CPU_Information[M68K::cpu_regs.opcode];
+
+		if (!cpu_ins)
+		{
+			DumpEmulatorState();
+		}
 
 #if DEBUG
 		assert(cpu_ins);
@@ -755,21 +759,21 @@ U32 CPU_Step()
 			U32	insCount;
 			U32 b;
 			
-			printf("Cycles %d\n",cycles);
+			EMU_PRINTF("Cycles %d\n",cycles);
 			DumpEmulatorState();
 			
 			insCount=CPU_DisTable[M68K::cpu_regs.opcode](M68K::cpu_regs.PC,M68K::cpu_regs.operands);
 			
-			printf("%08X\t",M68K::cpu_regs.PC-2);
+			EMU_PRINTF("%08X\t",M68K::cpu_regs.PC-2);
 			
 			for (b=0;b<(insCount+2)/2;b++)
 			{
-				printf("%s ",decodeWord(M68K::cpu_regs.PC-2+b*2));
+				EMU_PRINTF("%s ",decodeWord(M68K::cpu_regs.PC-2+b*2));
 			}
 			
-			printf("\t%s\n",M68K::mnemonicData);
+			EMU_PRINTF("\t%s\n",M68K::mnemonicData);
 			
-			startDebug=1;	/* just so i can break after disassembly. */
+			startDebug=0;	/* just so i can break after disassembly. */
 		}
 #endif
 	}

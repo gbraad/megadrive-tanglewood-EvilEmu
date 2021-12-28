@@ -8,13 +8,15 @@
 // http://www.bigevilcorporation.co.uk
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <ion/core/Platform.h>
+#include <ion/core/io/File.h>
+#include <ion/core/io/FileSystem.h>
 #include <ion/renderer/Renderer.h>
 #include <ion/renderer/Camera.h>
 #include <ion/input/Keyboard.h>
 #include <ion/input/Mouse.h>
 #include <ion/input/Gamepad.h>
-#include <ion/io/File.h>
-#include <ion/io/FileSystem.h>
+#include <ion/engine/Engine.h>
 
 #include "StateGame.h"
 #include "constants.h"
@@ -22,24 +24,18 @@
 
 #include "megaex/memory.h"
 #include "megaex/vdp/vdp.h"
+#include "megaex/mgaudio.h"
 
+#if EVIL_EMU_ROM_SOURCE==EVIL_EMU_ROM_SOURCE_EMBEDDED
 #include "roms/include_rom.h"
-
-static const int g_top = 128;
-static const int g_bottom = 128 + 224;
-static const int g_left = 128;
-static const int g_right = 128 + (40 * 8);
-static const float g_borderTop = (1.0f / HEIGHT) * (float)g_top;
-static const float g_borderBottom = (1.0f / HEIGHT) * (float)(HEIGHT - g_bottom);
-static const float g_borderLeft = (1.0f / WIDTH) * (float)g_left;
-static const float g_borderRight = (1.0f / WIDTH) * (float)(WIDTH - g_right);
+#endif
 
 const ion::render::TexCoord StateGame::s_texCoordsGame[4] =
 {
-	ion::Vector2(g_borderLeft, g_borderTop),
-	ion::Vector2(g_borderLeft, 1.0f - g_borderBottom),
-	ion::Vector2(1.0f - g_borderRight, 1.0f - g_borderBottom),
-	ion::Vector2(1.0f - g_borderRight, g_borderTop)
+	ion::Vector2(0.0f, 0.0f),
+	ion::Vector2(0.0f, 1.0f),
+	ion::Vector2(1.0f, 1.0f),
+	ion::Vector2(1.0f, 0.0f)
 };
 
 const ion::render::TexCoord StateGame::s_texCoordsDebugger[4] =
@@ -52,136 +48,113 @@ const ion::render::TexCoord StateGame::s_texCoordsDebugger[4] =
 
 StateGame::StateGame(ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, Settings& settings, SaveManager& saveManager, const ion::Vector2i& windowSize, const ion::Vector2i& emulatorSize, ion::render::Window& window, StatePause& pauseState)
 	: ion::gamekit::State("gameplay", stateManager, resourceManager)
+#if EVIL_EMU_USE_SAVES
 	, m_saveManager(saveManager)
+#endif
 	, m_window(window)
 	, m_windowSize(windowSize)
 	, m_emulatorSize(emulatorSize)
+#if defined ION_PLATFORM_DESKTOP
 	, m_pauseState(pauseState)
+#endif
 	, m_settings(settings)
 {
-	for (int i = 0; i < EMU_NUM_RENDER_BUFFERS; i++)
+	m_gui = NULL;
+
+#if EMU_USE_INPUT_CALLBACKS
+	m_keyboard = NULL;
+#endif
+
+	for (int i = 0; i < EVIL_EMU_NUM_RENDER_BUFFERS; i++)
 	{
-		m_renderTextures[i] = NULL;
+		m_renderTextures[i].Clear();
 		m_renderMaterials[i] = NULL;
 	}
 
-#if EMU_USE_2X_BUFFER
+#if EVIL_EMU_USE_2X_BUFFER
 	m_pixelScaleBuffer = NULL;
 #endif
 
-#if EMU_USE_SCANLINES
-	m_scanlineTexture = NULL;
+#if EVIL_EMU_USE_SCANLINES
+	m_scanlineTexture.Clear();
 	m_scanlineMaterial = NULL;
 #endif
 
 	m_quadPrimitiveEmu = NULL;
 	m_currentBufferIdx = 0;
 
-#if defined ION_RENDERER_SHADER
-	m_vertexShader = NULL;
-	m_pixelShader = NULL;
-#endif
-
 	m_emulatorThread = NULL;
 	m_emulatorThreadRunning = false;
 	m_prevEmulatorState = eState_Running;
-	m_emuStartTimer = EMU_START_TIMER;
+	m_emuStartTimer = EVIL_EMU_START_TIMER;
 
+#if defined ION_SERVICES
+	m_loginSaveQueryState = LoginSaveQueryState::Idle;
+	m_currentUser = NULL;
+#endif
+
+#if EVIL_EMU_USE_SAVES && EVIL_EMU_MULTIPLE_SAVESLOTS
 	m_saveSlotsMenu = NULL;
+#endif
+
+#if EMU_USE_INPUT_CALLBACKS
+	m_lastInputRequestTime = 0;
+	m_windowHasFocus = false;
+#endif
 }
 
 void StateGame::OnEnterState()
 {
-	ion::Vector2i renderBufferSize = m_emulatorSize;
+	SetupRendering();
 
-#if EMU_USE_2X_BUFFER || VDP_SCALE_2X
-	renderBufferSize = renderBufferSize * 2;
+	ion::platform::RegisterCallbackSystemMenu(std::bind(&StateGame::OnSystemMenu, this, std::placeholders::_1, std::placeholders::_2));
+
+#if defined ION_SERVICES
+	//Catch user login events
+	ion::engine.services.userManager->RegisterCallbackLogout(std::bind(&StateGame::OnUserLoggedOut, this, std::placeholders::_1));
 #endif
-
-#if EMU_USE_SCANLINES
-	m_scanlineTexture = ion::render::Texture::Create(renderBufferSize.x, renderBufferSize.y, ion::render::Texture::Format::BGRA, ion::render::Texture::Format::BGRA, ion::render::Texture::BitsPerPixel::BPP24, false, false, NULL);
-
-	m_scanlineMaterial = new ion::render::Material();
-	m_scanlineMaterial->AddDiffuseMap(m_scanlineTexture);
-	m_scanlineMaterial->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
-
-	m_scanlineTexture->SetMinifyFilter(ion::render::Texture::Filter::Linear);
-	m_scanlineTexture->SetMagnifyFilter(ion::render::Texture::Filter::Linear);
-	m_scanlineTexture->SetWrapping(ion::render::Texture::Wrapping::Clamp);
-#endif
-
-#if EMU_USE_2X_BUFFER
-	m_pixelScaleBuffer = new u32[(m_emulatorSize.x * 2) * (m_emulatorSize.y * 2)];
-	ion::memory::MemSet(m_pixelScaleBuffer, 0, (m_emulatorSize.x * 2) * (m_emulatorSize.y * 2));
-#endif
-
-	m_quadPrimitiveEmu = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(((float)m_window.GetClientAreaHeight() * DEFAULT_SCREEN_RATIO) / 2.0f, (float)m_window.GetClientAreaHeight() / 2.0f));
 
 #if defined ION_RENDERER_SHADER
-	//Create shaders
-	m_vertexShader = ion::render::Shader::Create();
-	m_pixelShader = ion::render::Shader::Create();
-
 	//Load shaders
-	if(!m_vertexShader->Load("shaders/flattextured_v.ion.shader"))
-	{
-		ion::debug::Error("Failed to load vertex shader\n");
-	}
+	m_shaderFlatTextured = m_resourceManager.GetResource<ion::render::Shader>("flattextured");
 
-	if(!m_pixelShader->Load("shaders/flattextured_p.ion.shader"))
-	{
-		ion::debug::Error("Failed to load pixel shader\n");
-	}
+	m_gui->SetShader(m_shaderFlatTextured);
 
-	m_materialEmu->SetVertexShader(m_vertexShader);
-	m_materialEmu->SetPixelShader(m_pixelShader);
+	for (int i = 0; i < EVIL_EMU_NUM_RENDER_BUFFERS; i++)
+		m_renderMaterials[i]->SetShader(m_shaderFlatTextured);
 #endif
 
 	//Initialise emulator
 	m_quadPrimitiveEmu->SetTexCoords(s_texCoordsGame);
 
-#if EVIL_EMU_GAME_TYPE==EVIL_EMU_GAME_TYPE_ROMFILE
-	if (!InitialiseEmulator(EVIL_EMU_ROM_FILENAME))
-	{
-		ion::debug::error << "Unable to initialise emulator" << ion::debug::end;
-	}
+#if EVIL_EMU_ROM_SOURCE==EVIL_EMU_ROM_SOURCE_EMBEDDED
+	if (!InitialiseEmulator(m68k_binary, m68k_binary_size))
 #else
-	if (!InitialiseEmulator(snasm68k_binary, snasm68k_binary_size))
+	if (!InitialiseEmulator(EVIL_EMU_ROM_FILENAME))
+#endif
 	{
 		ion::debug::error << "Unable to initialise emulator" << ion::debug::end;
 	}
-#endif
 
-	//Initialise watches
-#if EVIL_EMU_USE_SAVES
-	m_memWatcher.AddAddress(snasm68k_symbol_EmuTrap_SaveGame_val, 2, std::bind(&StateGame::OnSaveGame, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_2));
-	m_memWatcher.AddAddress(snasm68k_symbol_EmuTrap_GetSaveAvailable_val, 1, std::bind(&StateGame::OnGetSaveAvailable, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_2));
-	m_memWatcher.AddAddress(snasm68k_symbol_EmuTrap_GetSaveData_val, 1, std::bind(&StateGame::OnGetSaveData, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_2));
-#endif
-
-	//Initialise save slots
-	InitSaves();
-
-#if EVIL_EMU_ACHEVEMENTS
-	//Initialise achievements
-	m_achievements.RegisterWatchers(m_memWatcher);
+	//Initialise gamepad callback
+#if EMU_USE_INPUT_CALLBACKS
+	Globals::getGamepadState = std::bind(&StateGame::OnInputRequest, this, std::placeholders::_1, std::placeholders::_2);
 #endif
 
 	//Create emulator thread
 	m_emulatorThread = new EmulatorThread();
 
-	//Create GUI
-	m_gui = new ion::gui::GUI(m_windowSize);
-
 	//Create debugger UI
-#if EMU_INCLUDE_DEBUGGER
+#if EVIL_EMU_INCLUDE_DEBUG_UI
 	m_debuggerUI = new DebuggerUI(*m_gui, *m_emulatorThread, ion::Vector2i(20, 20), ion::Vector2i());
+#if !defined ION_PLATFORM_SWITCH
 	m_debuggerUI->RollUp(true);
+#endif
 	m_gui->AddWindow(*m_debuggerUI);
 #endif
 
 	//Start timer to allow display change to settle down
-	m_emuStartTimer = EMU_START_TIMER;
+	m_emuStartTimer = EVIL_EMU_START_TIMER;
 }
 
 void StateGame::OnLeaveState()
@@ -192,7 +165,7 @@ void StateGame::OnLeaveState()
 	if (m_gui)
 		delete m_gui;
 
-#if EMU_USE_2X_BUFFER
+#if EVIL_EMU_USE_2X_BUFFER
 	if (m_pixelScaleBuffer)
 		delete m_pixelScaleBuffer;
 #endif
@@ -200,22 +173,17 @@ void StateGame::OnLeaveState()
 	if(m_quadPrimitiveEmu)
 		delete m_quadPrimitiveEmu;
 
-	for (int i = 0; i < EMU_NUM_RENDER_BUFFERS; i++)
+	for (int i = 0; i < EVIL_EMU_NUM_RENDER_BUFFERS; i++)
 	{
 		if (m_renderMaterials[i])
 			delete m_renderMaterials[i];
 
-		if (m_renderTextures[i])
-			delete m_renderTextures[i];
+		m_renderTextures[i].Clear();
 	}
 	
 
 #if defined ION_RENDERER_SHADER
-	if(m_pixelShader)
-		delete m_pixelShader;
-
-	if(m_vertexShader)
-		delete m_vertexShader;
+	m_shaderFlatTextured.Clear();
 #endif
 }
 
@@ -229,8 +197,13 @@ void StateGame::OnResumeState()
 	m_emulatorThread->Resume();
 }
 
-bool StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad)
+bool StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, const std::vector<ion::input::Gamepad*> & gamepads)
 {
+#if defined ION_SERVICES
+	//Update the login and save query sequence state machine
+	UpdateLoginSaveQueryState();
+#endif
+
 	if (!m_emulatorThreadRunning)
 	{
 		m_emuStartTimer -= deltaTime;
@@ -241,18 +214,71 @@ bool StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 #if EMU_THREADED
 			m_emulatorThread->Run();
 			m_emulatorThread->SetPriority(ion::thread::Thread::Priority::High);
+
+#if defined ION_PLATFORM_SWITCH
+			m_emulatorThread->SetCoreAffinity(1 << EMU_THREAD_CORE_68K);
+#endif
 #endif
 			m_emulatorThreadRunning = true;
 		}
 	}
 	else
 	{
+#if EMU_USE_INPUT_CALLBACKS
+		//Cache for use in input callback
+		m_keyboard = keyboard;
+		m_gamepads = gamepads;
+		m_windowHasFocus = m_window.HasFocus();
+#else
+		//Update inputs
+		for (int i = 0; i < EVIL_EMU_MAX_GAMEPADS; i++)
+		{
+			//Update input if window has focus
+			u32 buttonState = 0;
+
+			if (m_window.HasFocus())
+			{
+				//Update digital input
+				for (int j = 0; j < eBtn_MAX; j++)
+				{
+					if (i == 0 && keyboard->KeyDown(m_settings.keyboardMap[j]))
+					{
+						buttonState |= g_emulatorButtonBits[j];
+					}
+
+					bool buttonDown = false;
+					for (int k = 0; k < m_settings.gamepadMap[j].size(); k++)
+					{
+						buttonDown |= gamepads[i]->ButtonDown(m_settings.gamepadMap[j][k]);
+					}
+
+					if (buttonDown)
+					{
+						buttonState |= g_emulatorButtonBits[j];
+					}
+				}
+
+				//Update analogue input
+				if (gamepads[i]->GetLeftStick().x < -m_settings.analogueDeadzone)
+					buttonState |= g_emulatorButtonBits[eBtn_Left];
+				if (gamepads[i]->GetLeftStick().x > m_settings.analogueDeadzone)
+					buttonState |= g_emulatorButtonBits[eBtn_Right];
+				if (gamepads[i]->GetLeftStick().y > m_settings.analogueDeadzone)
+					buttonState |= g_emulatorButtonBits[eBtn_Up];
+				if (gamepads[i]->GetLeftStick().y < -m_settings.analogueDeadzone)
+					buttonState |= g_emulatorButtonBits[eBtn_Down];
+			}
+
+			//Apply input
+			EmulatorSetButtonState(i, buttonState);
+		}
+#endif
+
 #if !EMU_THREADED
 		m_emulatorThread->TickEmulator(deltaTime);
 #endif
-		m_emulatorThread->m_renderCritSec.Begin();
 
-#if EMU_USE_2X_BUFFER
+#if EVIL_EMU_USE_2X_BUFFER
 		//Copy output to scalar buffer (scale x2 without filtering)
 		u32 pixel = 0;
 		const int bufferWidth = m_emulatorSize.x * 2;
@@ -262,10 +288,10 @@ bool StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 		{
 			for (int x = 0; x < m_emulatorSize.x; x++)
 			{
-#if EMU_PIXEL_ALIGN_TEST
+#if EVIL_EMU_PIXEL_ALIGN_TEST
 				pixel = ((x & 1) && (y & 1)) ? 0xFF0000FF : 0xFF00FF00;
 #else
-				pixel = ((u32*)VDP::videoMemory)[(y * m_emulatorSize.x) + x];
+				pixel = ((u32*)VDP_GetReadBuffer())[(y * m_emulatorSize.x) + x];
 #endif
 
 				m_pixelScaleBuffer[(((y * 2) + 0) * bufferWidth) + (x * 2) + 0] = pixel;
@@ -275,78 +301,54 @@ bool StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 			}
 		}
 #else
-#if EMU_PIXEL_ALIGN_TEST
+#if EVIL_EMU_PIXEL_ALIGN_TEST
 		u32 pixel = 0;
 		for (int x = 0; x < m_emulatorSize.x; x++)
 		{
 			for (int y = 0; y < m_emulatorSize.y; y++)
 			{
 				pixel = ((x & 1) && (y & 1)) ? 0xFF0000FF : 0xFF00FF00;
-				((u32*)VDP::videoMemory)[(y * m_emulatorSize.x) + x] = pixel;
+				((u32*)VDP_GetReadBuffer())[(y * m_emulatorSize.x) + x] = pixel;
 			}
 		}
 #endif
 #endif
 
 		//Update FPS display
-		if (m_frameCount++ % 30 == 0)
-		{
-			//Set window title
-			std::stringstream text;
-			text.setf(std::ios::fixed, std::ios::floatfield);
-			text.precision(2);
-			text << "Window FPS: " << m_fpsCounter.GetLastFPS()
-				<< " :: 68000 FPS: " << m_emulatorThread->m_fpsCounterEmulator.GetLastFPS()
-				<< " :: Render FPS: " << m_emulatorThread->m_fpsCounterRender.GetLastFPS()
-				<< " :: Audio FPS: " << m_emulatorThread->m_fpsCounterAudio.GetLastFPS();
-			m_window.SetTitle(text.str().c_str());
-		}
+		std::stringstream text;
+		text.setf(std::ios::fixed, std::ios::floatfield);
+		text.precision(2);
 
-		//Update input if window has focus
-		u16 buttonState = 0;
+		text << "Audio clock: " << AudioGetClock()
+			<< " :: 68000 clock: " << ((float)m_emulatorThread->Get68KCycle() / (float)CYCLES_PER_SECOND_68K)
+			<< " :: Sample clock: " << ((float)AudioGetSamplesWritten() / (float)AUDIO_SAMPLE_RATE_HZ)
+			<< " :: Render frame: " << m_emulatorThread->m_fpsCounterRender.GetFrame()
+			<< " :: 68000 FPS: " << m_emulatorThread->m_fpsCounterRender.GetLastFPS()
+			<< " :: Window FPS: " << m_fpsCounter.GetLastFPS()
+			<< " :: Queued buffers: " << AudioGetBuffersQueued();
+		m_window.SetTitle(text.str().c_str());
 
-		if (m_window.HasFocus())
-		{
-			//Update digital input
-			for (int i = 0; i < eBtn_MAX; i++)
-			{
-				if (keyboard->KeyDown(m_settings.keyboardMap[i]) || gamepad->ButtonDown(m_settings.gamepadMap[i]))
-				{
-					buttonState |= g_emulatorButtonBits[i];
-				}
-			}
+#if EVIL_EMU_USE_DATA_BRIDGE
+		m_dataBridge.Update();
+#endif
 
-			//Update analogue input
-			if (gamepad->GetLeftStick().x < 0.0f)
-				buttonState |= g_emulatorButtonBits[eBtn_Left];
-			if (gamepad->GetLeftStick().x > 0.0f)
-				buttonState |= g_emulatorButtonBits[eBtn_Right];
-			if (gamepad->GetLeftStick().y > 0.0f)
-				buttonState |= g_emulatorButtonBits[eBtn_Up];
-			if (gamepad->GetLeftStick().y < 0.0f)
-				buttonState |= g_emulatorButtonBits[eBtn_Down];
-		}
-
-		//Apply input
-		EmulatorSetButtonState(buttonState);
-
-		m_emulatorThread->m_renderCritSec.End();
-
-		m_memWatcher.Update();
+#if EMU_ENABLE_68K_DEBUGGER
+		UpdateDebugger(*keyboard);
+#endif
 	}
 
+#if defined ION_PLATFORM_DESKTOP
 	if (m_window.HasFocus())
 	{
-		if (keyboard->KeyPressedThisFrame(ion::input::Keycode::ESCAPE) || gamepad->ButtonPressedThisFrame(ion::input::GamepadButtons::SELECT))
+		if (keyboard->KeyPressedThisFrame(ion::input::Keycode::ESCAPE) || gamepads[0]->ButtonPressedThisFrame(ion::input::GamepadButtons::SELECT))
 		{
 			m_stateManager.PushState(m_pauseState);
 		}
 	}
+#endif
 
-	m_gui->Update(deltaTime, keyboard, mouse, gamepad);
-
-#if EVIL_EMU_ACHEVEMENTS
-	m_achievements.Update();
+#if !defined ION_BUILD_MASTER
+	m_gui->Update(deltaTime, keyboard, mouse, gamepads[0]);
 #endif
 
 	return true;
@@ -354,59 +356,111 @@ bool StateGame::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::inp
 
 void StateGame::Render(ion::render::Renderer& renderer, const ion::render::Camera& camera, ion::render::Viewport& viewport)
 {
-#if EMU_USE_2X_BUFFER
-	//Copy scale buffer to render texture (scaled to target resolution with filtering)
-	m_renderTextures[m_currentBufferIdx]->SetPixels(ion::render::Texture::eBGRA, false, (u8*)m_pixelScaleBuffer);
-#else
-	m_emulatorThread->m_renderCritSec.Begin();
-	m_renderTextures[m_currentBufferIdx]->SetPixels(ion::render::Texture::Format::BGRA, false, VDP::videoMemory);
-	m_emulatorThread->m_renderCritSec.End();
-#endif
-
-	//Bind material and draw quad
 	ion::Matrix4 emuMatrix;
 	emuMatrix.SetTranslation(ion::Vector3(0.0f, 0.0f, 1.0f));
-	m_renderMaterials[m_currentBufferIdx]->Bind(emuMatrix, camera.GetTransform().GetInverse(), renderer.GetProjectionMatrix());
-	renderer.SetAlphaBlending(ion::render::Renderer::eNoBlend);
-	renderer.DrawVertexBuffer(m_quadPrimitiveEmu->GetVertexBuffer(), m_quadPrimitiveEmu->GetIndexBuffer());
-	m_renderMaterials[m_currentBufferIdx]->Unbind();
+
+	bool readVDP = (m_emulatorThreadRunning && (!m_emulatorThread->IsPaused() || DEB_GetDebugMode() != DebugMode::Off));
+
+	if (readVDP)
+	{
+#if EMU_ENABLE_68K_DEBUGGER
+		if (DEB_GetDebugMode() != DebugMode::Off)
+		{
+			//Debugger draws direct to VDP framebuffer
+			DisplayDebugger();
+		}
+#endif
+
+#if EVIL_EMU_USE_2X_BUFFER
+		//Copy scale buffer to render texture (scaled to target resolution with filtering)
+		m_renderTextures[m_currentBufferIdx]->SetPixels(ion::render::Texture::Format::BGRA, false, (u8*)m_pixelScaleBuffer);
+#else
+		m_renderTextures[m_currentBufferIdx]->SetPixels(ion::render::Texture::Format::BGRA, false, VDP_ReadLock());
+#endif
+
+#if defined ION_RENDERER_SHADER
+		//Bind material and draw quad
+		if (m_renderMaterials[m_currentBufferIdx]->GetShader())
+#endif
+		{
+			renderer.BindMaterial(*m_renderMaterials[m_currentBufferIdx], emuMatrix, camera.GetTransform().GetInverse(), renderer.GetProjectionMatrix());
+			renderer.SetAlphaBlending(ion::render::Renderer::AlphaBlendType::Translucent);
+			renderer.DrawVertexBuffer(m_quadPrimitiveEmu->GetVertexBuffer(), m_quadPrimitiveEmu->GetIndexBuffer());
+			renderer.SetAlphaBlending(ion::render::Renderer::AlphaBlendType::None);
+			renderer.UnbindMaterial(*m_renderMaterials[m_currentBufferIdx]);
+		}
+
+#if !EVIL_EMU_USE_2X_BUFFER
+		VDP_ReadUnlock();
+#endif
+	}
 
 	//Next buffer
-	m_currentBufferIdx = (m_currentBufferIdx + 1) % EMU_NUM_RENDER_BUFFERS;
+	m_currentBufferIdx = (m_currentBufferIdx + 1) % EVIL_EMU_NUM_RENDER_BUFFERS;
 
-#if EMU_USE_SCANLINES
+#if EVIL_EMU_USE_SCANLINES
+
 	if (m_settings.scanlineAlpha > 0.0f)
 	{
-		//Draw scanlines
-		emuMatrix.SetTranslation(ion::Vector3(0.0f, 0.0f, 1.1f));
-		m_scanlineMaterial->Bind(emuMatrix, camera.GetTransform().GetInverse(), renderer.GetProjectionMatrix());
-		renderer.SetAlphaBlending(ion::render::Renderer::eTranslucent);
-		renderer.DrawVertexBuffer(m_quadPrimitiveEmu->GetVertexBuffer(), m_quadPrimitiveEmu->GetIndexBuffer());
-		m_scanlineMaterial->Unbind();
+#if defined ION_RENDERER_SHADER
+		if (m_scanlineMaterial->GetShader())
+#endif
+		{
+			//Draw scanlines
+			emuMatrix.SetTranslation(ion::Vector3(0.0f, 0.0f, 1.1f));
+			renderer.BindMaterial(*m_scanlineMaterial, emuMatrix, camera.GetTransform().GetInverse(), renderer.GetProjectionMatrix());
+			renderer.SetAlphaBlending(ion::render::Renderer::AlphaBlendType::Translucent);
+			renderer.DrawVertexBuffer(m_quadPrimitiveEmu->GetVertexBuffer(), m_quadPrimitiveEmu->GetIndexBuffer());
+			renderer.SetAlphaBlending(ion::render::Renderer::AlphaBlendType::None);
+			renderer.UnbindMaterial(*m_scanlineMaterial);
+		}
 	}
 #endif
 
+#if !defined ION_BUILD_MASTER
 	m_gui->Render(renderer, viewport);
+#endif
 
 	m_fpsCounter.Update();
 }
 
-void StateGame::ApplySettings()
+void StateGame::SetupRendering()
 {
 	ion::Vector2i renderBufferSize = m_emulatorSize;
 
-#if EMU_USE_2X_BUFFER || VDP_SCALE_2X
+#if EVIL_EMU_USE_2X_BUFFER || VDP_SCALE_2X
 	renderBufferSize = renderBufferSize * 2;
 #endif
 
-	//Recreate textures
-	for (int i = 0; i < EMU_NUM_RENDER_BUFFERS; i++)
+#if EVIL_EMU_USE_SCANLINES
+	if (!m_scanlineTexture)
 	{
-		if (m_renderTextures[i])
-		{
-			delete m_renderTextures[i];
-			m_renderTextures[i] = nullptr;
-		}
+		m_scanlineTexture = ion::render::Texture::Create(renderBufferSize.x, renderBufferSize.y, ion::render::Texture::Format::BGRA, ion::render::Texture::Format::BGRA, ion::render::Texture::BitsPerPixel::BPP24, false, false, NULL);
+		m_scanlineTexture->SetMinifyFilter(ion::render::Texture::Filter::Linear);
+		m_scanlineTexture->SetMagnifyFilter(ion::render::Texture::Filter::Linear);
+		m_scanlineTexture->SetWrapping(ion::render::Texture::Wrapping::Clamp);
+	}
+
+	if (!m_scanlineMaterial)
+	{
+		m_scanlineMaterial = new ion::render::Material();
+		m_scanlineMaterial->AddDiffuseMap(m_scanlineTexture);
+		m_scanlineMaterial->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f));
+	}
+#endif
+
+#if EVIL_EMU_USE_2X_BUFFER
+	if (!m_pixelScaleBuffer)
+	{
+		m_pixelScaleBuffer = new u32[(m_emulatorSize.x * 2) * (m_emulatorSize.y * 2)];
+		ion::memory::MemSet(m_pixelScaleBuffer, 0, (m_emulatorSize.x * 2) * (m_emulatorSize.y * 2));
+	}
+#endif
+
+	//Recreate textures
+	for (int i = 0; i < EVIL_EMU_NUM_RENDER_BUFFERS; i++)
+	{
+		m_renderTextures[i].Clear();
 
 		m_renderTextures[i] = ion::render::Texture::Create(renderBufferSize.x, renderBufferSize.y, ion::render::Texture::Format::BGRA, ion::render::Texture::Format::BGRA, ion::render::Texture::BitsPerPixel::BPP24, false, m_settings.pixelBuffer, NULL);
 
@@ -423,23 +477,50 @@ void StateGame::ApplySettings()
 
 	//Recreate quad
 	if (m_quadPrimitiveEmu)
-	{
 		delete m_quadPrimitiveEmu;
-		m_quadPrimitiveEmu = new ion::render::Quad(ion::render::Quad::xy, ion::Vector2(((float)m_window.GetClientAreaHeight() * DEFAULT_SCREEN_RATIO) / 2.0f, (float)m_window.GetClientAreaHeight() / 2.0f));
-		m_quadPrimitiveEmu->SetTexCoords(s_texCoordsGame);
-	}
+
+	m_quadPrimitiveEmu = new ion::render::Quad(ion::render::Quad::Axis::xy, ion::Vector2(((float)m_window.GetClientAreaHeight() * DEFAULT_WINDOW_RATIO) / 2.0f, (float)m_window.GetClientAreaHeight() / 2.0f));
+	m_quadPrimitiveEmu->SetTexCoords(s_texCoordsGame);
 
 	//Redraw scanlines
-	ion::ColourRGB colour = EMU_SCANLINE_DEFAULT_COLOUR;
-	DrawScanlineTexture(ion::Colour(colour.r, colour.b, colour.b, m_settings.scanlineAlpha));
+#if EVIL_EMU_USE_SCANLINES
+	ion::ColourRGB colour = EVIL_EMU_SCANLINE_DEFAULT_COLOUR;
+	DrawScanlineTexture(ion::Colour(colour.r, colour.g, colour.b, m_settings.scanlineAlpha));
+#endif
 
 	m_windowSize = ion::Vector2i(m_window.GetClientAreaWidth(), m_window.GetClientAreaHeight());
 
-	//Resize GUI
-	m_gui->SetSize(m_windowSize);
+	//Create or resize GUI
+	if(m_gui)
+		m_gui->SetSize(m_windowSize);
+	else
+		m_gui = new ion::gui::GUI(m_windowSize);
+
+	//Reload shaders
+#if defined ION_RENDERER_SHADER
+	m_shaderFlatTextured = m_resourceManager.GetResource<ion::render::Shader>("flattextured");
+
+	m_gui->SetShader(m_shaderFlatTextured);
+
+	for (int i = 0; i < EVIL_EMU_NUM_RENDER_BUFFERS; i++)
+		m_renderMaterials[i]->SetShader(m_shaderFlatTextured);
+#endif
 }
 
-#if EMU_USE_SCANLINES
+void StateGame::ApplySettings()
+{
+	SetupRendering();
+}
+
+void StateGame::OnSystemMenu(ion::platform::SystemMenu, bool opened)
+{
+	if (opened)
+		m_emulatorThread->Pause();
+	else
+		m_emulatorThread->Resume();
+}
+
+#if EVIL_EMU_USE_SCANLINES
 void StateGame::DrawScanlineTexture(const ion::Colour& colour)
 {
 	int textureWidth = m_scanlineTexture->GetWidth();
@@ -464,198 +545,194 @@ void StateGame::DrawScanlineTexture(const ion::Colour& colour)
 }
 #endif
 
-void StateGame::OnSaveGame(u32 watchAddress, int watchSize, u32 watchValue)
+#if EMU_USE_INPUT_CALLBACKS
+U16 StateGame::OnInputRequest(int gamepadIdx, bool latch6button)
 {
-#if EVIL_EMU_USE_SAVES
-	//If data saved with FINAL build, but we're running DEMO, don't overwrite data
-#if EVIL_EMU_GAME_TYPE==EVIL_EMU_GAME_TYPE_DEMO
-	if (m_save.m_saveSlots.size() > 0)
+	//Update input if timed out
+	u64 currentTime = ion::time::GetSystemTicks();
+	if (ion::time::TicksToSeconds(currentTime - m_lastInputRequestTime) > ((double)EMU_INPUT_UPDATE_MS / 1000))
 	{
-		if (m_save.m_saveSlots.back().gameType != EVIL_EMU_GAME_TYPE_DEMO)
+		m_lastInputRequestTime = currentTime;
+
+		if (m_keyboard && gamepadIdx == 0)
 		{
-			return;
+			m_keyboard->Update();
+		}
+
+		if (m_gamepads.size() > gamepadIdx && m_gamepads[gamepadIdx])
+		{
+			m_gamepads[gamepadIdx]->Poll();
 		}
 	}
-#endif
 
-	//New save slot
-	Save::SaveSlot saveSlot;
+	//Respond with input if window has focus
+	u32 buttonState = 0;
 
-	saveSlot.serialiseData.clear();
-	saveSlot.serialiseData.reserve(snasm68k_symbol_CheckpointSerialiseBlockSize_val);
-
-#if EVIL_EMU_GAME_TYPE==EVIL_EMU_GAME_TYPE_FINAL
-	//Copy serialise block
-	for (int i = 0; i < snasm68k_symbol_CheckpointSerialiseBlockSize_val; i++)
+	if (m_windowHasFocus)
 	{
-		saveSlot.serialiseData.push_back(MEM_getByte(snasm68k_symbol_CheckpointSerialiseMemBlock_val + i));
-	}
-
-	//Get save version
-	saveSlot.saveVersion = MEM_getWord(snasm68k_symbol_LastSaveVersion_val);
-#endif
-
-	//Get game type
-	saveSlot.gameType = EVIL_EMU_GAME_TYPE;
-
-	//Get password
-	saveSlot.password = MEM_getLong(snasm68k_symbol_CurrentSavePassword_val);
-
-	//Get firefly counts
-	saveSlot.firefliesAct = MEM_getWord(snasm68k_symbol_FireflyPickupCountAct_val);
-	saveSlot.firefliesGame = MEM_getWord(snasm68k_symbol_FireflyPickupCountTotalSave_val);
-
-	//Get level address
-	saveSlot.levelAddr = MEM_getLong(snasm68k_symbol_CurrentLevel_val);
-
-	//Get level index
-	saveSlot.levelIdx = MEM_getByte(saveSlot.levelAddr + snasm68k_symbol_Level_Index_val);
-
-	//Get save version
-	saveSlot.saveVersion = MEM_getWord(snasm68k_symbol_LastSaveVersion_val);
-
-	//If slot differs from last
-	if (m_save.m_saveSlots.size() == 0 || !(saveSlot == m_save.m_saveSlots.back()))
-	{
-		//Time stamp
-		saveSlot.timeStamp = ion::time::GetLocalTime();
-
-		//Add slot
-		m_save.m_saveSlots.push_back(saveSlot);
-
-		//Save to disk
-		m_saveManager.SaveGame(m_save);
-	}
-#endif // EVIL_EMU_USE_SAVES
-}
-
-void StateGame::OnGetSaveAvailable(u32 watchAddress, int watchSize, u32 watchValue)
-{
-#if EVIL_EMU_USE_SAVES
-	//Backwards compatibility with fixed slots - check slot 0 has valid password
-	bool available = m_save.m_saveSlots.size() > 0 && m_save.m_saveSlots[0].password != 0;
-
-		//If data saved with FINAL build, but we're running DEMO, data isn't compatible
-#if EVIL_EMU_GAME_TYPE==EVIL_EMU_GAME_TYPE_DEMO
-	if (m_save.m_saveSlots.size() > 0 && m_save.m_saveSlots[0].gameType != EVIL_EMU_GAME_TYPE_DEMO)
-	{
-		available = false;
-	}
-#endif
-
-	//Set save available
-	MEM_setByte(snasm68k_symbol_EmuData_SaveAvailable_val, available ? 0x01 : 0x00);
-
-	//Notify game if waiting
-	MEM_setByte(snasm68k_symbol_EmuData_AwaitingResponse_val, 0x01);
-#endif // EVIL_EMU_USE_SAVES
-}
-
-void StateGame::OnGetSaveData(u32 watchAddress, int watchSize, u32 watchValue)
-{
-#if EVIL_EMU_USE_SAVES
-	if (m_save.m_saveSlots.size() > 1)
-	{
-		//Open save slot menu
-		m_saveSlotsMenu = new MenuSaveSlots(*m_gui, /* font, */ m_window, m_save,
-			[&](int index)
+		//Update digital input
+		for (int i = 0; i < eBtn_MAX; i++)
 		{
-			if (index >= 0)
+			if (gamepadIdx == 0 && m_keyboard && m_keyboard->KeyDown(m_settings.keyboardMap[i]))
 			{
-				//Apply save slot data
-				ApplySaveData(index);
+				buttonState |= (latch6button ? (g_emulatorButtonBits[i] >> 16) : (g_emulatorButtonBits[i] & 0xFFFF));
+			}
 
-				//Notify game if waiting
-				MEM_setByte(snasm68k_symbol_EmuData_AwaitingResponse_val, 0x01);
+			if (m_gamepads.size() > gamepadIdx && m_gamepads[gamepadIdx])
+			{
+				bool buttonDown = false;
+				for (int j = 0; j < m_settings.gamepadMap[i].size(); j++)
+				{
+					buttonDown |= m_gamepads[gamepadIdx]->ButtonDown(m_settings.gamepadMap[i][j]);
+				}
+
+				if (buttonDown)
+				{
+					buttonState |= (latch6button ? (g_emulatorButtonBits[i] >> 16) : (g_emulatorButtonBits[i] & 0xFFFF));
+				}
+			}
+		}
+
+		//Update analogue input
+		if (m_gamepads.size() > gamepadIdx && m_gamepads[gamepadIdx])
+		{
+			if (m_gamepads[gamepadIdx]->GetLeftStick().x < -m_settings.analogueDeadzone)
+				buttonState |= (latch6button ? (g_emulatorButtonBits[eBtn_Left] >> 16) : (g_emulatorButtonBits[eBtn_Left] & 0xFFFF));
+			if (m_gamepads[gamepadIdx]->GetLeftStick().x > m_settings.analogueDeadzone)
+				buttonState |= (latch6button ? (g_emulatorButtonBits[eBtn_Right] >> 16) : (g_emulatorButtonBits[eBtn_Right] & 0xFFFF));
+			if (m_gamepads[gamepadIdx]->GetLeftStick().y > m_settings.analogueDeadzone)
+				buttonState |= (latch6button ? (g_emulatorButtonBits[eBtn_Up] >> 16) : (g_emulatorButtonBits[eBtn_Up] & 0xFFFF));
+			if (m_gamepads[gamepadIdx]->GetLeftStick().y < -m_settings.analogueDeadzone)
+				buttonState |= (latch6button ? (g_emulatorButtonBits[eBtn_Down] >> 16) : (g_emulatorButtonBits[eBtn_Down] & 0xFFFF));
+		}
+	}
+
+	//With thanks to byuu for this tip <3
+	return buttonState;
+}
+#endif
+
+#if defined ION_SERVICES
+void StateGame::QueryLoginSaves()
+{
+	//Start the sequence
+	m_loginSaveQueryState = LoginSaveQueryState::LoggingIn;
+
+	//Log in
+	if (!m_currentUser)
+	{
+		ion::engine.services.userManager->RequestLogin(std::bind(&StateGame::OnUserLoggedIn, this, std::placeholders::_1, std::placeholders::_2));
+	}
+}
+
+void StateGame::UpdateLoginSaveQueryState()
+{
+	switch (m_loginSaveQueryState)
+	{
+	case LoginSaveQueryState::LoggingIn:
+	{
+		if (m_currentUser)
+		{
+#if EVIL_EMU_USE_SAVES
+			//Begin async save initialise
+			m_loginSaveQueryState = LoginSaveQueryState::SaveInitialising;
+
+			m_saveManager.InitSave(*m_currentUser,
+				[this](bool success)
+			{
+				//Begin async save query
+				m_loginSaveQueryState = LoginSaveQueryState::SaveQuerying;
+				LoadSavesAsync();
+			});
+#else
+#endif
+		}
+
+		break;
+	}
+
+	case LoginSaveQueryState::SaveQuerying:
+		break;
+
+	case LoginSaveQueryState::SaveLoaded:
+	{
+#if EVIL_EMU_USE_SAVES
+		//Inject available state
+		OnSaveDataLoaded();
+
+		m_loginSaveQueryState = LoginSaveQueryState::SaveInjected;
+#endif
+
+		break;
+	}
+
+	case LoginSaveQueryState::Idle:
+	case LoginSaveQueryState::SaveInitialising:
+	case LoginSaveQueryState::SaveInjected:
+	case LoginSaveQueryState::Error:
+	default:
+		break;
+	};
+}
+
+void StateGame::OnUserLoggedIn(ion::services::UserManager::LoginResult result, ion::services::User* user)
+{
+	m_currentUser = user;
+}
+
+void StateGame::OnUserLoggedOut(ion::services::User& user)
+{
+	if (&user == m_currentUser)
+	{
+		m_currentUser = nullptr;
+	}
+}
+#endif
+
+#if EVIL_EMU_USE_SAVES
+bool StateGame::SavesAvailable()
+{
+#if EVIL_EMU_MULTIPLE_SAVESLOTS
+	//Backwards compatibility with fixed slots - check slot 0 has valid password
+	return (m_save.m_saveSlots.size() > 0) && (m_save.m_saveSlots[0].password != 0);
+#else
+	return m_save.m_saveSlots.size() > 0;
+#endif
+}
+
+void StateGame::LoadSavesAsync()
+{
+	ion::debug::Assert(m_currentUser, "StateGame::LoadSavesAsync() - No current user");
+
+	//Async load
+	m_saveManager.LoadGame(*m_currentUser,
+		[this](Save& saveData, bool success)
+		{
+			if (success)
+			{
+#if EVIL_EMU_MULTIPLE_SAVESLOTS
+				//Backwards compatibility - remove saves with invalid passwords
+				for (int i = 0; i < saveData.m_saveSlots.size();)
+				{
+					if (saveData.m_saveSlots[i].password == 0)
+					{
+						saveData.m_saveSlots.erase(m_save.m_saveSlots.begin() + i);
+					}
+					else
+					{
+						i++;
+					}
+				}
+#endif
 			}
 			else
 			{
-				//Canceled
-				MEM_setByte(snasm68k_symbol_EmuData_AwaitingResponse_val, 0x00);
+				//Could not load, clear save slots
+				saveData.m_saveSlots.clear();
 			}
 
-			//Destroy save slots menu
-			m_gui->DeleteWindow(*m_saveSlotsMenu);
-			m_saveSlotsMenu = nullptr;
-		}
-		);
-
-		m_gui->AddWindow(*m_saveSlotsMenu);
-	}
-	else
-	{
-		//Apply save slot 0 data
-		ApplySaveData(0);
-
-		//Notify game if waiting
-		MEM_setByte(snasm68k_symbol_EmuData_AwaitingResponse_val, 0x01);
-	}
-#endif // EVIL_EMU_USE_SAVES
+			m_save = saveData;
+			m_loginSaveQueryState = LoginSaveQueryState::SaveLoaded;
+		});
 }
-
-void StateGame::InitSaves()
-{
-#if EVIL_EMU_USE_SAVES
-	//Try loading game
-	if (!m_saveManager.LoadGame(m_save))
-	{
-		//Could not load, clear save slots
-		m_save.m_saveSlots.clear();
-	}
-
-	//Backwards compatibility - remove saves with invalid passwords
-	for (int i = 0; i < m_save.m_saveSlots.size();)
-	{
-		if (m_save.m_saveSlots[i].password == 0)
-		{
-			m_save.m_saveSlots.erase(m_save.m_saveSlots.begin() + i);
-		}
-		else
-		{
-			i++;
-		}
-	}
-#endif // EVIL_EMU_USE_SAVES
-}
-
-void StateGame::ApplySaveData(int slot)
-{
-#if EVIL_EMU_USE_SAVES
-	//If data saved with FINAL build, but we're running DEMO, data isn't compatible
-#if EVIL_EMU_GAME_TYPE==EVIL_EMU_GAME_TYPE_DEMO
-	if (m_save.m_saveSlots[slot].gameType != EVIL_EMU_GAME_TYPE_DEMO)
-	{
-		MEM_setByte(snasm68k_symbol_EmuData_SaveAvailable_val, 0x00);
-		MEM_setLong(snasm68k_symbol_CurrentSavePassword_val, 0x00000000);
-		MEM_setByte(snasm68k_symbol_EmuData_AwaitingResponse_val, 0x01);
-		return;
-	}
 #endif
-
-#if EVIL_EMU_GAME_TYPE==EVIL_EMU_GAME_TYPE_FINAL
-	//Inject serialise block into game memory
-	if (snasm68k_symbol_CheckpointSerialiseBlockSize_val == m_save.m_saveSlots[slot].serialiseData.size())
-	{
-		for (int i = 0; i < snasm68k_symbol_CheckpointSerialiseBlockSize_val; i++)
-		{
-			MEM_setByte(snasm68k_symbol_CheckpointSerialiseMemBlock_val + i, m_save.m_saveSlots[slot].serialiseData[i]);
-		}
-	}
-
-	//Set save version
-	MEM_setWord(snasm68k_symbol_LastSaveVersion_val, m_save.m_saveSlots[slot].saveVersion);
-#endif
-
-	//Set password
-	MEM_setLong(snasm68k_symbol_CurrentSavePassword_val, m_save.m_saveSlots[slot].password);
-
-	//Set firefly counts
-	MEM_setWord(snasm68k_symbol_FireflyPickupCountAct_val, m_save.m_saveSlots[slot].firefliesAct);
-	MEM_setWord(snasm68k_symbol_FireflyPickupCountTotalSave_val, m_save.m_saveSlots[slot].firefliesGame);
-
-	//Set level address (fetch from index - address may change between builds)
-	u32 levelAddrEntry = snasm68k_symbol_LevelList_val + (m_save.m_saveSlots[slot].levelIdx * M68K_SIZE_LONG);
-	u32 levelAddr = MEM_getLong(levelAddrEntry);
-	MEM_setLong(snasm68k_symbol_CurrentLevel_val, levelAddr);
-#endif // EVIL_EMU_USE_SAVES
-}

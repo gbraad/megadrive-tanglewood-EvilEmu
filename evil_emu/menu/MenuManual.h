@@ -33,7 +33,7 @@ private:
 	ion::gui::Button* m_buttonPrev;
 	ion::gui::Button* m_buttonBack;
 
-	ion::render::Texture* m_currentTexture;
+	std::vector<ion::io::ResourceHandle<ion::render::Texture>> m_textures;
+	ion::io::ResourceHandle<ion::render::Texture> m_currentTexture;
 	int m_currentImageIdx;
-	std::vector<std::string> m_imageFilenames;
 };

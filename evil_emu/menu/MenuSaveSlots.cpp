@@ -1,6 +1,8 @@
 
 #include "MenuSaveSlots.h"
 
+#if EVIL_EMU_USE_SAVES && EVIL_EMU_MULTIPLE_SAVESLOTS
+
 #include "roms/include_vars.h"
 
 #include <ion/core/utils/STL.h>
@@ -41,10 +43,6 @@ const char* g_levelList[] =
 MenuSaveSlots::MenuSaveSlots(ion::gui::GUI& gui, /* ion::gui::Font& font, */ ion::render::Window& appWindow, Save& save, std::function<void(int)> const& onClosed)
 	: ion::gui::Window("Select Save", ion::Vector2i(), ion::Vector2i())
 	, m_onClosed(onClosed)
-	, m_gui(gui)
-	//, m_font(font)
-	, m_appWindow(appWindow)
-	, m_save(save)
 {
 	SetCentred(true);
 	//SetFont(font);
@@ -54,10 +52,8 @@ MenuSaveSlots::MenuSaveSlots(ion::gui::GUI& gui, /* ion::gui::Font& font, */ ion
 	AllowResize(false);
 	AllowRollUp(false);
 
-#if EVIL_EMU_USE_SAVES
-
 	//Populate save slot buttons (in reverse order)
-	for (int i = save.m_saveSlots.size() - 1; i >= 0; i--)
+	for (int i = (int)save.m_saveSlots.size() - 1; i >= 0; i--)
 	{
 		Save::SaveSlot& slot = save.m_saveSlots[i];
 
@@ -66,7 +62,7 @@ MenuSaveSlots::MenuSaveSlots(ion::gui::GUI& gui, /* ion::gui::Font& font, */ ion
 		buttonLabel << "\nTime: " << SSTREAM_INT2(slot.timeStamp.GetDay()) << "/" << SSTREAM_INT2(slot.timeStamp.GetMonth()) << "/" << SSTREAM_INT4(slot.timeStamp.GetYear())
 			<< " " << slot.timeStamp.GetHour() << ":" << SSTREAM_INT2(slot.timeStamp.GetMinute()) << ":" << SSTREAM_INT2(slot.timeStamp.GetSecond());
 		buttonLabel << "\nLevel: " << g_levelList[slot.levelIdx];
-		buttonLabel << "\nFireflies: " << slot.firefliesGame << "/" << snasm68k_symbol_TotalFireflyCount_val;
+		buttonLabel << "\nFireflies: " << slot.firefliesGame << "/" << m68k_symbol_TotalFireflyCount_val;
 		buttonLabel << "\nPassword: "
 			<< std::string(1, (char)((slot.password >> 0) & 0x0F) + 'A')
 			<< std::string(1, (char)((slot.password >> 4) & 0x0F) + 'A')
@@ -93,8 +89,6 @@ MenuSaveSlots::MenuSaveSlots(ion::gui::GUI& gui, /* ion::gui::Font& font, */ ion
 		m_saveSlotButtons.push_back(button);
 	}
 
-#endif // EVIL_EMU_USE_SAVES
-
 	m_btnCancel = new ion::gui::Button("Cancel", std::bind(&MenuSaveSlots::OnButtonCancel, this, std::placeholders::_1));
 	AddWidget(*m_btnCancel);
 }
@@ -117,7 +111,7 @@ void MenuSaveSlots::OnButtonSaveSelected(const ion::gui::Button& button)
 	{
 		if (m_saveSlotButtons[i] == &button)
 		{
-			index = m_saveSlotButtons.size() - i - 1;
+			index = (int)m_saveSlotButtons.size() - i - 1;
 		}
 	}
 
@@ -128,3 +122,5 @@ void MenuSaveSlots::OnButtonCancel(const ion::gui::Button& button)
 {
 	m_onClosed(-1);
 }
+
+#endif

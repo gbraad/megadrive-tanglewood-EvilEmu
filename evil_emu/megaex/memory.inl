@@ -20,7 +20,7 @@ static inline U16 MEM_getWord(U32 address)
 #ifdef DEBUG
 	if (address & 1)
 	{
-		printf("Mem Get Word (Unaligned Read)\n");
+		EMU_PRINTF("Mem Get Word (Unaligned Read)\n");
 	}
 #endif
 
@@ -33,7 +33,7 @@ static inline U32 MEM_getLong(U32 address)
 #ifdef DEBUG
 	if (address & 1)
 	{
-		printf("Mem Get Long (Unaligned Read)\n");
+		EMU_PRINTF("Mem Get Long (Unaligned Read)\n");
 	}
 #endif
 
@@ -54,7 +54,7 @@ static inline void MEM_setWord(U32 address, U16 word)
 #ifdef DEBUG
 	if (address & 1)
 	{
-		printf("Mem Set Word (Unaligned Write)\n");
+		EMU_PRINTF("Mem Set Word (Unaligned Write)\n");
 	}
 #endif
 
@@ -67,7 +67,7 @@ static inline void MEM_setLong(U32 address, U32 dword)
 #ifdef DEBUG
 	if (address & 1)
 	{
-		printf("Mem Set Long (Unaligned Write)\n");
+		EMU_PRINTF("Mem Set Long (Unaligned Write)\n");
 	}
 #endif
 

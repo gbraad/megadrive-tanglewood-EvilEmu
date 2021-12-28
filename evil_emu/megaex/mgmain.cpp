@@ -79,6 +79,7 @@ THE SOFTWARE.
 #include <ion/core/debug/Debug.h>
 #include <ion/core/time/Time.h>
 #include <ion/maths/Maths.h>
+#include <ion/core/io/File.h>
 
 u64 g_cpuTicks = 0;
 u64 g_fpsCountTicks = 0;
@@ -248,7 +249,7 @@ U8 SYS_32X_Read(U16 adr,int accessor)
 	case 0x39:
 		return (SH2_PWMMonoPulseWidthRegister&0xFF)&0x00;
 	}
-	printf("%08X",adr);
+	EMU_PRINTF("%08X",adr);
 	DEB_PauseEmulation(accessor,"32X SYS Unsupported Read");
 	return 0xFF;
 }
@@ -406,7 +407,7 @@ void SYS_32X_Write(U16 adr,U8 byte,int accessor)
 		SH2_PWMMonoPulseWidthRegister|=byte;
 		return;
 	}
-	printf("%08X",adr);
+	EMU_PRINTF("%08X",adr);
 	DEB_PauseEmulation(accessor,"32X SYS Unsupported Write");
 }
 
@@ -439,7 +440,7 @@ U8 VDP_32X_Read(U16 adr,int accessor)
 	case 0x0B:
 		return FrameBufferSwitchRead&0xFF;
 	}
-	printf("%08X",adr);
+	EMU_PRINTF("%08X",adr);
 	DEB_PauseEmulation(accessor,"32X VDP Unsupported Read");
 	return 0xFF;
 }
@@ -530,7 +531,7 @@ void VDP_32X_Write(U16 adr,U8 byte,int accessor)
 		return;
 	}
 
-	printf("%08X",adr);
+	EMU_PRINTF("%08X",adr);
 	DEB_PauseEmulation(accessor,"32X VDP Unsupported Write");
 }
 
@@ -600,7 +601,7 @@ void MEM_Set_Byte32X(U32 adr,U8 byte,int accessor)
 		return;
 	}
 
-	printf("Write To Unmapped Address : %08X <- %02X\n",adr,byte);
+	EMU_PRINTF("Write To Unmapped Address : %08X <- %02X\n",adr,byte);
 	DEB_PauseEmulation(accessor,"Unmapped SH2 write");
 }
 
@@ -669,7 +670,7 @@ U8 MEM_Get_Byte32X(U32 adr,int accessor)
 		return SDRAM[adr-0x06000000];
 
 
-	printf("Read From Unmapped Address : %08X",adr);
+	EMU_PRINTF("Read From Unmapped Address : %08X",adr);
 
 	DEB_PauseEmulation(accessor,"Unmapped read from address");
 	return 0xFF;
@@ -695,9 +696,9 @@ U8 SH2_Slave_Read(U32 adr)
 #endif
 
 #if defined _DEBUG
-#define HEADER_DEBUG printf
+#define HEADER_DEBUG EMU_PRINTF
 #else
-#define HEADER_DEBUG
+#define HEADER_DEBUG(fmt, ...) {}
 #endif
 
 void ParseRomHeader(const unsigned char *header)
@@ -799,7 +800,7 @@ void ParseRomHeader(const unsigned char *header)
 		Globals::SRAM_Size+=1;
 
 		Globals::SRAM = (unsigned char *)malloc(Globals::SRAM_Size);
-		memset(Globals::SRAM,0, Globals::SRAM_Size);
+		memset(Globals::SRAM,0xFF, Globals::SRAM_Size);
 	}
 	else
 	{
@@ -843,45 +844,42 @@ void load_rom(const unsigned char* romData, unsigned int *numBanks, U32 _romSize
 
 unsigned char *load_rom(const char *romName,unsigned int *numBanks,U32* _romSize)
 {
-    FILE *inRom;
-    unsigned char *romData;
-	
-    inRom = fopen(romName,"rb");
-    if (!inRom)
-    {
+	unsigned char *romData = nullptr;
+
+	ion::io::File file(romName, ion::io::File::OpenMode::Read);
+	if (file.IsOpen())
+	{;
+		romSize = file.GetSize();
+
+		if ((romSize & 0xFFFF) != 0)
+		{
+			*numBanks = (romSize >> 16) + 1;
+		}
+		else
+		{
+			*numBanks = romSize >> 16;
+		}
+
+		romData = (unsigned char *)malloc(romSize);
+		if (romSize != file.Read(romData, romSize))
+		{
+			file.Close();
 			return 0;
-    }
-    fseek(inRom,0,SEEK_END);
-    romSize = ftell(inRom);
+		}
 
-	if ((romSize&0xFFFF) != 0)
-	{
-		*numBanks= (romSize>>16) + 1;
-	}
-	else
-	{
-		*numBanks = romSize>>16;
-	}
-
-	fseek(inRom,0,SEEK_SET);
-
-    romData = (unsigned char *)malloc(romSize);
-    if (romSize != fread(romData,1,romSize,inRom))
-	{
-		fclose(inRom);
-		return 0;
-	}
-    fclose(inRom);
+		file.Close();
 
 #if (!SMS_MODE) && (!ENABLE_32X_MODE)
-  ParseRomHeader(romData+0x100);
+		ParseRomHeader(romData + 0x100);
 #endif
 
-	*_romSize = romSize;
+		*_romSize = romSize;
+	}
 
 	return romData;
 }
 
+#if EMU_SAVE_SRAM
 void LoadSRAM(const char* filename)
 {
 	FILE *inSRam;
@@ -913,32 +911,56 @@ void SaveSRAM(const char* filename)
 	fwrite(Globals::SRAM,1, Globals::SRAM_Size,inSRam);
 	fclose(inSRam);
 }
+#endif
 
 extern int startDebug;
 
 U32* pixelPosition(int x,int y)
 {
 #if VDP_SCALE_2X
-	return &((U32*)VDP::videoMemory)[(y * LINE_LENGTH * 4) + (x * 2)];
+	return &((U32*)VDP::videoMemory)[(y * DRAW_BUFFER_WIDTH * 4) + (x * 2)];
 #else
-	return &((U32*)VDP::videoMemory)[y*LINE_LENGTH + x];
+	return &((U32*)VDP::videoMemory)[y*DRAW_BUFFER_WIDTH + x];
 #endif
+}
+
+U32* pixelPositionNoScale(int x, int y)
+{
+	return &((U32*)VDP::videoMemory)[(y * DRAW_BUFFER_WIDTH * 2) + (x * 2)];
 }
 
 void doPixel32(int x,int y,U32 colour)
 {
-	U32 *pixmem32;
-	
-	if (y>=HEIGHT || x>=LINE_LENGTH)
+	if (y>=DRAW_BUFFER_HEIGHT || x>= DRAW_BUFFER_WIDTH)
 		return;
+
+	U32* pixmem32 = pixelPosition(x, y);
 	
 #if VDP_SCALE_2X
-	pixmem32 = &((U32*)VDP::videoMemory)[(y * LINE_LENGTH * 4) + (x * 2)];
 	*pixmem32++ = colour;
 	*pixmem32 = colour;
 #else
-	pixmem32 = &((U32*)VDP::videoMemory)[y*LINE_LENGTH + x];
 	*pixmem32 = colour;
+#endif
+}
+
+void doPixel32NoScale(int x, int y, U32 colour)
+{
+#if VDP_SCALE_2X
+	if (y >= (DRAW_BUFFER_HEIGHT*2) || x >= (DRAW_BUFFER_WIDTH*2))
+		return;
+#else
+	if (y >= DRAW_BUFFER_HEIGHT || x >= DRAW_BUFFER_WIDTH)
+		return;
+#endif
+
+	U32* pixmem32 = pixelPositionNoScale(x, y);
+
+#if VDP_SCALE_2X
+	* pixmem32++ = colour;
+	*pixmem32 = colour;
+#else
+	* pixmem32 = colour;
 #endif
 }
 
@@ -950,8 +972,19 @@ void doPixel(int x,int y,U8 colHi,U8 colLo)
 	U8 g = (colLo&0xF0);
 	U8 b = (colLo&0x0F)<<4;
 	
-	colour = (r<<16) | (g<<8) | (b<<0);
+	colour = (0xFF<<24) | (r<<16) | (g<<8) | (b<<0);
 	doPixel32(x,y,colour);
+}
+
+void doPixelNoScale(int x, int y, U8 colHi, U8 colLo)
+{
+	U32 colour;
+	U8 r = (colHi & 0x0F) << 4;
+	U8 g = (colLo & 0xF0);
+	U8 b = (colLo & 0x0F) << 4;
+
+	colour = (r << 16) | (g << 8) | (b << 0);
+	doPixel32NoScale(x, y, colour);
 }
 
 void doPixelClipped(int x,int y,U8 colHi,U8 colLo)
@@ -962,11 +995,27 @@ void doPixelClipped(int x,int y,U8 colHi,U8 colLo)
 	U8 g = (colLo&0xF0);
 	U8 b = (colLo&0x0F)<<4;
 	
-	if (x<128 || x>128+40*8 || y<128 || y>128+224)
+	if (x < 0 || x > VDP_SCREEN_WIDTH_TILES * 8 || y < 0 || y > VDP_SCREEN_HEIGHT_TILES * 8)
 		return;
 	
-	colour = (r<<16) | (g<<8) | (b<<0);
-	pixmem32 = &((U32*)VDP::videoMemory)[y*LINE_LENGTH + x];
+	colour = (0xFF<<24)| (r<<16) | (g<<8) | (b<<0);
+	pixmem32 = pixelPosition(x, y);
+	*pixmem32 = colour;
+}
+
+void doPixelClippedNoScale(int x, int y, U8 colHi, U8 colLo)
+{
+	U32* pixmem32;
+	U32 colour;
+	U8 r = (colHi & 0x0F) << 4;
+	U8 g = (colLo & 0xF0);
+	U8 b = (colLo & 0x0F) << 4;
+
+	if (x < 0 || x > VDP_SCREEN_WIDTH_TILES * 8 || y < 0 || y > VDP_SCREEN_HEIGHT_TILES * 8)
+		return;
+
+	colour = (0xFF << 24) | (r << 16) | (g << 8) | (b << 0);
+	pixmem32 = pixelPositionNoScale(x, y);
 	*pixmem32 = colour;
 }
 
@@ -1016,7 +1065,7 @@ float GetGameTime()
 {
   float time;
  
-  time = ion::time::TicksToSeconds(ion::time::GetSystemTicks());
+  time = (float)ion::time::TicksToSeconds(ion::time::GetSystemTicks());
   time -= timeAtGameStart;
   return time;
 }
@@ -1095,6 +1144,7 @@ bool InitialiseEmulator(const unsigned char* romData, U32 romSize)
 
 	MEM_Initialise((unsigned char*)romData, romSize, numBlocks);
 
+	VDP_Init();
 	CPU_Reset();
 	Z80_Reset();
 
@@ -1106,7 +1156,6 @@ bool InitialiseEmulator(const char* rom)
 	unsigned int numBlocks;
 	unsigned char *romPtr;
 	U32 size;
-	int running = 1;
 
 	if(rom)
 	{
@@ -1123,15 +1172,17 @@ bool InitialiseEmulator(const char* rom)
 	if(!romPtr)
 	{
 		#if defined _DEBUG
-		printf("[ERR] Failed to load rom image\n");
+		EMU_PRINTF("[ERR] Failed to load rom image\n");
 		#endif
 		return false;
 	}
 
+#if EMU_SAVE_SRAM
 	if(Globals::SRAM)
 	{
 		LoadSRAM(saveName);
 	}
+#endif
 
 	InitGameTime();
 	AudioInitialise();
@@ -1141,6 +1192,7 @@ bool InitialiseEmulator(const char* rom)
 
 	MEM_Initialise((unsigned char*)romPtr, size, numBlocks);
 
+	VDP_Init();
 	CPU_Reset();
 	Z80_Reset();
 
@@ -1149,16 +1201,22 @@ bool InitialiseEmulator(const char* rom)
 
 void ShutdownEmulator()
 {
+#if EMU_SAVE_SRAM
 	if(Globals::SRAM)
 	{
 		SaveSRAM(saveName);
 	}
+#endif
+
+	VDP_Shutdown();
 }
 
-void EmulatorSetButtonState(u16 buttonState)
+#if !EMU_USE_INPUT_CALLBACKS
+void EmulatorSetButtonState(int gamepadIdx, u16 buttonState)
 {
-	Globals::keyStatusJoyA = buttonState;
+	Globals::gamepadStates[gamepadIdx] = buttonState;
 }
+#endif
 
 const char* EmulatorGetROMTitle()
 {

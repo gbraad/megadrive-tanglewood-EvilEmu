@@ -24,7 +24,8 @@ typedef unsigned char LJ_YM_UINT8;
 typedef unsigned short LJ_YM_UINT16;
 typedef unsigned int LJ_YM_UINT32;
 
-#define LJ_YM2612_DEFAULT_CLOCK_RATE (7670453)
+#define LJ_YM2612_DEFAULT_CLOCK_RATE (7670453) // NTSC
+//#define LJ_YM2612_DEFAULT_CLOCK_RATE (7600489) // PAL
 
 typedef short LJ_YM_INT16;
 
@@ -55,5 +56,8 @@ LJ_YM2612_RESULT LJ_YM2612_setAddressPinsCSRDWRA1A0(LJ_YM2612* const ym2612Ptr, 
 																						 				LJ_YM_UINT8 A1, LJ_YM_UINT8 A0);
 
 LJ_YM2612_RESULT LJ_YM2612_generateOutput(LJ_YM2612* const ym2612Ptr, int numCycles, LJ_YM_INT16* output[2]);
+
+int LJ_YM2612_getTimerA(LJ_YM2612* const ym2612Ptr);
+int LJ_YM2612_getTimerB(LJ_YM2612* const ym2612Ptr);
 
 #endif /* #ifndef LJ_YM2612_HH */

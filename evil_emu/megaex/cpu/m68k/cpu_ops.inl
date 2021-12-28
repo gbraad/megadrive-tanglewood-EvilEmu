@@ -974,7 +974,7 @@ static inline U32 getEffectiveAddress(U16 operand, int length)
 		if ((operand == 0x1F) && (length == 1))
 		{
 			#if defined _DEBUG
-			printf("Byte size post decrement to stack");
+			EMU_PRINTF("Byte size post decrement to stack");
 			#endif
 			length = 2;
 		}
@@ -992,7 +992,7 @@ static inline U32 getEffectiveAddress(U16 operand, int length)
 		if ((operand == 0x27) && (length == 1))
 		{
 			#if defined _DEBUG
-			printf("Byte size preincrement to stack");
+			EMU_PRINTF("Byte size preincrement to stack");
 			#endif
 			length = 2;
 		}
@@ -1088,7 +1088,7 @@ static inline U32 getEffectiveAddress(U16 operand, int length)
 		break;
 	default:
 		#if defined _DEBUG
-		printf("[ERR] Unsupported effective addressing mode : %04X\n", operand);
+		EMU_PRINTF("[ERR] Unsupported effective addressing mode : %04X\n", operand);
 		SOFT_BREAK;
 		#endif
 		break;
@@ -7550,8 +7550,7 @@ static inline U32 CPU_MOVEP_m_L(U32 stage, U16* operands)
 	ead |= MEM_getByte(eas + 4) << 8;
 	ead |= MEM_getByte(eas + 6);
 
-	M68K::cpu_regs.D[operands[0]] &= ~0xFFFF;
-	M68K::cpu_regs.D[operands[0]] |= ead;
+	M68K::cpu_regs.D[operands[0]] = ead;
 
 #if CPU_COMBINE_STAGES
 	return 1;

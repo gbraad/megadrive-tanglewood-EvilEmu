@@ -19,6 +19,7 @@
 #include <ion/gui/ComboBox.h>
 #include <ion/gui/TextBox.h>
 
+#include "constants.h"
 #include "settings.h"
 #include "menu/MenuCommon.h"
 #include "menu/MenuSettings.h"
@@ -36,7 +37,7 @@ public:
 	virtual void OnPauseState();
 	virtual void OnResumeState();
 
-	virtual bool Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad);
+	virtual bool Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, const std::vector<ion::input::Gamepad*>& gamepads);
 	virtual void Render(ion::render::Renderer& renderer, const ion::render::Camera& camera, ion::render::Viewport& viewport);
 
 private:
@@ -48,12 +49,18 @@ private:
 
 	ion::render::Window& m_appWindow;
 
+#if defined ION_RENDERER_SHADER
+	ion::io::ResourceHandle<ion::render::Shader> m_shaderFlatTextured;
+#endif
+
+#if EVIL_EMU_USE_UTILITY_MENUS
 	ion::gui::GUI* m_gui;
 	ion::gui::Font* m_font;
-	MenuSettings* m_windowMain;
 	ion::gui::Button* m_buttonResumeGame;
 	ion::gui::Button* m_buttonQuitGame;
 	ion::gui::TextBox* m_textVersion;
+	MenuSettings* m_windowMain;
+#endif
 
 	bool m_running;
 };

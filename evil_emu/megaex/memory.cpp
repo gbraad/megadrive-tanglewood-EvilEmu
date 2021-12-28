@@ -42,10 +42,22 @@ THE SOFTWARE.
 
 #define SYS_RAM_SIZE		(64*1024)
 #define Z80_RAM_SIZE		(8*1024)
+#if VRAM_128KB_MODE
+#define VRAM_SIZE			(128*1024)
+#else
 #define VRAM_SIZE			(64*1024)
+#endif
 #define CRAM_SIZE			(128)
 #define VSRAM_SIZE			(80)
 #define CARTRAM_SIZE		(32*1024)		/* this is probably too big - 8k on most carts aparantly */
+
+#define IO_6BUTTON_LATCH_WRITE_COUNT	4
+#define IO_6BUTTON_LATCH_CYCLES			CYCLES_PER_FRAME_68K/2	//There's no fine art to the timing of this, depends on a capacitor in the controller going flat, differs by manufacturer/parts quality/condition/age
+
+//HI and LO latches as state machines
+#define IO_6BUTTON_LATCH_HI_STATE_1 1
+#define IO_6BUTTON_LATCH_LO_STATE_1 1
+#define IO_6BUTTON_LATCH_LO_STATE_2 0
 
 MEM_ReadByteMap Memory::mem_read[256];
 MEM_WriteByteMap Memory::mem_write[256];
@@ -68,7 +80,7 @@ unsigned char* Memory::smsBios;
 unsigned char* Memory::systemRam;
 unsigned char* Memory::z80Ram;
 
-static U32 bankAddress;
+U32 Memory::bankAddress = 0;
 
 U32 cartRomSize = 0;
 
@@ -89,23 +101,23 @@ U32 cartRomSize = 0;
 /* 9 bits must be set to set the bank address - bit 0 of bank is next bit of sequence */
 void BANK_Set(U8 bank)
 {
-	bankAddress>>=1;
+	Memory::bankAddress>>=1;
 	if (bank&1)
 	{
-		bankAddress|=0x00800000;
+		Memory::bankAddress|=0x00800000;
 	}
 
-	bankAddress&=0x00FF8000;
+	Memory::bankAddress&=0x00FF8000;
 }
 
 U8 BANKED_Read(U32 address)
 {
-	return MEM_getByte(bankAddress|address);
+	return MEM_getByte(Memory::bankAddress|address);
 }
 
 void BANKED_Write(U32 address, U8 data)
 {
-	MEM_setByte(bankAddress|address,data);
+	MEM_setByte(Memory::bankAddress|address,data);
 }
 
 U8 YM2612_Read(U8 address)
@@ -347,7 +359,7 @@ U8 Z80_IO_getByte(U16 address)
 		}
 	}
 /*
-	printf("IO Read : %04X\n",address);
+	EMU_PRINTF("IO Read : %04X\n",address);
 */
 	return 0xFF;
 }
@@ -373,7 +385,7 @@ void Z80_IO_setByte(U16 address,U8 data)
 		return;
 	}
 
-	printf("IO Write : %04X <- %02X\n",address,data);
+	EMU_PRINTF("IO Write : %04X <- %02X\n",address,data);
 }
 
 U32 SMS_Slot0_Bank=0x0000;
@@ -449,8 +461,8 @@ void Z80_MEM_setByte(U16 address,U8 data)
 		SMS_Ram_Control=data;
 		if (SMS_Ram_Control&0x17)
 		{
-			printf("Unhandled RAM Control : %02X\n",SMS_Ram_Control);
-			DEB_PauseEmulation(DEB_Mode_Z80,"RAM Mapper unhandled");
+			EMU_PRINTF("Unhandled RAM Control : %02X\n",SMS_Ram_Control);
+			DEB_PauseEmulation(DebugMode::Z80,"RAM Mapper unhandled");
 		}
 		if (SMS_Ram_Control&0x08)
 		{
@@ -785,7 +797,7 @@ Reading the control port returns a 16-bit word that allows you to observe
 U8 VDP_StatusRegisterHI()
 {
 /*	
-	printf("TODO : Status Read HI\n");
+	EMU_PRINTF("TODO : Status Read HI\n");
 */
 	return 0x36;		/* 0011 01   Fifo Empty set, fifo full clear  (TODO implement FIFO) */
 }
@@ -793,7 +805,7 @@ U8 VDP_StatusRegisterHI()
 U8 VDP_StatusRegisterLO()
 {
 /*
-	printf("TODO : Status Read LO\n");
+	EMU_PRINTF("TODO : Status Read LO\n");
 */
 
 	return 0x00 | (Globals::inVBlank<<3) | (Globals::inHBlank<<2);			/* TODO (rest - h and vblank okish) */
@@ -815,6 +827,18 @@ void VDP_ExecuteDataPortRead()			/* Need to check this implementation at some po
 	{
 	case 0x00:				/* VRAM Read */
 
+#if VRAM_128KB_MODE
+		if (VDP_latchDstAddress & 0x0001)
+		{
+			VDP_readDataLatch = Memory::vRam[(VDP_latchDstAddress & 0x1FFFE) + 0];
+			VDP_readDataLatch |= Memory::vRam[(VDP_latchDstAddress & 0x1FFFE) + 1] << 8;
+		}
+		else
+		{
+			VDP_readDataLatch = Memory::vRam[(VDP_latchDstAddress & 0x1FFFE) + 0] << 8;
+			VDP_readDataLatch |= Memory::vRam[(VDP_latchDstAddress & 0x1FFFE) + 1];
+		}
+#else
 		if (VDP_latchDstAddress & 0x0001)
 		{
 			VDP_readDataLatch = Memory::vRam[(VDP_latchDstAddress & 0xFFFE)+0];
@@ -825,7 +849,8 @@ void VDP_ExecuteDataPortRead()			/* Need to check this implementation at some po
 			VDP_readDataLatch = Memory::vRam[(VDP_latchDstAddress & 0xFFFE)+0]<<8;
 			VDP_readDataLatch|= Memory::vRam[(VDP_latchDstAddress & 0xFFFE)+1];
 		}
-
+#endif
+		//Auto-increment reg
 		VDP_latchDstAddress += VDP::VDP_Registers[0x0F];
 
 		return;
@@ -835,6 +860,7 @@ void VDP_ExecuteDataPortRead()			/* Need to check this implementation at some po
 		VDP_readDataLatch = Memory::cRam[(VDP_latchDstAddress & 0x7E)+0]<<8;
 		VDP_readDataLatch|= Memory::cRam[(VDP_latchDstAddress & 0x7E)+1];
 
+		//Auto-increment reg
 		VDP_latchDstAddress += VDP::VDP_Registers[0x0F];
 
 		return;
@@ -844,13 +870,14 @@ void VDP_ExecuteDataPortRead()			/* Need to check this implementation at some po
 		VDP_readDataLatch = Memory::vsRam[(VDP_latchDstAddress & 0x4E)+0]<<8;
 		VDP_readDataLatch|= Memory::vsRam[(VDP_latchDstAddress & 0x4E)+1];
 
+		//Auto-increment reg
 		VDP_latchDstAddress += VDP::VDP_Registers[0x0F];
 
 		return;
 	}
 
 #if defined _DEBUG
-	printf("Reading Data via unsupported mode : %02X\n",VDP_latchIdCode);
+	EMU_PRINTF("Reading Data via unsupported mode : %02X\n",VDP_latchIdCode);
 #endif
 	VDP_readDataLatch=0xFFFF;
 }
@@ -905,39 +932,39 @@ U8 VDP_ReadByte(U16 offset)			/* see vdp quirks */
 		return Globals::colNo;
 	case 0x10:		/* PSG */
 	case 0x11:
-		DEB_PauseEmulation(DEB_Mode_68000,"Lock up on real hardware");
+		DEB_PauseEmulation(DebugMode::M68K,"Lock up on real hardware");
 		return 0;
 	case 0x12:		/* PSG (mirror) */
 	case 0x13:
-		DEB_PauseEmulation(DEB_Mode_68000,"Lock up on real hardware");
+		DEB_PauseEmulation(DebugMode::M68K,"Lock up on real hardware");
 		return 0;
 	case 0x14:		/* PSG (mirror) */
 	case 0x15:
-		DEB_PauseEmulation(DEB_Mode_68000,"Lock up on real hardware");
+		DEB_PauseEmulation(DebugMode::M68K,"Lock up on real hardware");
 		return 0;
 	case 0x16:		/* PSG (mirror) */
 	case 0x17:
-		DEB_PauseEmulation(DEB_Mode_68000,"Lock up on real hardware");
+		DEB_PauseEmulation(DebugMode::M68K,"Lock up on real hardware");
 		return 0;
 	case 0x18:		/* Unused */
 	case 0x19:
-		DEB_PauseEmulation(DEB_Mode_68000,"TODO Return Prefetch");
+		DEB_PauseEmulation(DebugMode::M68K,"TODO Return Prefetch");
 		return 0xFF;
 	case 0x1A:		/* Unused */
 	case 0x1B:
-		DEB_PauseEmulation(DEB_Mode_68000,"TODO Return Prefetch");
+		DEB_PauseEmulation(DebugMode::M68K,"TODO Return Prefetch");
 		return 0xFF;
 	case 0x1C:		/* Unused	(Corruption on write) */
 	case 0x1D:
-		DEB_PauseEmulation(DEB_Mode_68000,"TODO Return Prefetch");
+		DEB_PauseEmulation(DebugMode::M68K,"TODO Return Prefetch");
 		return 0xFF;
 	case 0x1E:		/* Unused (Corruption on write) */
 	case 0x1F:	
-		DEB_PauseEmulation(DEB_Mode_68000,"TODO Return Prefetch");
+		DEB_PauseEmulation(DebugMode::M68K,"TODO Return Prefetch");
 		return 0xFF;
 	}
 
-	DEB_PauseEmulation(DEB_Mode_68000,"DONE SOMETHING WRONG.. VDP READ OUT OF BOUNDS");
+	DEB_PauseEmulation(DebugMode::M68K,"DONE SOMETHING WRONG.. VDP READ OUT OF BOUNDS");
 	return 0xFF;
 }
 
@@ -956,7 +983,7 @@ void VDP_WriteControlPortHI(U8 byte)
 		/* need to set flag to shift bytes correctly into latch*/
 		if (byte!=0)
 		{
-			DEB_PauseEmulation(DEB_Mode_68000,"VDP Hi Port Write - second half of transfer should have been 00!");
+			DEB_PauseEmulation(DebugMode::M68K,"VDP Hi Port Write - second half of transfer should have been 00!");
 		}
 		VDP_ControlPortLatch&=0xFFFF00FF;
 	}
@@ -995,16 +1022,21 @@ void VDP_DataModeStart()
 	IdCode = VDP_ControlPortLatch&0xC00000F0;
 	IdCode = ( (IdCode&0xF0) | ( (IdCode&0xC0000000)>>28) )>>2;
 
-	dstAddress= VDP_ControlPortLatch&0x3FFF0003;
-	dstAddress= ((dstAddress&0x3)<<14)|((dstAddress&0x3FFF0000)>>16);
+#if VRAM_128KB_MODE
+	dstAddress = VDP_ControlPortLatch & 0x3FFF0007;
+	dstAddress = ((dstAddress & 0x7) << 14) | ((dstAddress & 0x3FFF0000) >> 16);
+#else
+	dstAddress = VDP_ControlPortLatch & 0x3FFF0003;
+	dstAddress = ((dstAddress & 0x3) << 14) | ((dstAddress & 0x3FFF0000) >> 16);
+#endif
 
 	VDP_latchIdCode=IdCode;
 	VDP_latchDstAddress=dstAddress;
 
 /*
-	printf("VDP Reg : %08X\n",VDP_ControlPortLatch);
-	printf("Attempting Data Mode : %02X\n",IdCode);
-	printf("Address : %08X\n",dstAddress);
+	EMU_PRINTF("VDP Reg : %08X\n",VDP_ControlPortLatch);
+	EMU_PRINTF("Attempting Data Mode : %02X\n",IdCode);
+	EMU_PRINTF("Address : %08X\n",dstAddress);
 */
 	if (IdCode&0x20)
 	{
@@ -1015,7 +1047,7 @@ void VDP_DataModeStart()
 			if (VDP::VDP_Registers[23]&0x40)		/* Copy mode */
 			{
 				#if defined _DEBUG
-				printf("DMA request VRAM COPY.. ignoring for now!\n");
+				EMU_PRINTF("DMA request VRAM COPY.. ignoring for now!\n");
 				#endif
 				return;
 			}
@@ -1023,7 +1055,7 @@ void VDP_DataModeStart()
 			{
 				if ((IdCode&0x1F)!=1)	/* FILL mode...  */
 				{
-					DEB_PauseEmulation(DEB_Mode_68000,"unsupported setting in fill mode.. probably stuffed something up");
+					//DEB_PauseEmulation(DebugMode::M68K,"unsupported setting in fill mode.. probably stuffed something up");
 					return;
 				}
 				else
@@ -1049,7 +1081,11 @@ void VDP_DataModeStart()
 					if ((VDP::VDP_Registers[0x0F] == 2) && !(dstAddress & 0x0001))
 					{
 						unsigned char* src = MEM_getDMAAddr(srcAddress);
+#if VRAM_128KB_MODE
+						unsigned char* dst = &Memory::vRam[dstAddress & 0x1FFFE];
+#else
 						unsigned char* dst = &Memory::vRam[dstAddress & 0xFFFE];
+#endif
 						memcpy(dst, src, length * 2);
 					}
 					else
@@ -1060,6 +1096,19 @@ void VDP_DataModeStart()
 							U16 dataWord = MEM_getWord(srcAddress);
 
 							srcAddress += 2;
+
+#if VRAM_128KB_MODE
+							if (dstAddress & 0x0001)
+							{
+								Memory::vRam[(dstAddress & 0x1FFFE) + 0] = dataWord & 0xFF;
+								Memory::vRam[(dstAddress & 0x1FFFE) + 1] = (dataWord & 0xFF00) >> 8;
+							}
+							else
+							{
+								Memory::vRam[(dstAddress & 0x1FFFE) + 0] = (dataWord & 0xFF00) >> 8;
+								Memory::vRam[(dstAddress & 0x1FFFE) + 1] = dataWord & 0xFF;
+							}
+#else
 							if (dstAddress & 0x0001)
 							{
 								Memory::vRam[(dstAddress & 0xFFFE) + 0] = dataWord & 0xFF;
@@ -1070,6 +1119,7 @@ void VDP_DataModeStart()
 								Memory::vRam[(dstAddress & 0xFFFE) + 0] = (dataWord & 0xFF00) >> 8;
 								Memory::vRam[(dstAddress & 0xFFFE) + 1] = dataWord & 0xFF;
 							}
+#endif
 
 							dstAddress += VDP::VDP_Registers[0x0F];
 
@@ -1113,10 +1163,10 @@ void VDP_DataModeStart()
 			}
 
 			#if defined _DEBUG
-			printf("DMA Transfer (unhandled)- ignoring for now!\n");
+			EMU_PRINTF("DMA Transfer (unhandled)- ignoring for now!\n");
 			if (IdCode&0x10)
 			{
-				printf("VRAM dma copy\n");
+				EMU_PRINTF("VRAM dma copy\n");
 			}
 			#endif
 			/* decodes slightly differently */
@@ -1126,25 +1176,25 @@ void VDP_DataModeStart()
 /*	switch(IdCode&0x0F)
 	{
 	case 0x0:
-		printf("VRAM READ\n");
+		EMU_PRINTF("VRAM READ\n");
 		break;
 	case 0x1:
-		printf("VRAM WRITE\n");
+		EMU_PRINTF("VRAM WRITE\n");
 		break;
 	case 0x3:
-		printf("CRAM WRITE\n");
+		EMU_PRINTF("CRAM WRITE\n");
 		break;
 	case 0x4:
-		printf("VSRAM READ\n");
+		EMU_PRINTF("VSRAM READ\n");
 		break;
 	case 0x5:
-		printf("VSRAM WRITE\n");
+		EMU_PRINTF("VSRAM WRITE\n");
 		break;
 	case 0x8:
-		printf("CRAM READ\n");
+		EMU_PRINTF("CRAM READ\n");
 		break;
 	default:
-		printf("Unknown idCode value\n");
+		EMU_PRINTF("Unknown idCode value\n");
 	}
 */
 }
@@ -1191,6 +1241,18 @@ void VDP_ExecuteDataPortWrite()
 	{
 	case 0x01:
 
+#if VRAM_128KB_MODE
+		if (VDP_latchDstAddress & 0x0001)
+		{
+			Memory::vRam[(VDP_latchDstAddress & 0x1FFFE) + 0] = writeDataLatch & 0xFF;
+			Memory::vRam[(VDP_latchDstAddress & 0x1FFFE) + 1] = (writeDataLatch & 0xFF00) >> 8;
+		}
+		else
+		{
+			Memory::vRam[(VDP_latchDstAddress & 0x1FFFE) + 0] = (writeDataLatch & 0xFF00) >> 8;
+			Memory::vRam[(VDP_latchDstAddress & 0x1FFFE) + 1] = writeDataLatch & 0xFF;
+		}
+#else
 		if (VDP_latchDstAddress & 0x0001)
 		{
 			Memory::vRam[(VDP_latchDstAddress & 0xFFFE)+0]=writeDataLatch&0xFF;
@@ -1201,6 +1263,7 @@ void VDP_ExecuteDataPortWrite()
 			Memory::vRam[(VDP_latchDstAddress & 0xFFFE)+0]=(writeDataLatch&0xFF00)>>8;
 			Memory::vRam[(VDP_latchDstAddress & 0xFFFE)+1]=writeDataLatch&0xFF;
 		}
+#endif
 
 		VDP_latchDstAddress += VDP::VDP_Registers[0x0F];
 
@@ -1228,7 +1291,7 @@ void VDP_ExecuteDataPortWrite()
 	}
 
 	#if defined _DEBUG
-	printf("Writing Data via unsupported mode : %02X,%04X\n",VDP_latchIdCode,writeDataLatch);
+	EMU_PRINTF("Writing Data via unsupported mode : %02X,%04X\n",VDP_latchIdCode,writeDataLatch);
 	#endif
 }
 
@@ -1236,18 +1299,25 @@ void VDP_ExecuteFill()
 {
 	U16 length = (VDP::VDP_Registers[20]<<8) | VDP::VDP_Registers[19];
 
-	/* Fill lo byte into address */
-	Memory::vRam[(VDP_latchDstAddress&0xFFFE)+0]=writeDataLatch&0xFF;
+#if VRAM_128KB_MODE
+	// Fill lo byte into address
+	Memory::vRam[VDP_latchDstAddress & 0x1FFFF] = writeDataLatch & 0xFF;
 
-	/* Fill hi byte into "adjacent" address */
-	Memory::vRam[(VDP_latchDstAddress&0xFFFE)+1]=writeDataLatch>>8;
-
-	while (--length)			/* length is in bytes  */
+	do
 	{
-		VDP_latchDstAddress+=VDP::VDP_Registers[0x0F];
+		VDP_latchDstAddress += VDP::VDP_Registers[0x0F];
+		Memory::vRam[VDP_latchDstAddress & 0x1FFFF] = (writeDataLatch >> 8) & 0xFF;
+	} while (--length); // length is in bytes
+#else
+	// Fill lo byte into address
+	Memory::vRam[VDP_latchDstAddress & 0xFFFF] = writeDataLatch & 0xFF;
 
-		Memory::vRam[VDP_latchDstAddress&0xFFFF]=writeDataLatch>>8;
-	}
+	do
+	{
+		VDP_latchDstAddress += VDP::VDP_Registers[0x0F];
+		Memory::vRam[VDP_latchDstAddress & 0xFFFF] = (writeDataLatch >> 8) & 0xFF;
+	} while (--length); // length is in bytes
+#endif
 }
 
 void VDP_WriteDataPortLO(U8 byte)
@@ -1304,7 +1374,7 @@ void VDP_WriteByte(U16 offset,U8 byte)			/* see vdp quirks */
 	case 0x0D:
 	case 0x0E:		/* HV Counter (mirror) */
 	case 0x0F:
-		DEB_PauseEmulation(DEB_Mode_68000,"Lock up on real hardware");
+		DEB_PauseEmulation(DebugMode::M68K,"Lock up on real hardware");
 		break;
 	case 0x10:		/* PSG */
 	case 0x11:
@@ -1325,7 +1395,7 @@ void VDP_WriteByte(U16 offset,U8 byte)			/* see vdp quirks */
 	case 0x1D:
 	case 0x1E:		/* Unused (Corruption on write) */
 	case 0x1F:	
-		DEB_PauseEmulation(DEB_Mode_68000,"Corruption");	
+		DEB_PauseEmulation(DebugMode::M68K,"Corruption");	
 		break;
 	}
 }
@@ -1366,8 +1436,8 @@ U16 MEM_getWord_CartRom(U32 address)
 #ifdef DEBUG
 	if (address >= cartRomSize)
 	{
-		printf("Cart ROM address out of bounds (addr: 0x%08X size: 0x%08X)", address, cartRomSize);
-		DEB_PauseEmulation(DEB_Mode_68000, "Cart ROM address out of bounds");
+		EMU_PRINTF("Cart ROM address out of bounds (addr: 0x%08X size: 0x%08X)", address, cartRomSize);
+		DEB_PauseEmulation(DebugMode::M68K, "Cart ROM address out of bounds");
 	}
 #endif
 
@@ -1399,62 +1469,78 @@ unsigned char* MEM_getDMA_SystemRam(U32 address)
 
 U8 MEM_getByte_SRAM(U32 address, U32 upper24,U32 lower16)
 {
-	if ((address >= Globals::SRAM_StartAddress) && (address <= Globals::SRAM_EndAddress) )
+	U8 byte = 0;
+
+	//TODO: Rearrange memory map instead of using a global redirect flag
+	if (Globals::SRAM_Lock)
 	{
-		if ((Globals::SRAM_OddAccess && (lower16&0x1)) || (Globals::SRAM_EvenAccess && ((lower16&0x1)==0)))
+		if ((address >= Globals::SRAM_StartAddress) && (address <= Globals::SRAM_EndAddress))
 		{
-			if (Globals::SRAM_EvenAccess^Globals::SRAM_OddAccess)
+			if ((Globals::SRAM_OddAccess && (lower16 & 0x1)) || (Globals::SRAM_EvenAccess && ((lower16 & 0x1) == 0)))
 			{
-				return Globals::SRAM[(address - Globals::SRAM_StartAddress)>>1];
-			}
-			else
-			{
-				return Globals::SRAM[address - Globals::SRAM_StartAddress];
+				if (Globals::SRAM_EvenAccess ^ Globals::SRAM_OddAccess)
+				{
+					byte = Globals::SRAM[(address - Globals::SRAM_StartAddress) >> 1];
+				}
+				else
+				{
+					byte = Globals::SRAM[address - Globals::SRAM_StartAddress];
+				}
 			}
 		}
+
+		return byte;
+	}
+	else
+	{
+		return MEM_getByte_CartRom(address, upper24, lower16);
 	}
 
 	#if defined _DEBUG
-	printf("Byteread from unmapped SRAM address 0x%08X\n", (int)upper24 << 16 | lower16);
+	EMU_PRINTF("Byteread from unmapped SRAM address 0x%08X\n", (int)upper24 << 16 | lower16);
 	#endif
-	//DEB_PauseEmulation(DEB_Mode_68000,"Unmapped Read - May need to crash/return prefetch queue/implement missing functionality");
-	return 0;
+	//DEB_PauseEmulation(DebugMode::M68K,"Unmapped Read - May need to crash/return prefetch queue/implement missing functionality");
+	return byte;
 }
 
 void MEM_setByte_SRAM(U32 address, U32 upper24,U32 lower16,U8 byte)
 {
-	if ((address >= Globals::SRAM_StartAddress) && (address <= Globals::SRAM_EndAddress) )
+	//TODO: Rearrange memory map instead of using a global redirect flag
+	if (Globals::SRAM_Lock)
 	{
-		if ((Globals::SRAM_OddAccess && (lower16&0x1)) || (Globals::SRAM_EvenAccess && ((lower16&0x1)==0)))
+		if ((address >= Globals::SRAM_StartAddress) && (address <= Globals::SRAM_EndAddress))
 		{
-			if (Globals::SRAM_EvenAccess^Globals::SRAM_OddAccess)
+			if ((Globals::SRAM_OddAccess && (lower16 & 0x1)) || (Globals::SRAM_EvenAccess && ((lower16 & 0x1) == 0)))
 			{
-				Globals::SRAM[(address - Globals::SRAM_StartAddress)>>1]=byte;
+				if (Globals::SRAM_EvenAccess ^ Globals::SRAM_OddAccess)
+				{
+					Globals::SRAM[(address - Globals::SRAM_StartAddress) >> 1] = byte;
+				}
+				else
+				{
+					Globals::SRAM[address - Globals::SRAM_StartAddress] = byte;
+				}
+				return;
 			}
-			else
-			{
-				Globals::SRAM[address - Globals::SRAM_StartAddress]=byte;
-			}
-			return;
 		}
 	}
 
-	printf("Byte 0x%02X written to unmapped SRAM address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
-	//DEB_PauseEmulation(DEB_Mode_68000,"Unmapped Write - May need to crash/return prefetch queue/implement missing functionality");
+	EMU_PRINTF("Byte 0x%02X written to unmapped SRAM address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
+	//DEB_PauseEmulation(DebugMode::M68K,"Unmapped Write - May need to crash/return prefetch queue/implement missing functionality");
 }
 
 U8 MEM_getByte_Unmapped(U32 address, U32 upper24,U32 lower16)
 {
 	UNUSED_ARGUMENT(upper24);
 	UNUSED_ARGUMENT(lower16);
-	printf("Byte read from unmapped address 0x%08X\n", (int)upper24 << 16 | lower16);
-	//DEB_PauseEmulation(DEB_Mode_68000,"Unamapped Read - May need to crash/return prefetch queue/implement missing functionality");
+	EMU_PRINTF("Byte read from unmapped address 0x%08X\n", (int)upper24 << 16 | lower16);
+	//DEB_PauseEmulation(DebugMode::M68K,"Unamapped Read - May need to crash/return prefetch queue/implement missing functionality");
 	return 0;
 }
 
 unsigned char* MEM_getDMA_Unmapped(U32 address)
 {
-	printf("Bad DMA source address: 0x%08X\n", address);
+	EMU_PRINTF("Bad DMA source address: 0x%08X\n", address);
 	return NULL;
 }
 
@@ -1490,6 +1576,9 @@ void MEM_setByte_Z80(U32 address, U32 upper24,U32 lower16,U8 byte)
 /*----------*/
 
 U8 ioRegisters[0x20];
+S8 io6ButtonLatchHi[3] = { IO_6BUTTON_LATCH_WRITE_COUNT, IO_6BUTTON_LATCH_WRITE_COUNT, IO_6BUTTON_LATCH_WRITE_COUNT };
+S8 io6ButtonLatchLo[3] = { IO_6BUTTON_LATCH_WRITE_COUNT, IO_6BUTTON_LATCH_WRITE_COUNT, IO_6BUTTON_LATCH_WRITE_COUNT };
+S32 io6buttonLatchTimer[3] = { 0 };
 
 const char *IO_DumpRegisterName(U16 byte)
 {
@@ -1537,6 +1626,23 @@ void IO_GetRegisterContents(U16 offset,char *buffer)
 	offset&=0x1E;
 	offset+=1;
 	sprintf(buffer,"%s : %02X",IO_DumpRegisterName(offset),ioRegisters[offset]);
+}
+
+void IO_UpdateControllerLatch(U32 cycles)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		if (io6buttonLatchTimer[i] > 0)
+		{
+			io6buttonLatchTimer[i] -= cycles;
+			if (io6buttonLatchTimer[i] <= 0)
+			{
+				io6ButtonLatchHi[i] = IO_6BUTTON_LATCH_WRITE_COUNT;
+				io6ButtonLatchLo[i] = IO_6BUTTON_LATCH_WRITE_COUNT;
+				io6buttonLatchTimer[i] = 0;
+			}
+		}
+	}
 }
 
 #if ENABLE_32X_MODE
@@ -1684,7 +1790,7 @@ U8 MD_SYS_32X_READ(U16 adr)
 		return (SH2_PWMMonoPulseWidthRegister&0xFF)&0x00;
 	}
 
-	DEB_PauseEmulation(DEB_Mode_68000,"Unhandled Read 32X SYS Register");
+	DEB_PauseEmulation(DebugMode::M68K,"Unhandled Read 32X SYS Register");
 	return 0xFF;
 }
 
@@ -1855,12 +1961,59 @@ void MD_SYS_32X_WRITE(U16 adr,U8 byte)
 		return;
 	}
 
-	DEB_PauseEmulation(DEB_Mode_68000,"Unhandled Write 32X SYS Register");
+	DEB_PauseEmulation(DebugMode::M68K,"Unhandled Write 32X SYS Register");
 }
 
 U8 VDP_32X_Read(U16 adr,int accessor);
 void VDP_32X_Write(U16 adr,U8 byte,int accessor);
 #endif
+
+void MEM_processRead_IO(int gamePadIdx, U8 ctrlPort, U8 dataPort)
+{
+	if (gamePadIdx >= 0 && gamePadIdx < EMU_MAX_GAMEPADS)
+	{
+		if (ioRegisters[dataPort] & 0x40)
+		{
+			ioRegisters[dataPort] &= (ioRegisters[ctrlPort] & 0x7F) | 0x80;
+#if EMU_USE_INPUT_CALLBACKS
+			//Latched, in 6-button state = ?1CBMXYZ
+			//Latched, in 3-button state = ?1CBRLDU
+			U8 padBits = ~(Globals::getGamepadState(gamePadIdx, io6ButtonLatchHi[gamePadIdx] == IO_6BUTTON_LATCH_HI_STATE_1) >> 8);
+
+			ioRegisters[dataPort] |= padBits & (~((ioRegisters[ctrlPort] & 0x7F) | 0x80));
+#else
+			ioRegisters[dataPort] |= (~(Globals::gamepadStates[gamePadIdx] >> 8))& (~((ioRegisters[ctrlPort] & 0x7F) | 0x80));
+#endif
+		}
+		else
+		{
+			ioRegisters[dataPort] &= (ioRegisters[ctrlPort] & 0x7F) | 0x80;
+#if EMU_USE_INPUT_CALLBACKS
+			U8 padBits = 0;
+
+			if (io6ButtonLatchLo[gamePadIdx] == IO_6BUTTON_LATCH_LO_STATE_1)
+			{
+				//Unlatched, in 6-button state 1 = ?0SA0000
+				padBits = ~Globals::getGamepadState(gamePadIdx, true) & 0xF0;
+			}
+			else if (io6ButtonLatchLo[gamePadIdx] == IO_6BUTTON_LATCH_LO_STATE_2)
+			{
+				//Unlatched, in 6-button state 2 = ?0SA1111
+				padBits = ~Globals::getGamepadState(gamePadIdx, true) | 0x0F;
+			}
+			else
+			{
+				//Unlatched, in 3-button state = ?0SA00DU
+				padBits = ~Globals::getGamepadState(gamePadIdx, false) & 0xF3;
+			}
+
+			ioRegisters[dataPort] |= padBits & (~((ioRegisters[ctrlPort] & 0x7F) | 0x80));
+#else
+			ioRegisters[dataPort] |= (~(Globals::gamepadStates[gamePadIdx] | 0xC)) & (~((ioRegisters[ctrlPort] & 0x7F) | 0x80));
+#endif
+		}
+	}
+}
 
 U8 MEM_getByte_IO(U32 address,U32 upper24,U32 lower16)
 {
@@ -1883,7 +2036,7 @@ U8 MEM_getByte_IO(U32 address,U32 upper24,U32 lower16)
 	{
 		if (AdapterControlRegister&0x8000)
 			return 0xFF;
-		return VDP_32X_Read(lower16-0x5180,DEB_Mode_68000);
+		return VDP_32X_Read(lower16-0x5180,DebugMode::M68K);
 	}
 
 	if (lower16>=0x5200 && lower16<0x5400)
@@ -1898,9 +2051,9 @@ U8 MEM_getByte_IO(U32 address,U32 upper24,U32 lower16)
 #endif
 	if (lower16 == 0x1100)
 	{
-/*		printf("BUS REQUEST FOR Z80 (returning free!)\n");		TODO FIX ME - z80 bus might not always be available!!*/
+/*		EMU_PRINTF("BUS REQUEST FOR Z80 (returning free!)\n");		TODO FIX ME - z80 bus might not always be available!!*/
 #if 1
-		if (!Z80::Z80_regs.stopped)
+		if (!Z80::Z80_regs.busTaken)
 			return 0x01;
 #endif
 		return 0x00;
@@ -1911,34 +2064,47 @@ U8 MEM_getByte_IO(U32 address,U32 upper24,U32 lower16)
 /*
 	if (lower16 == 0x1200)
 	{
-		printf("Z80 RESET : %02x\n",byte);
+		EMU_PRINTF("Z80 RESET : %02x\n",byte);
 		return;
 	}*/
+
+	//EMU_PRINTF("IO read: 0x%08X\n", (int)upper24 << 16 | lower16);
+
+	// IO read : 0x00A10008
+	// IO read : 0x00A10009
+	// IO read : 0x00A1000A
+	// IO read : 0x00A1000B
+	// IO read : 0x00A1000C
+	// IO read : 0x00A1000D
+	// IO read : 0x00A10001
+	// IO read : 0x00A10003
+	// IO read : 0x00A10003
+	// IO read : 0x00A10003
+	// IO read : 0x00A10003
+	// IO read : 0x00A10005
+
 	if (lower16<0x20)
 	{
 		if (lower16==3)
 		{
-			if (ioRegisters[3]&0x40)
-			{
-				/* Reads joy as : */
-				/* ?1CBRLDU */
-				ioRegisters[3]&=(ioRegisters[9]&0x7F)|0x80;
-				ioRegisters[3]|=(~(Globals::keyStatusJoyA>>8))&(~((ioRegisters[9]&0x7F)|0x80));
-			}
-			else
-			{
-				/* Reads joy as : */
-				/* ?0SA00DU */
-				ioRegisters[3]&=(ioRegisters[9]&0x7F)|0x80;
-				ioRegisters[3]|=(~(Globals::keyStatusJoyA))&(~((ioRegisters[9]&0x7F)|0x80));
-			}
+			MEM_processRead_IO(0, 0x9, 0x3);
 		}
+		else if (lower16 == 5)
+		{
+			MEM_processRead_IO(1, 0xB, 0x5);
+		}
+		else if (lower16 == 7)
+		{
+			MEM_processRead_IO(2, 0xD, 0x7);
+		}
+
 		return ioRegisters[((lower16&0x1E)+1)];
 	}
+
 	#if defined _DEBUG
-	printf("Byte read from unmapped address 0x%08X\n", (int)upper24 << 16 | lower16);
+	EMU_PRINTF("Byte read from unmapped address 0x%08X\n", (int)upper24 << 16 | lower16);
 	#endif
-	//DEB_PauseEmulation(DEB_Mode_68000,"Unhandled attempt to Read IO Register");
+	//DEB_PauseEmulation(DebugMode::M68K,"Unhandled attempt to Read IO Register");
 	return 0xFF;
 }
 
@@ -1949,9 +2115,9 @@ U8 MEM_getByte_VDP(U32 address,U32 upper24,U32 lower16)
 		return VDP_ReadByte(lower16&0x1F);
 	}
 	#if defined _DEBUG
-	printf("Byte read from unmapped VRAM address 0x%08X\n", (int)upper24 << 16 | lower16);
+	EMU_PRINTF("Byte read from unmapped VRAM address 0x%08X\n", (int)upper24 << 16 | lower16);
 	#endif
-	//DEB_PauseEmulation(DEB_Mode_68000,"Invalid VDP area access");
+	//DEB_PauseEmulation(DebugMode::M68K,"Invalid VDP area access");
 	return 0xFF;
 }
 
@@ -1960,7 +2126,11 @@ unsigned char* MEM_getDMA_VDP(U32 address)
 	switch (VDP_latchIdCode)
 	{
 	case 0x00:				/* VRAM Read */
+#if VRAM_128KB_MODE
+		return &Memory::vRam[(VDP_latchDstAddress & 0x1FFFE) + 0];
+#else
 		return &Memory::vRam[(VDP_latchDstAddress & 0xFFFE) + 0];
+#endif
 
 	case 0x08:				/* CRAM Read */
 		return &Memory::cRam[(VDP_latchDstAddress & 0x7E) + 0];
@@ -1970,8 +2140,10 @@ unsigned char* MEM_getDMA_VDP(U32 address)
 	}
 
 #if defined _DEBUG
-	printf("Reading Data via unsupported mode : %02X\n", VDP_latchIdCode);
+	EMU_PRINTF("Reading Data via unsupported mode : %02X\n", VDP_latchIdCode);
 #endif
+
+	return NULL;
 }
 
 void MEM_setByte_CartRom(U32 address, U32 upper24,U32 lower16,U8 byte)
@@ -1980,21 +2152,21 @@ void MEM_setByte_CartRom(U32 address, U32 upper24,U32 lower16,U8 byte)
 	UNUSED_ARGUMENT(lower16);
 	UNUSED_ARGUMENT(byte);
 	#if defined _DEBUG
-	printf("Byte 0x%02X written to cart address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
+	EMU_PRINTF("Byte 0x%02X written to cart address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
 	#endif
-/*
-	DEB_PauseEmulation(DEB_Mode_68000,"Write to cart rom... !");
-*/
+#if EMU_ENABLE_68K_DEBUGGER
+	DEB_PauseEmulation(DebugMode::M68K,"Write to cart rom... !");
+#endif
 }
 
 void MEM_setWord_CartRom(U32 address, U16 word)
 {
 	#if defined _DEBUG
-	printf("Byte 0x%02X written to cart address 0x%08X\n", (int)word, (int)address);
+	EMU_PRINTF("Byte 0x%02X written to cart address 0x%08X\n", (int)word, (int)address);
 	#endif
-	/*
-	DEB_PauseEmulation(DEB_Mode_68000,"Write to cart rom... !");
-	*/
+#if EMU_ENABLE_68K_DEBUGGER
+	DEB_PauseEmulation(DebugMode::M68K,"Write to cart rom... !");
+#endif
 }
 
 void MEM_setByte_SystemRam(U32 address, U32 upper24,U32 lower16,U8 byte)
@@ -2006,6 +2178,29 @@ void MEM_setByte_SystemRam(U32 address, U32 upper24,U32 lower16,U8 byte)
 void MEM_setWord_SystemRam(U32 address, U16 word)
 {
 	*(U16*)&Memory::systemRam[address & 0x0000FFFF] = word;
+}
+
+void MEM_setByte_Pad(int padIdx, U16 reg, U8 byte)
+{
+	if (byte & 0x40)
+	{
+		//Decrement 6-button hi latch
+		if (--io6ButtonLatchHi[padIdx] < 0)
+			io6ButtonLatchHi[padIdx] = IO_6BUTTON_LATCH_WRITE_COUNT;
+	}
+	else
+	{
+		//Decrement 6-button lo latch
+		if (--io6ButtonLatchLo[padIdx] < 0)
+			io6ButtonLatchLo[padIdx] = IO_6BUTTON_LATCH_WRITE_COUNT;
+	}
+
+	//Reset capacitor timer
+	io6buttonLatchTimer[padIdx] = IO_6BUTTON_LATCH_CYCLES;
+
+	byte &= 0x80 | (ioRegisters[reg + 6] & 0x7F);
+	ioRegisters[reg] &= 0x7F & (~(ioRegisters[reg + 6] & 0x7F));
+	ioRegisters[reg] |= byte;
 }
 
 void MEM_setByte_IO(U32 address, U32 upper24,U32 lower16,U8 byte)
@@ -2023,7 +2218,7 @@ void MEM_setByte_IO(U32 address, U32 upper24,U32 lower16,U8 byte)
 	{
 		if (AdapterControlRegister&0x8000)
 			return;
-		VDP_32X_Write(lower16-0x5180,byte,DEB_Mode_68000);
+		VDP_32X_Write(lower16-0x5180,byte,DebugMode::M68K);
 		return;
 	}
 
@@ -2039,7 +2234,8 @@ void MEM_setByte_IO(U32 address, U32 upper24,U32 lower16,U8 byte)
 
 	if (lower16 == 0x1100)
 	{
-		Z80::Z80_regs.stopped = byte&0x01;
+		//EMU_PRINTF("Z80 bus 0x%02X\n", byte);
+		Z80::Z80_regs.busRequested = byte&0x01;
 		return;
 	}
 
@@ -2048,14 +2244,24 @@ void MEM_setByte_IO(U32 address, U32 upper24,U32 lower16,U8 byte)
 
 	if (lower16 == 0x1200)
 	{
+		//EMU_PRINTF("Z80 reset 0x%02X\n", byte);
+
 		if (byte&0x1)
-		{
-			Z80::Z80_regs.resetLine=1;
-		}
-		else
 		{
 			Z80::Z80_regs.resetLine=0;
 		}
+		else
+		{
+			Z80::Z80_regs.resetLine=1;
+		}
+		return;
+	}
+
+	if (lower16 == 0x30F1)
+	{
+		//TODO: Rearrange memory map instead of using a global redirect flag
+		Globals::SRAM_Lock = byte & 0x01;
+		EMU_PRINTF("SRAM lock %d\n", (int)byte);
 		return;
 	}
 
@@ -2070,11 +2276,13 @@ void MEM_setByte_IO(U32 address, U32 upper24,U32 lower16,U8 byte)
 		case 0x01:					/* Version Register					(assuming read only)*/
 			return;
 		case 0x03:					/* Data Register Port A		(bit 7 writeable + 6-0 if bit set in ctrl) */
+			MEM_setByte_Pad(0, reg, byte);
+			return;
 		case 0x05:					/* Data Register Port B		(bit 7 writeable) */
+			MEM_setByte_Pad(1, reg, byte);
+			return;
 		case 0x07:					/* Data Register Port C		(bit 7 writeable) */
-			byte&=0x80 | (ioRegisters[reg+6]&0x7F);
-			ioRegisters[reg]&=0x7F & (~(ioRegisters[reg+6]&0x7F));
-			ioRegisters[reg]|=byte;
+			MEM_setByte_Pad(2, reg, byte);
 			return;
 		case 0x09:					/* Ctrl Register Port A */
 		case 0x0B:					/* Ctrl Register Port B */
@@ -2095,10 +2303,10 @@ void MEM_setByte_IO(U32 address, U32 upper24,U32 lower16,U8 byte)
 	}
 
 	#if defined _DEBUG
-	printf("Byte 0x%02X written to unmapped address 0x%08X\n", (int)byte, (int)upper24<<16|lower16);
+	EMU_PRINTF("Byte 0x%02X written to unmapped address 0x%08X\n", (int)byte, (int)upper24<<16|lower16);
 	#endif
 
-	// DEB_PauseEmulation(DEB_Mode_68000,"OOB IO Writes currently unhandled");
+	// DEB_PauseEmulation(DebugMode::M68K,"OOB IO Writes currently unhandled");
 }
 
 void MEM_setByte_VDP(U32 address, U32 upper24,U32 lower16,U8 byte)
@@ -2109,9 +2317,9 @@ void MEM_setByte_VDP(U32 address, U32 upper24,U32 lower16,U8 byte)
 		return;
 	}
 	#if defined _DEBUG
-	printf("Byte 0x%02X written to unmapped VRAM address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
+	EMU_PRINTF("Byte 0x%02X written to unmapped VRAM address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
 	#endif
-	//DEB_PauseEmulation(DEB_Mode_68000,"Invalid VDP area access");
+	//DEB_PauseEmulation(DebugMode::M68K,"Invalid VDP area access");
 }
 
 void MEM_setByte_Unmapped(U32 address, U32 upper24,U32 lower16,U8 byte)
@@ -2120,9 +2328,9 @@ void MEM_setByte_Unmapped(U32 address, U32 upper24,U32 lower16,U8 byte)
 	UNUSED_ARGUMENT(lower16);
 	UNUSED_ARGUMENT(byte);
 	#if defined _DEBUG
-	printf("Byte 0x%02X written to unmapped address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
+	EMU_PRINTF("Byte 0x%02X written to unmapped address 0x%08X\n", (int)byte, (int)upper24 << 16 | lower16);
 	#endif
-	//DEB_PauseEmulation(DEB_Mode_68000,"Unamapped Write - May need to crash/return prefetch queue/implement missing functionality");
+	//DEB_PauseEmulation(DebugMode::M68K,"Unamapped Write - May need to crash/return prefetch queue/implement missing functionality");
 }
 
 U32 numBanks;
@@ -2155,7 +2363,7 @@ void MEM_setByte_BiosOrCartRom(U32 address, U32 upper24,U32 lower16,U8 byte)
 		return;
 	}
 
-	DEB_PauseEmulation(DEB_Mode_68000,"Unmapped rom write");
+	DEB_PauseEmulation(DebugMode::M68K,"Unmapped rom write");
 }
 
 void MEM_setByte_FRAMEBUFFER(U32 address, U32 upper24,U32 lower16,U8 byte)
@@ -2184,7 +2392,7 @@ void MEM_setByte_CartRomUpper(U32 address, U32 upper24,U32 lower16,U8 byte)
 	UNUSED_ARGUMENT(lower16);
 	UNUSED_ARGUMENT(byte);
 
-	DEB_PauseEmulation(DEB_Mode_68000,"Write to upper rom");
+	DEB_PauseEmulation(DebugMode::M68K,"Write to upper rom");
 }
 
 U8 MEM_getByte_CartRomUpper(U32 address, U32 upper24,U32 lower16)
@@ -2198,7 +2406,7 @@ void MEM_setByte_CartRomBanked(U32 address, U32 upper24,U32 lower16,U8 byte)
 	UNUSED_ARGUMENT(lower16);
 	UNUSED_ARGUMENT(byte);
 
-	DEB_PauseEmulation(DEB_Mode_68000,"Write to rom banked");
+	DEB_PauseEmulation(DebugMode::M68K,"Write to rom banked");
 }
 
 U8 MEM_getByte_CartRomBanked(U32 address, U32 upper24,U32 lower16)
@@ -2291,10 +2499,17 @@ void InitialiseStandardMemoryMap()
 		Memory::mem_dma_addr[a] = MEM_getDMA_Unmapped;
 	}
 
+#if EMU_SUPPORT_8MB_ROM
+	if (numBanks >= 0x80)
+	{
+		numBanks = 0x80;
+	}
+#else
 	if (numBanks>=0x40)
 	{
 		numBanks=0x40;
 	}
+#endif
 
 	for (a=0;a<numBanks;a++)
 	{
@@ -2352,26 +2567,14 @@ void MEM_Initialise(unsigned char *_romPtr, U32 romSize, unsigned int num64Banks
 	Memory::cRam = (unsigned char*)malloc(CRAM_SIZE);
 	Memory::cartRam = (unsigned char*)malloc(CARTRAM_SIZE);
 
-	for (a=0;a<SYS_RAM_SIZE;a++)
-	{
-		Memory::systemRam[a]=0;
-	}
-	for (a=0;a<Z80_RAM_SIZE;a++)
-	{
-		Memory::z80Ram[a]=0;
-	}
-	for (a=0;a<VRAM_SIZE;a++)
-	{
-		Memory::vRam[a]=0;
-	}
-	for (a=0;a<VSRAM_SIZE;a++)
-	{
-		Memory::vsRam[a]=0;
-	}
-	for (a=0;a<CRAM_SIZE;a++)
-	{
-		Memory::cRam[a]=0;
-	}
+#if EMU_CLEAR_MEMORY
+	memset(Memory::systemRam, 0, SYS_RAM_SIZE);
+	memset(Memory::z80Ram, 0, Z80_RAM_SIZE);
+	memset(Memory::vRam, 0, VRAM_SIZE);
+	memset(Memory::vsRam, 0, VSRAM_SIZE);
+	memset(Memory::cRam, 0, CRAM_SIZE);
+	memset(Memory::cartRam, 0, CARTRAM_SIZE);
+#endif
 
 	/* Initialise IO */
 	for (a=0;a<0x20;a++)

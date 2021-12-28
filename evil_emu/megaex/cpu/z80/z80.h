@@ -53,7 +53,9 @@ typedef struct
 	U32	stage;
 	
 	U32 resetLine;
-	U32	stopped;
+	U32	busRequested;
+	U32	busTaken;
+	U32 halted;
 	
 	U32 delayedInterruptEnable;
 

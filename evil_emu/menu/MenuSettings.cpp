@@ -1,12 +1,16 @@
 
 #include "MenuSettings.h"
+#include "constants.h"
+
+#if EVIL_EMU_USE_UTILITY_MENUS
 
 MenuSettings::MenuSettings(ion::gui::GUI& gui, ion::gui::Font& font, ion::io::FileSystem& fileSystem, Settings& settings, ion::render::Window& appWindow, const ion::Vector2i& position, const ion::Vector2i& size)
 	: ion::gui::Window("Settings", position, size)
 	, m_gui(gui)
 	, m_font(font)
-	, m_fileSystem(fileSystem)
+#if defined ION_PLATFORM_MACOSX
 	, m_settings(settings)
+#endif
 	, m_appWindow(appWindow)
 {
 	m_dlgROMDisclaimer = nullptr;
@@ -19,35 +23,37 @@ MenuSettings::MenuSettings(ion::gui::GUI& gui, ion::gui::Font& font, ion::io::Fi
 	AllowRollUp(false);
 
 	//Add child windows
+#if EVIL_EMU_USE_MANUAL
 	m_menuManual = new MenuManual(gui, settings, ion::Vector2i(), ion::Vector2i());
+	m_menuManual->SetFont(font);
+	m_buttonManual = new ion::gui::Button("View Game Manual", std::bind(&MenuSettings::OnButtonManual, this, std::placeholders::_1));
+	m_buttonManual->SetSize(ion::Vector2i(MENU_BUTTON_WIDTH, 0));
+	AddWidget(*m_buttonManual);
+#endif
+
+#if EVIL_EMU_ROM_DOWNLOAD
+	m_buttonCopyROM = new ion::gui::Button("Save Mega Drive ROM", std::bind(&MenuSettings::OnButtonCopyROM, this, std::placeholders::_1));
+	AddWidget(*m_buttonCopyROM);
+	m_buttonCopyROM->SetSize(ion::Vector2i(MENU_BUTTON_WIDTH, 0));
+#endif
+
 	m_menuVideo = new MenuVideo(gui, settings, appWindow, ion::Vector2i(), ion::Vector2i());
 	m_menuKeyboard = new MenuKeyboard(gui, settings, appWindow, ion::Vector2i(), ion::Vector2i());
 	m_menuGamepad = new MenuGamepad(gui, settings, appWindow, ion::Vector2i(), ion::Vector2i());
 
 	//Set fonts
-	m_menuManual->SetFont(font);
 	m_menuVideo->SetFont(font);
 	m_menuKeyboard->SetFont(font);
 	m_menuGamepad->SetFont(font);
 
 	//Add menu buttons
-	m_buttonManual = new ion::gui::Button("View Game Manual", std::bind(&MenuSettings::OnButtonManual, this, std::placeholders::_1));
-	m_buttonCopyROM = new ion::gui::Button("Save Mega Drive ROM", std::bind(&MenuSettings::OnButtonCopyROM, this, std::placeholders::_1));
 	m_buttonVideo = new ion::gui::Button("Video", std::bind(&MenuSettings::OnButtonVideo, this, std::placeholders::_1));
 	m_buttonKeyboard = new ion::gui::Button("Keyboard", std::bind(&MenuSettings::OnButtonKeyboard, this, std::placeholders::_1));
 	m_buttonGamepad = new ion::gui::Button("Gamepad", std::bind(&MenuSettings::OnButtonGamepad, this, std::placeholders::_1));
 
-	m_buttonManual->SetSize(ion::Vector2i(MENU_BUTTON_WIDTH, 0));
-	m_buttonCopyROM->SetSize(ion::Vector2i(MENU_BUTTON_WIDTH, 0));
 	m_buttonVideo->SetSize(ion::Vector2i(MENU_BUTTON_WIDTH, 0));
 	m_buttonKeyboard->SetSize(ion::Vector2i(MENU_BUTTON_WIDTH, 0));
 	m_buttonGamepad->SetSize(ion::Vector2i(MENU_BUTTON_WIDTH, 0));
-
-	AddWidget(*m_buttonManual);
-
-#if EVIL_EMU_ROM_DOWNLOAD
-	AddWidget(*m_buttonCopyROM);
-#endif
 
 	AddWidget(*m_buttonVideo);
 	AddWidget(*m_buttonKeyboard);
@@ -56,8 +62,14 @@ MenuSettings::MenuSettings(ion::gui::GUI& gui, ion::gui::Font& font, ion::io::Fi
 
 MenuSettings::~MenuSettings()
 {
+#if EVIL_EMU_USE_MANUAL
 	delete m_menuManual;
+#endif
+
+#if EVIL_EMU_ROM_DOWNLOAD
 	delete m_buttonCopyROM;
+#endif
+
 	delete m_menuVideo;
 	delete m_menuKeyboard;
 	delete m_menuGamepad;
@@ -68,7 +80,9 @@ MenuSettings::~MenuSettings()
 
 void MenuSettings::SyncSettings()
 {
+#if EVIL_EMU_USE_MANUAL
 	m_menuManual->SyncSettings();
+#endif
 	m_menuVideo->SyncSettings();
 	m_menuKeyboard->SyncSettings();
 	m_menuGamepad->SyncSettings();
@@ -102,7 +116,6 @@ void MenuSettings::OnButtonGamepad(const ion::gui::Button& button)
 
 void MenuSettings::OnDlgClosedROMDisclaimer(const ion::gui::DialogBox& dialog)
 {
-#if EVIL_EMU_ROM_DOWNLOAD
 	bool agreed = m_dlgROMDisclaimer->Agreed();
 
 	m_gui.RemoveWindow(*m_dlgROMDisclaimer);
@@ -111,7 +124,7 @@ void MenuSettings::OnDlgClosedROMDisclaimer(const ion::gui::DialogBox& dialog)
 
 	if (agreed)
 	{
-		if (ion::io::FileDevice* device = m_fileSystem.GetDefaultFileDevice())
+		if (ion::io::FileDevice* device = ion::io::FileDevice::GetDefault())
 		{
 #if defined ION_PLATFORM_MACOSX
             bool fullscreen = m_appWindow.GetFullscreen();
@@ -141,8 +154,8 @@ void MenuSettings::OnDlgClosedROMDisclaimer(const ion::gui::DialogBox& dialog)
 
 			if (destination.size() > 0)
 			{
-				destination += std::string("/") + std::string(EVIL_EMU_ROM_FILE);
-				std::string source = std::string(EVIL_EMU_ROM_DIRECTORY) + std::string("/") + std::string(EVIL_EMU_ROM_FILE);
+				destination += std::string("/") + std::string(EVIL_EMU_ROM_DOWNLOAD_BIN);
+				std::string source = std::string(EVIL_EMU_ROM_DOWNLOAD_DIR) + std::string("/") + std::string(EVIL_EMU_ROM_DOWNLOAD_BIN);
 
 				if (device->GetFileExists(destination))
 				{
@@ -151,7 +164,7 @@ void MenuSettings::OnDlgClosedROMDisclaimer(const ion::gui::DialogBox& dialog)
 			
 				if (device->Copyfile(source, destination))
 				{
-					std::string successMsg = std::string("ROM saved successfully: ") + std::string(EVIL_EMU_ROM_FILE);
+					std::string successMsg = std::string("ROM saved successfully: ") + std::string(EVIL_EMU_ROM_DOWNLOAD_BIN);
 					m_msgROMInstructions = new ion::gui::MessageBox("Success", successMsg, ion::gui::MessageBox::Ok,
 						[&](const ion::gui::MessageBox&, ion::gui::MessageBox::ButtonType)
 						{
@@ -177,5 +190,6 @@ void MenuSettings::OnDlgClosedROMDisclaimer(const ion::gui::DialogBox& dialog)
 			}
 		}
 	}
-#endif
 }
+
+#endif

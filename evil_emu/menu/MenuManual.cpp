@@ -3,6 +3,7 @@
 #include "MenuCommon.h"
 
 #include <ion/core/utils/STL.h>
+#include <ion/engine/Engine.h>
 
 #include <sstream>
 
@@ -23,17 +24,13 @@ MenuManual::MenuManual(ion::gui::GUI& gui, Settings& settings, const ion::Vector
 
 	m_currentImageIdx = 0;
 
-	std::stringstream filename;
-
 	for (int i = 1; i < MANUAL_NUM_PAGES + 1; i++)
 	{
-		filename.str("");
-		filename << "textures/manual/" << i << ".png";
-		m_imageFilenames.push_back(filename.str());
+		std::string filename = "textures/manual/" + std::to_string(i);
+		m_textures.push_back(ion::engine.io.resourceManager->GetResource<ion::render::Texture>(filename));
 	}
 
-	m_currentTexture = ion::render::Texture::Create();
-	m_currentTexture->Load(m_imageFilenames[0]);
+	m_currentTexture = m_textures[0];
 
 	//Add widgets
 	m_image = new ion::gui::Image(m_currentTexture);
@@ -66,12 +63,14 @@ void MenuManual::SyncSettings()
 {
 	if (m_currentTexture)
 	{
+		ion::Vector2i resolution(ion::engine.render.window->GetClientAreaWidth(), ion::engine.render.window->GetClientAreaHeight());
+
 		//Make sure there's enough room for buttons in wide resolutions
 		float imageAspect = ((float)m_currentTexture->GetHeight() / (float)m_currentTexture->GetWidth());
-		int windowWidth = m_settings.resolution.x - MANUAL_WINDOW_BORDER;
+		int windowWidth = resolution.x - MANUAL_WINDOW_BORDER;
 		int windowHeight = (int)((float)windowWidth * imageAspect) + MANUAL_BUTTON_SPACE;
 
-		if (windowHeight > m_settings.resolution.y)
+		if (windowHeight > resolution.y)
 		{
 			windowWidth = (int)((float)(m_settings.resolution.y - MANUAL_WINDOW_BORDER - MANUAL_BUTTON_SPACE) / imageAspect);
 		}
@@ -83,17 +82,18 @@ void MenuManual::SyncSettings()
 
 void MenuManual::OnButtonNext(const ion::gui::Button& button)
 {
-	m_currentImageIdx = (m_currentImageIdx + 1) % m_imageFilenames.size();
-	m_currentTexture->Load(m_imageFilenames[m_currentImageIdx]);
+	m_currentImageIdx = (m_currentImageIdx + 1) % m_textures.size();
+	m_currentTexture = m_textures[m_currentImageIdx];
 }
 
 void MenuManual::OnButtonPrev(const ion::gui::Button& button)
 {
 	m_currentImageIdx--;
 	if (m_currentImageIdx < 0)
-		m_currentImageIdx = m_imageFilenames.size() - 1;
+		m_currentImageIdx = (int)m_textures.size() - 1;
 
-	m_currentTexture->Load(m_imageFilenames[m_currentImageIdx]);
+	m_currentTexture = m_currentTexture = m_textures[m_currentImageIdx];
+	m_image->SetTexture(m_currentTexture);
 }
 
 void MenuManual::OnButtonBack(const ion::gui::Button& button)

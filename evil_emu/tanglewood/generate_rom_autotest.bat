@@ -1,0 +1,24 @@
+..\..\tanglewood_bin2cpp\release\tanglewood_bin2cpp.exe ^
+D:\Users\Matt\Documents\Development\tanglewood_code\bigevilframework\TANGLEWD\BIN\COFF\TANGLEWD.COF ^
+..\roms\tanglewd_test_rom.h ^
+..\roms\tanglewd_test_vars.h ^
+EmuTrap_SetSaveSlotData ^
+EmuTrap_SaveSlotSelected ^
+EmuTrap_SaveGame ^
+CheckpointSerialiseMemBlock ^
+CheckpointSerialiseBlockSize ^
+FireflyPickupCountAct ^
+FireflyPickupCountTotalUI ^
+FireflyPickupCountTotalSave ^
+TotalFireflyCount ^
+CurrentSavePassword ^
+LastSaveVersion ^
+CurrentLevel ^
+Level_Index ^
+LevelList ^
+EmuCurrentSaveSlot ^
+EmuSaveSlot_Password ^
+EmuSaveSlot_ChapterIdx ^
+EmuSaveSlot_ActIdx ^
+EmuSaveSlot_FFliesAct ^
+EmuSaveSlot_FFliesGame

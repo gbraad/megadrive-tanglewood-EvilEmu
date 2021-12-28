@@ -1,73 +1,71 @@
+#include <ion/engine/Engine.h>
 #include <ion/core/time/Time.h>
 #include <ion/core/debug/CrashHandler.h>
-#include <ion/core/platform/Platform.h>
+#include <ion/core/Platform.h>
 #include "evil_emu.h"
 #include "constants.h"
+#include "settings.h"
 
 #include <ion/core/thread/Sleep.h>
 
-#if ION_ONLINE_STEAM
-#include <ion/online/Steam/Steam.h>
-#endif
-
-#if defined ION_PLATFORM_MACOSX
-#include <unistd.h>
-#include <libgen.h>
-#include <mach-o/dyld.h>
-#include <limits.h>
-#endif
-
-#if defined ION_PLATFORM_WINDOWS && !defined DEBUG
-int  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-#else
-int main(int numargs, char** args)
-#endif
+namespace ion
 {
-	//Initialise platform
-	ion::platform::Initialise();
-
-	//Init crash handler/core dump
-	ion::debug::InstallDefaultCrashHandler();
-
-#if ION_ONLINE_STEAM && !_DEBUG
-	//If Steam is not running or the game wasn't started through Steam, SteamAPI_RestartAppIfNecessary starts the 
-	//local Steam client and also launches this game again.
-	if (SteamAPI_RestartAppIfNecessary(EVIL_EMU_APP_ID_STEAM))
+	int EntryPoint(int numargs, char** args)
 	{
-		return EXIT_FAILURE;
-	}
-#endif
-    
-#if defined ION_PLATFORM_MACOSX && !defined DEBUG
-    char path[PATH_MAX];
-    uint32_t pathLen = sizeof(path);
-    int err = _NSGetExecutablePath(path, &pathLen);
-    assert(!err);
-    chdir(dirname(path));
-#endif
+		Settings defaultSettings;
 
-	EvilEmu app;
+		//Create engine
+		ion::Engine::Config ionConfig;
 
-	if(app.Initialise())
-	{
-		float deltaTime = 0.0f;
-		bool run = true;
-		while(run)
+		ionConfig.window.createWindow = true;
+		ionConfig.window.title = EVIL_EMU_APP_TITLE;
+		ionConfig.window.clientAreaWidth = defaultSettings.resolution.x;
+		ionConfig.window.clientAreaHeight = defaultSettings.resolution.y;
+		ionConfig.window.fullscreen = defaultSettings.fullscreen;
+
+		ionConfig.render.createRenderer = true;
+		ionConfig.render.createCamera = true;
+		ionConfig.render.perspectiveMode = ion::render::Viewport::PerspectiveMode::Ortho2DAbsolute;
+
+		ionConfig.audio.supportAudio = true;
+
+		ionConfig.input.supportKeyboard = true;
+		ionConfig.input.supportMouse = true;
+		ionConfig.input.maxSupportedControllers = EVIL_EMU_MAX_GAMEPADS;
+
+		ionConfig.services.supportPlatformServices = true;
+		ionConfig.services.appId = EVIL_EMU_APP_ID;
+		ionConfig.services.appEncryptionKey = EVIL_EMU_APP_KEY;
+
+		ion::engine.Initialise(ionConfig);
+
+		//Create app
+		EvilEmu app;
+
+		if (app.Initialise())
 		{
-			u64 startTicks = ion::time::GetSystemTicks();
-
-			if(run = app.Update(deltaTime))
+			float deltaTime = 0.0f;
+			bool run = true;
+			while (run)
 			{
-				app.Render();
+				u64 startTicks = ion::time::GetSystemTicks();
+				run = app.Update(deltaTime);
+
+				if (run)
+				{
+					app.Render();
+				}
+
+				u64 endTicks = ion::time::GetSystemTicks();
+				deltaTime = (float)ion::time::TicksToSeconds(endTicks - startTicks);
 			}
 
-			u64 endTicks = ion::time::GetSystemTicks();
-			deltaTime = (float)ion::time::TicksToSeconds(endTicks - startTicks);
+			app.Shutdown();
 		}
 
-		app.Shutdown();
-	}
+		//Shutdown platform
+		ion::engine.Shutdown();
 
-	//Shutdown platform
-	ion::platform::Shutdown();
+		return 0;
+	}
 }

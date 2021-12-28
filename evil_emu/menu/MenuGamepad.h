@@ -9,6 +9,8 @@
 
 #include "settings.h"
 
+#if EVIL_EMU_USE_UTILITY_MENUS
+
 class MenuGamepad : public ion::gui::Window
 {
 public:
@@ -27,3 +29,5 @@ private:
 	std::vector<ion::gui::ComboBox*> m_combosGamepadMap;
 	ion::gui::Button* m_buttonBack;
 };
+
+#endif

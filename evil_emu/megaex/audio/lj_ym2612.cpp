@@ -1,4 +1,5 @@
 #include "lj_ym2612.h"
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,9 +8,18 @@
 #endif
 #include <math.h>
 
+#define YM_DEBUG 0
+
 #ifndef M_PI
 #define M_PI (3.14159265358979323846f)
 #endif
+
+#if defined ION_BUILD_MASTER || !YM_DEBUG
+#define YM_PRINTF(fmt, ...) {}
+#else
+#define YM_PRINTF printf
+#endif
+
 /*
 Registers
 		D7		D6		D5		D4		D3			D2			D1		D0
@@ -213,7 +223,7 @@ static int LJ_YM2612_EG_attenuationTable[LJ_YM2612_EG_ATTENUATION_TABLE_NUM_ENTR
 /* 						109		78		72		68		63		45		9			6			*128 FM samples */
 
 /* This only works for matching AMS frequency doesn't work for matching PMS frequency */
-#define HACK_MATCH_KEGA 0
+#define HACK_MATCH_KEGA 1
 
 #if HACK_MATCH_KEGA == 0
 #define LJ_YM2612_LFO_FREQ_SAMPLE_SHIFT (0)
@@ -651,7 +661,7 @@ void ym2612_slotComputeOmegaDelta(LJ_YM2612_SLOT* const slotPtr,
 
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("Slot:%d omegaDelta %d fnum:%d block:%d multiple:%3.1f detune:%d keycode:%d\n",
+		YM_PRINTF("Slot:%d omegaDelta %d fnum:%d block:%d multiple:%3.1f detune:%d keycode:%d\n",
 					 slotPtr->id, omegaDelta, fnum, block, (float)multiple/2.0f, detune, keycode);
 	}
 }
@@ -698,7 +708,7 @@ void ym2612_slotStartPlaying(LJ_YM2612_SLOT* const slotPtr, LJ_YM2612_CHANNEL* c
 
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("Slot[%d] Start\n",slotPtr->id);
+		YM_PRINTF("Slot[%d] Start\n",slotPtr->id);
 	}
 	/* Handle start playing but haven't computed the parameters yet */
 	if ((slotPtr->omegaDirty == 1) || (channelPtr->omegaDirty == 1))
@@ -717,7 +727,7 @@ void ym2612_slotStartPlaying(LJ_YM2612_SLOT* const slotPtr, LJ_YM2612_CHANNEL* c
 		const LJ_YM_UINT32 attenuationDB = LJ_YM2612_EG_ATTENUATION_DB_MIN;
 		if (debugFlags & LJ_YM2612_DEBUG)
 		{
-			printf("Slot[%d] Inf attack rate start\n", slotPtr->id);
+			YM_PRINTF("Slot[%d] Inf attack rate start\n", slotPtr->id);
 		}
 		slotPtr->attenuationDB = attenuationDB;
 	}
@@ -768,7 +778,7 @@ void ym2612_slotKeyOFF(LJ_YM2612_SLOT* const slotPtr, const LJ_YM_UINT32 debugFl
 		invertAttenuationDB &= LJ_YM2612_EG_ATTENUATION_DB_MAX;
 		if (debugFlags & LJ_YM2612_DEBUG)
 		{
-			printf("Key OFF Invert:%d -> %d\n", slotPtr->attenuationDB, invertAttenuationDB);
+			YM_PRINTF("Key OFF Invert:%d -> %d\n", slotPtr->attenuationDB, invertAttenuationDB);
 		}
 		slotPtr->attenuationDB = invertAttenuationDB;
 	}
@@ -836,7 +846,7 @@ void ym2612_slotUpdateSSG(LJ_YM2612_SLOT* slotPtr, LJ_YM2612_CHANNEL* channelPtr
 				slotPtr->egSSGInvertOutput ^= 1;
 				if (debugFlags & LJ_YM2612_DEBUG)
 				{
-					printf("InvertOutput:%d\n", slotPtr->egSSGInvertOutput);
+					YM_PRINTF("InvertOutput:%d\n", slotPtr->egSSGInvertOutput);
 				}
 			}
 			if ((slotPtr->egSSGInvert == 0) && (slotPtr->egSSGHold == 0))
@@ -852,7 +862,7 @@ void ym2612_slotUpdateSSG(LJ_YM2612_SLOT* slotPtr, LJ_YM2612_CHANNEL* channelPtr
 					/* Restart the wave */
 					if (debugFlags & LJ_YM2612_DEBUG)
 					{
-						printf("Restart wave\n");
+						YM_PRINTF("Restart wave\n");
 					}
 					ym2612_slotStartPlaying(slotPtr, channelPtr, ym2612Ptr, debugFlags);
 				}
@@ -862,7 +872,7 @@ void ym2612_slotUpdateSSG(LJ_YM2612_SLOT* slotPtr, LJ_YM2612_CHANNEL* channelPtr
 					/* Not looping but got to SSG special place - force to max attenuation */
 					if (debugFlags & LJ_YM2612_DEBUG)
 					{
-						printf("RELEASE: force to max InvertOutput: %d\n", slotPtr->egSSGInvertOutput);
+						YM_PRINTF("RELEASE: force to max InvertOutput: %d\n", slotPtr->egSSGInvertOutput);
 					}
 					slotPtr->attenuationDB = LJ_YM2612_EG_ATTENUATION_DB_MAX;
 				}
@@ -888,7 +898,7 @@ static LJ_YM_UINT32 ym2612_slotComputeEGADSRAttenuation(LJ_YM2612_SLOT* const sl
 	if (attenuationDB > LJ_YM2612_EG_ATTENUATION_DB_MAX)
 	{
 #if (ADSR_DEBUG)
-		printf("attenuationDB > LJ_YM2612_EG_ATTENUATION_DB_MAX (%d) %d\n", LJ_YM2612_EG_ATTENUATION_DB_MAX, attenuationDB);
+		YM_PRINTF("attenuationDB > LJ_YM2612_EG_ATTENUATION_DB_MAX (%d) %d\n", LJ_YM2612_EG_ATTENUATION_DB_MAX, attenuationDB);
 #endif
 		attenuationDB = LJ_YM2612_EG_ATTENUATION_DB_MAX;
 	}
@@ -911,7 +921,7 @@ static LJ_YM_UINT32 ym2612_slotComputeEGADSRAttenuation(LJ_YM2612_SLOT* const sl
 			attenuationDB = oldDB - deltaDB;
 
 #if (ADSR_DEBUG)
-			printf("ATTACK[%d]:attDBdelta:%d attDB:%d AR:%d kcode:%d krs:%d keyscale:%d egRate:%d egCounter:%d egRateUpdateShift:%d\n",
+			YM_PRINTF("ATTACK[%d]:attDBdelta:%d attDB:%d AR:%d kcode:%d krs:%d keyscale:%d egRate:%d egCounter:%d egRateUpdateShift:%d\n",
 					slotPtr->id, egAttenuationDelta, attenuationDB, slotPtr->attackRate, keycode, keyRateScale, slotPtr->keyScale,
 					egRate, egCounter, egRateUpdateShift);
 #endif
@@ -944,7 +954,7 @@ static LJ_YM_UINT32 ym2612_slotComputeEGADSRAttenuation(LJ_YM2612_SLOT* const sl
 			}
 			attenuationDB += egAttenuationDelta;
 #if (ADSR_DEBUG)
-			printf("DECAY[%d]:attDBdelta:%d attDB:%d DR:%d kcode:%d krs:%d keyscale:%d egRate:%d egCounter:%d egRateUpdateShift:%d\n",
+			YM_PRINTF("DECAY[%d]:attDBdelta:%d attDB:%d DR:%d kcode:%d krs:%d keyscale:%d egRate:%d egCounter:%d egRateUpdateShift:%d\n",
 					slotPtr->id, egAttenuationDelta, attenuationDB, slotPtr->decayRate, keycode, keyRateScale, slotPtr->keyScale,
 					egRate, egCounter, egRateUpdateShift);
 #endif
@@ -976,7 +986,7 @@ static LJ_YM_UINT32 ym2612_slotComputeEGADSRAttenuation(LJ_YM2612_SLOT* const sl
 			}
 			attenuationDB += egAttenuationDelta;
 #if (ADSR_DEBUG)
-			printf("SUSTAIN[%d]:attDBdelta:%d attDB:%d SR:%d kcode:%d krs:%d keyscale:%d egRate:%d egCounter:%d egRateUpdateShift:%d\n",
+			YM_PRINTF("SUSTAIN[%d]:attDBdelta:%d attDB:%d SR:%d kcode:%d krs:%d keyscale:%d egRate:%d egCounter:%d egRateUpdateShift:%d\n",
 					slotPtr->id, egAttenuationDelta, attenuationDB, slotPtr->sustainRate, keycode, keyRateScale, slotPtr->keyScale,
 					egRate, egCounter, egRateUpdateShift);
 #endif
@@ -1004,7 +1014,7 @@ static LJ_YM_UINT32 ym2612_slotComputeEGADSRAttenuation(LJ_YM2612_SLOT* const sl
 			}
 			attenuationDB += egAttenuationDelta;
 #if (ADSR_DEBUG)
-			printf("RELEASE[%d]:attDBdelta:%d attDB:%d RR:%d kcode:%d krs:%d keyscale:%d egRate:%d egCounter:%d egRateUpdateShift:%d\n",
+			YM_PRINTF("RELEASE[%d]:attDBdelta:%d attDB:%d RR:%d kcode:%d krs:%d keyscale:%d egRate:%d egCounter:%d egRateUpdateShift:%d\n",
 					slotPtr->id, egAttenuationDelta, attenuationDB, slotPtr->releaseRate, keycode, keyRateScale, slotPtr->keyScale,
 					egRate, egCounter, egRateUpdateShift);
 #endif
@@ -1069,7 +1079,7 @@ void ym2612_slotUpdateEGADSRState(LJ_YM2612_SLOT* const slotPtr, const LJ_YM_UIN
 		{
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("ADSR_OFF\n");
+				YM_PRINTF("ADSR_OFF\n");
 			}
 			slotPtr->adsrState = LJ_YM2612_ADSR_OFF;
 		}
@@ -1332,7 +1342,7 @@ void ym2612_channelSetLeftRightAmsPms(LJ_YM2612_CHANNEL* const channelPtr, const
 
 	if (channelPtr->debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetLeftRightAmsPms channel:%d left:%d right:%d AMS:%d PMS:%d\n", channelPtr->id, left, right, AMS, PMS);
+		YM_PRINTF("SetLeftRightAmsPms channel:%d left:%d right:%d AMS:%d PMS:%d\n", channelPtr->id, left, right, AMS, PMS);
 	}
 
 	/* Update the connections for this channel */
@@ -1350,7 +1360,7 @@ void ym2612_channelSetFeedbackAlgorithm(LJ_YM2612_CHANNEL* const channelPtr, con
 
 	if (channelPtr->debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetFeedbackAlgorithm channel:%d feedback:%d algorithm:%d\n", channelPtr->id, feedback, algorithm);
+		YM_PRINTF("SetFeedbackAlgorithm channel:%d feedback:%d algorithm:%d\n", channelPtr->id, feedback, algorithm);
 	}
 
 	/* Update the connections for this channel */
@@ -1371,7 +1381,7 @@ void ym2612_slotSetKeyScaleAttackRate(LJ_YM2612_SLOT* const slotPtr, const LJ_YM
 
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetKeyScaleAttackRate channel:%d slot:%d AR:%d RS:%d\n", slotPtr->chanId, slotPtr->id, AR, RS);
+		YM_PRINTF("SetKeyScaleAttackRate channel:%d slot:%d AR:%d RS:%d\n", slotPtr->chanId, slotPtr->id, AR, RS);
 	}
 }
 
@@ -1389,7 +1399,7 @@ void ym2612_slotSetAMDecayRate(LJ_YM2612_SLOT* const slotPtr, const LJ_YM_UINT8 
 
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetAMDecayRate channel:%d slot:%d DR:%d AM:%d\n", slotPtr->chanId, slotPtr->id, DR, AM);
+		YM_PRINTF("SetAMDecayRate channel:%d slot:%d DR:%d AM:%d\n", slotPtr->chanId, slotPtr->id, DR, AM);
 	}
 }
 
@@ -1404,7 +1414,7 @@ void ym2612_slotSetEGSSG(LJ_YM2612_SLOT* slotPtr, const LJ_YM_UINT8 egSSG, const
 
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetEGSSGBits channel:%d slot:%d egSSG:0x%X enabled:%d attack:%d invert:%d hold:%d\n", slotPtr->chanId, slotPtr->id,
+		YM_PRINTF("SetEGSSGBits channel:%d slot:%d egSSG:0x%X enabled:%d attack:%d invert:%d hold:%d\n", slotPtr->chanId, slotPtr->id,
 					slotPtr->egSSG, slotPtr->egSSGEnabled, slotPtr->egSSGAttack, slotPtr->egSSGInvert, slotPtr->egSSGHold );
 	}
 }
@@ -1419,7 +1429,7 @@ void ym2612_slotSetSustainRate(LJ_YM2612_SLOT* const slotPtr, const LJ_YM_UINT8 
 
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetSustainRate channel:%d slot:%d SR:%d\n", slotPtr->chanId, slotPtr->id, SR);
+		YM_PRINTF("SetSustainRate channel:%d slot:%d SR:%d\n", slotPtr->chanId, slotPtr->id, SR);
 	}
 }
 
@@ -1445,7 +1455,7 @@ void ym2612_slotSetSustainLevelReleaseRate(LJ_YM2612_SLOT* const slotPtr, const 
 
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetSustainLevelReleaseRate channel:%d slot:%d SL:%d RR:%d\n", slotPtr->chanId, slotPtr->id, SL, RR);
+		YM_PRINTF("SetSustainLevelReleaseRate channel:%d slot:%d SL:%d RR:%d\n", slotPtr->chanId, slotPtr->id, SL, RR);
 	}
 }
 
@@ -1460,7 +1470,7 @@ void ym2612_slotSetTotalLevel(LJ_YM2612_SLOT* const slotPtr, const LJ_YM_UINT8 t
 
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetTotalLevel channel:%d slot:%d TL:%d scale:%f TLscale:%d\n", slotPtr->chanId,
+		YM_PRINTF("SetTotalLevel channel:%d slot:%d TL:%d scale:%f TLscale:%d\n", slotPtr->chanId,
 					slotPtr->id, TL, ((float)(TLscale)/(float)(1<<LJ_YM2612_TL_SCALE_BITS)), TLscale);
 	}
 }
@@ -1477,7 +1487,7 @@ void ym2612_slotSetDetuneMult(LJ_YM2612_SLOT* const slotPtr, const LJ_YM_UINT8 d
 
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetDetuneMult channel:%d slot:%d detune:%d mult:%d\n", slotPtr->chanId, slotPtr->id, detune, multiple);
+		YM_PRINTF("SetDetuneMult channel:%d slot:%d detune:%d mult:%d\n", slotPtr->chanId, slotPtr->id, detune, multiple);
 	}
 }
 
@@ -1513,7 +1523,7 @@ void ym2612_channelSetFreqBlock(LJ_YM2612_CHANNEL* const channelPtr, const LJ_YM
 
 	if (channelPtr->debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetFreqBlock channel:%d block:%d fnum:%d 0x%X keycode:%d block_fnumMSB:0x%X fnumLSB:0x%X\n",
+		YM_PRINTF("SetFreqBlock channel:%d block:%d fnum:%d 0x%X keycode:%d block_fnumMSB:0x%X fnumLSB:0x%X\n",
 					 channelPtr->id, block, fnum, fnum, keycode, block_fnumMSB, fnumLSB);
 	}
 }
@@ -1662,6 +1672,7 @@ void ym2612_partClear(LJ_YM2612_PART* const partPtr)
 
 void ym2612_egDebugOutputDeltas(void)
 {
+#if YM_DEBUG
 	LJ_YM_UINT32 i;
 	for (i = 0; i < 64; i++)
 	{
@@ -1671,14 +1682,15 @@ void ym2612_egDebugOutputDeltas(void)
 		for (cycle = 0; cycle < 8; cycle++)
 		{
 			const LJ_YM_UINT32 delta = ym2612_computeEGAttenuationDelta(egRate, cycle, egRateUpdateShift);
-			printf("%d,", delta);
+			YM_PRINTF("%d,", delta);
 		}
-		printf("    ");
+		YM_PRINTF("    ");
 		if ((i & 0x3) == 0x03)
 		{
-			printf("    %2d->%2d\n", (int)i&~0x3,i);
+			YM_PRINTF("    %2d->%2d\n", (int)i&~0x3,i);
 		}
 	}
+#endif
 }
 
 void ym2612_egMakeData(LJ_YM2612_EG* const egPtr, LJ_YM2612* ym2612Ptr)
@@ -1703,7 +1715,7 @@ void ym2612_egMakeData(LJ_YM2612_EG* const egPtr, LJ_YM2612* ym2612Ptr)
 
 	egPtr->counter = 0;
 
-	/*printf("EG timerAdd:%d EG timerCountPerUpdate:%d\n", egPtr->timer.addPerOutputSample, egPtr->timerCountPerUpdate);*/
+	/*YM_PRINTF("EG timerAdd:%d EG timerCountPerUpdate:%d\n", egPtr->timer.addPerOutputSample, egPtr->timerCountPerUpdate);*/
 
 	/* Debug output of the EG deltas */
 	if (0)
@@ -1717,7 +1729,7 @@ void ym2612_egMakeData(LJ_YM2612_EG* const egPtr, LJ_YM2612* ym2612Ptr)
 		{
 			LJ_YM_UINT32 invertAttenuationDB = LJ_YM2612_EG_SSG_ATTENUATION_DB_MAX - att;
 			invertAttenuationDB &= LJ_YM2612_EG_ATTENUATION_DB_MAX;
-			printf("Invert:%d 0x%X -> %d 0x%X\n", att, att, invertAttenuationDB, invertAttenuationDB);
+			YM_PRINTF("Invert:%d 0x%X -> %d 0x%X\n", att, att, invertAttenuationDB, invertAttenuationDB);
 		}
 	}
 }
@@ -1742,7 +1754,7 @@ void ym2612_timerModeChanged(LJ_YM2612* const ym2612Ptr)
 			ym2612Ptr->aTimer.count = ym2612Ptr->timerAstart;
 			if (ym2612Ptr->debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("Start Timer A:%d Counter:%d Start:%d\n", ym2612Ptr->timerAvalue, ym2612Ptr->aTimer.count, ym2612Ptr->timerAstart);
+				YM_PRINTF("Start Timer A:%d Counter:%d Start:%d\n", ym2612Ptr->timerAvalue, ym2612Ptr->aTimer.count, ym2612Ptr->timerAstart);
 			}
 		}
 	}
@@ -1758,7 +1770,7 @@ void ym2612_timerModeChanged(LJ_YM2612* const ym2612Ptr)
 			ym2612Ptr->bTimer.count = ym2612Ptr->timerBstart;
 			if (ym2612Ptr->debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("Start Timer B:%d Counter:%d Start:%d\n", ym2612Ptr->timerBvalue, ym2612Ptr->bTimer.count, ym2612Ptr->timerBstart);
+				YM_PRINTF("Start Timer B:%d Counter:%d Start:%d\n", ym2612Ptr->timerBvalue, ym2612Ptr->bTimer.count, ym2612Ptr->timerBstart);
 			}
 		}
 	}
@@ -1829,7 +1841,7 @@ void ym2612_SetChannel2FreqBlock(LJ_YM2612* const ym2612Ptr, const LJ_YM_UINT8 s
 
 	if (ym2612Ptr->debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("SetCh2FreqBlock channel:%d slot:%d block:%d fnum:%d 0x%X keycode:%d block_fnumMSB:0x%X fnumLSB:0x%X\n",
+		YM_PRINTF("SetCh2FreqBlock channel:%d slot:%d block:%d fnum:%d 0x%X keycode:%d block_fnumMSB:0x%X fnumLSB:0x%X\n",
 					 channel2Ptr->id, slot, block, fnum, fnum, keycode, block_fnumMSB, fnumLSB);
 	}
 }
@@ -1889,7 +1901,7 @@ void ym2612_makeData(LJ_YM2612* const ym2612Ptr)
 			float detuneMultiple = (float)detuneScaleTableValue * (0.529f/10.0f);
 			int detFPValue = detuneScaleTableValue * ((529 * (1<<16) / 10000));
 			float fpValue = (float)detFPValue / (float)(1<<16);
-			printf("detuneMultiple FD=%d keycode=%d %f (%d) %f\n", i, keycode, detuneMultiple, detuneScaleTableValue,fpValue);
+			YM_PRINTF("detuneMultiple FD=%d keycode=%d %f (%d) %f\n", i, keycode, detuneMultiple, detuneScaleTableValue,fpValue);
 		}
 	}
 #endif /* #if 0 */
@@ -1917,7 +1929,7 @@ void ym2612_makeData(LJ_YM2612* const ym2612Ptr)
 		{
 			const int detuneTable = LJ_YM2612_detuneTable[i*32+keycode];
 			const int detuneScaleTableValue = LJ_YM2612_detuneScaleTable[i*32+keycode];
-			printf("detuneTable FD=%d keycode=%d %d (%d)\n", i, keycode, detuneTable, detuneScaleTableValue);
+			YM_PRINTF("detuneTable FD=%d keycode=%d %d (%d)\n", i, keycode, detuneTable, detuneScaleTableValue);
 		}
 	}
 */
@@ -1930,7 +1942,7 @@ void ym2612_makeData(LJ_YM2612* const ym2612Ptr)
 	/* which is the base unit for Timer A and Timer B (but Timer B values get multiplied by 16) */
 	ym2612Ptr->aTimer.addPerOutputSample = (int)((float)ym2612Ptr->baseFreqScale * (float)(1 << LJ_YM2612_TIMER_NUM_BITS));
 	ym2612Ptr->bTimer.addPerOutputSample = (int)((float)ym2612Ptr->baseFreqScale * (float)(1 << LJ_YM2612_TIMER_NUM_BITS));
-	/*printf("timerAdd:%d\n", ym2612Ptr->aTimer.addPerOutputSample);*/
+	/*YM_PRINTF("timerAdd:%d\n", ym2612Ptr->aTimer.addPerOutputSample);*/
 
 	/* This is a counter in the units of FM output samples : which is (clockRate/sampleRate)/144 = ym2612Ptr->baseFreqScale */
 	/* which is the base unit for the lfo timer */
@@ -2122,7 +2134,8 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 	if (ym2612Ptr == NULL)
 	{
 #if _DEBUG
-		fprintf(stderr, "ym2612_setRegister:ym2612 is NULL\n");
+		if (ym2612Ptr->debugFlags & LJ_YM2612_DEBUG)
+			fprintf(stderr, "ym2612_setRegister:ym2612 is NULL\n");
 #endif
 		return LJ_YM2612_ERROR;
 	}
@@ -2130,7 +2143,8 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 	if (part >= LJ_YM2612_NUM_PARTS)
 	{
 #if _DEBUG
-		fprintf(stderr, "ym2612_setRegister:invalid part:%d max:%d \n",part, LJ_YM2612_NUM_PARTS);
+		if (ym2612Ptr->debugFlags & LJ_YM2612_DEBUG)
+			fprintf(stderr, "ym2612_setRegister:invalid part:%d max:%d \n",part, LJ_YM2612_NUM_PARTS);
 #endif
 		return LJ_YM2612_ERROR;
 	}
@@ -2138,7 +2152,8 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 	if (LJ_YM2612_validRegisters[reg] == 0)
 	{
 #if _DEBUG
-		fprintf(stderr, "ym2612_setRegister:unknown register:0x%X part:%d data:0x%X\n", reg, part, data);
+		if (ym2612Ptr->debugFlags & LJ_YM2612_DEBUG)
+			fprintf(stderr, "ym2612_setRegister:unknown register:0x%X part:%d data:0x%X\n", reg, part, data);
 #endif
 		return LJ_YM2612_ERROR;
 	}
@@ -2153,7 +2168,8 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 	if (reg > 0xB6)
 	{
 #if _DEBUG
-		fprintf(stderr, "ym2612_setRegister:unknown register:0x%X part:%d data:0x%X\n", reg, part, data);
+		if (ym2612Ptr->debugFlags & LJ_YM2612_DEBUG)
+			fprintf(stderr, "ym2612_setRegister:unknown register:0x%X part:%d data:0x%X\n", reg, part, data);
 #endif
 		return LJ_YM2612_ERROR;
 	}
@@ -2162,7 +2178,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 	ym2612Ptr->part[part].reg[reg] = data;
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("ym2612:setRegister %s 0x%X\n", LJ_YM2612_REGISTER_NAMES[reg],data);
+		YM_PRINTF("ym2612:setRegister %s 0x%X\n", LJ_YM2612_REGISTER_NAMES[reg],data);
 	}
 
 	if (reg == LJ_LFO_EN_LFO_FREQ)
@@ -2214,7 +2230,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 		ym2612Ptr->dacEnable = (int)(~0 * ((data & 0x80) >> 7));
 		if (debugFlags & LJ_YM2612_DEBUG)
 		{
-			printf("dacEnable 0x%X\n", ym2612Ptr->dacEnable);
+			YM_PRINTF("dacEnable 0x%X\n", ym2612Ptr->dacEnable);
 		}
 		return LJ_YM2612_OK;
 	}
@@ -2228,7 +2244,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 #endif /* #if LJ_YM2612_DAC_SHIFT >= 0 */
 		if (debugFlags & LJ_YM2612_DEBUG)
 		{
-			printf("dacValue: 0x%X -> 0x%X\n", data, ym2612Ptr->dacValue);
+			YM_PRINTF("dacValue: 0x%X -> 0x%X\n", data, ym2612Ptr->dacValue);
 		}
 		return LJ_YM2612_OK;
 	}
@@ -2246,7 +2262,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_channelKeyOnOff(channelPtr, ym2612Ptr, slotOnOff);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_KEY_ONFF part:%d channel:%d slotOnOff:0x%X data:0x%X\n", partParam, channel, slotOnOff, data);
+				YM_PRINTF("LJ_KEY_ONFF part:%d channel:%d slotOnOff:0x%X data:0x%X\n", partParam, channel, slotOnOff, data);
 			}
 		}
 		return LJ_YM2612_OK;
@@ -2274,7 +2290,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_slotSetDetuneMult(slotPtr, data, debugFlags);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_DETUNE_MULT part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
+				YM_PRINTF("LJ_DETUNE_MULT part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2283,7 +2299,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_slotSetTotalLevel(slotPtr, data, debugFlags);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_TOTAL_LEVEL part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
+				YM_PRINTF("LJ_TOTAL_LEVEL part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2292,7 +2308,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_slotSetKeyScaleAttackRate(slotPtr, data, debugFlags);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_RATE_SCALE_ATTACK_RATE part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
+				YM_PRINTF("LJ_RATE_SCALE_ATTACK_RATE part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2301,7 +2317,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_slotSetAMDecayRate(slotPtr, data, debugFlags);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_AM_DECAY_RATE part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
+				YM_PRINTF("LJ_AM_DECAY_RATE part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2310,7 +2326,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_slotSetSustainRate(slotPtr, data, debugFlags);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_SUSTAIN_RATE part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
+				YM_PRINTF("LJ_SUSTAIN_RATE part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2319,7 +2335,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_slotSetSustainLevelReleaseRate(slotPtr, data, debugFlags);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_SUSTAIN_LEVEL_RELEASE_RATE part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
+				YM_PRINTF("LJ_SUSTAIN_LEVEL_RELEASE_RATE part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2328,7 +2344,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_slotSetEGSSG(slotPtr, data, debugFlags);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_EG_SSG_PARAMS part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
+				YM_PRINTF("LJ_EG_SSG_PARAMS part:%d channel:%d slot:%d slotReg:%d data:0x%X\n", part, channel, slot, slotReg, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2353,7 +2369,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_channelSetFreqBlock(channelPtr, data);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_FREQLSB part:%d channel:%d data:0x%X\n", part, channel, data);
+				YM_PRINTF("LJ_FREQLSB part:%d channel:%d data:0x%X\n", part, channel, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2363,7 +2379,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_channelSetBlockFnumMSB(channelPtr, data);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_BLOCK_FREQMSB part:%d channel:%d data:0x%X\n", part, channel, data);
+				YM_PRINTF("LJ_BLOCK_FREQMSB part:%d channel:%d data:0x%X\n", part, channel, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2384,7 +2400,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 				ym2612_SetChannel2FreqBlock(ym2612Ptr, slot, data);
 				if (debugFlags & LJ_YM2612_DEBUG)
 				{
-					printf("LJ_CH2_FREQLSB slot:%d slotParameter:%d data:0x%X\n", slot, slotParameter, data);
+					YM_PRINTF("LJ_CH2_FREQLSB slot:%d slotParameter:%d data:0x%X\n", slot, slotParameter, data);
 				}
 			}
 			return LJ_YM2612_OK;
@@ -2406,7 +2422,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 				ym2612_SetChannel2BlockFnumMSB(ym2612Ptr, slot, data);
 				if (debugFlags & LJ_YM2612_DEBUG)
 				{
-					printf("LJ_CH2_BLOCK_FREQMSB slot:%d slotParameter:%d data:0x%X\n", slot, slotParameter, data);
+					YM_PRINTF("LJ_CH2_BLOCK_FREQMSB slot:%d slotParameter:%d data:0x%X\n", slot, slotParameter, data);
 				}
 			}
 			return LJ_YM2612_OK;
@@ -2417,7 +2433,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_channelSetFeedbackAlgorithm(channelPtr, data);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_FEEDBACK_ALGO part:%d channel:%d data:0x%X\n", part, channel, data);
+				YM_PRINTF("LJ_FEEDBACK_ALGO part:%d channel:%d data:0x%X\n", part, channel, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2427,7 +2443,7 @@ LJ_YM2612_RESULT ym2612_setRegister(LJ_YM2612* const ym2612Ptr, LJ_YM_UINT8 part
 			ym2612_channelSetLeftRightAmsPms(channelPtr, data);
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("LJ_LR_AMS_PMS part:%d channel:%d data:0x%X\n", part, channel, data);
+				YM_PRINTF("LJ_LR_AMS_PMS part:%d channel:%d data:0x%X\n", part, channel, data);
 			}
 			return LJ_YM2612_OK;
 		}
@@ -2546,7 +2562,7 @@ LJ_YM2612_RESULT LJ_YM2612_generateOutput(LJ_YM2612* const ym2612Ptr, int numCyc
 	dacValueRight = (dacValue & ym2612Ptr->channels[5]->right);
 	if (debugFlags & LJ_YM2612_DEBUG)
 	{
-		printf("dacValue 0x%X left 0x%X right 0x%X\n", dacValue, dacValueLeft, dacValueRight);
+		YM_PRINTF("dacValue 0x%X left 0x%X right 0x%X\n", dacValue, dacValueLeft, dacValueRight);
 	}
 
 	if (debugFlags & LJ_YM2612_ONECHANNEL)
@@ -2749,7 +2765,7 @@ LJ_YM2612_RESULT LJ_YM2612_generateOutput(LJ_YM2612* const ym2612Ptr, int numCyc
 					invertAttenuationDB &= LJ_YM2612_EG_ATTENUATION_DB_MAX;
 					if (debugFlags & LJ_YM2612_DEBUG)
 					{
-						printf("Invert:%d -> %d\n", attenuationDB, invertAttenuationDB);
+						YM_PRINTF("Invert:%d -> %d\n", attenuationDB, invertAttenuationDB);
 					}
 					attenuationDB = invertAttenuationDB;
 				}
@@ -2769,7 +2785,7 @@ LJ_YM2612_RESULT LJ_YM2612_generateOutput(LJ_YM2612* const ym2612Ptr, int numCyc
 						/* Scale by LFO AM value */
 						/* amsVolumeScale is in same units as TL i.e. LJ_YM2612_LFO_AM_SCALE_BITS */
 						slotOutput = (slotOutput * amsVolumeScale) >> LJ_YM2612_LFO_AM_SCALE_BITS;
-						/*printf("amsMaxdB %d amsdB %d amsVolumeScale %d\n", amsMaxdB, amsdB, amsVolumeScale);*/
+						/*YM_PRINTF("amsMaxdB %d amsdB %d amsVolumeScale %d\n", amsMaxdB, amsdB, amsVolumeScale);*/
 					}
 				}
 
@@ -2804,7 +2820,7 @@ LJ_YM2612_RESULT LJ_YM2612_generateOutput(LJ_YM2612* const ym2612Ptr, int numCyc
 				{
 					if (slotOutput != 0)
 					{
-						printf("Channel:%d Slot:%d slotOutput:%d carrierOutput:%d\n", channelPtr->id, slot, slotOutput, carrierOutput);
+						YM_PRINTF("Channel:%d Slot:%d slotOutput:%d carrierOutput:%d\n", channelPtr->id, slot, slotOutput, carrierOutput);
 					}
 				}
 				/* Zero out the fmInputDelta so it is ready to be used on the next update */
@@ -2819,7 +2835,7 @@ LJ_YM2612_RESULT LJ_YM2612_generateOutput(LJ_YM2612* const ym2612Ptr, int numCyc
 			{
 				if (channelOutput != 0)
 				{
-					printf("Channel:%d channelOutput:%d\n", channelPtr->id, channelOutput);
+					YM_PRINTF("Channel:%d channelOutput:%d\n", channelPtr->id, channelOutput);
 				}
 			}
 
@@ -2838,7 +2854,7 @@ LJ_YM2612_RESULT LJ_YM2612_generateOutput(LJ_YM2612* const ym2612Ptr, int numCyc
 		mixedRight += dacValueRight;
 		if (debugFlags & LJ_YM2612_DEBUG)
 		{
-			printf("mixedLeft 0x%X mixedRight 0x%X\n", mixedLeft, mixedRight);
+			YM_PRINTF("mixedLeft 0x%X mixedRight 0x%X\n", mixedLeft, mixedRight);
 		}
 
 		/* Keep within +/- 1 */
@@ -2897,7 +2913,7 @@ LJ_YM2612_RESULT LJ_YM2612_generateOutput(LJ_YM2612* const ym2612Ptr, int numCyc
 					LJ_YM2612_CHANNEL* const ch2Ptr = ym2612Ptr->channels[2];
 					if (debugFlags & LJ_YM2612_DEBUG)
 					{
-						printf("%d CSM KeyON TimerACnt: %d Timer A:%d\n", ym2612Ptr->sampleCount, ym2612Ptr->aTimer.count, ym2612Ptr->timerAstart);
+						YM_PRINTF("%d CSM KeyON TimerACnt: %d Timer A:%d\n", ym2612Ptr->sampleCount, ym2612Ptr->aTimer.count, ym2612Ptr->timerAstart);
 					}
 					for (slot = 0; slot < LJ_YM2612_NUM_SLOTS_PER_CHANNEL; slot++)
 					{
@@ -2917,7 +2933,7 @@ LJ_YM2612_RESULT LJ_YM2612_generateOutput(LJ_YM2612* const ym2612Ptr, int numCyc
 			LJ_YM2612_CHANNEL* const ch2Ptr = ym2612Ptr->channels[2];
 			if (debugFlags & LJ_YM2612_DEBUG)
 			{
-				printf("%d CSM KeyOFF Timer A:%d\n", ym2612Ptr->sampleCount,ym2612Ptr->timerAstart);
+				YM_PRINTF("%d CSM KeyOFF Timer A:%d\n", ym2612Ptr->sampleCount,ym2612Ptr->timerAstart);
 			}
 			for (slot = 0; slot < LJ_YM2612_NUM_SLOTS_PER_CHANNEL; slot++)
 			{
@@ -3042,23 +3058,31 @@ LJ_YM2612_RESULT LJ_YM2612_setAddressPinsCSRDWRA1A0(LJ_YM2612* const ym2612Ptr, 
 		/* A0 = 1 means D0-7 is register data, A1 is part 0/1 */
 		if ((A0 == 1) && ((A1 == 0) || (A1 == 1)))
 		{
-			if (ym2612Ptr->slotWriteAddr == A1)
-			{
-				const LJ_YM_UINT8 reg = ym2612Ptr->regAddress;
-				const LJ_YM_UINT8 part = A1;
-				const LJ_YM_UINT8 data = ym2612Ptr->D07;
-				LJ_YM2612_RESULT result = ym2612_setRegister(ym2612Ptr, part, reg, data);
-				/* Hmmmm - how does the real chip work */
-				ym2612Ptr->slotWriteAddr = 0xFF;
-				return result;
-			}
+			const LJ_YM_UINT8 reg = ym2612Ptr->regAddress;
+			const LJ_YM_UINT8 part = A1;
+			const LJ_YM_UINT8 data = ym2612Ptr->D07;
+			LJ_YM2612_RESULT result = ym2612_setRegister(ym2612Ptr, part, reg, data);
+			return result;
 		}
 	}
 
-	fprintf(stderr, "LJ_YM2612_setAddressPinsCSRDWRA1A0:unknown combination of pins !CS:%d !RD:%d !WR:%d A1:%d A0:%d\n",
-					notCS, notRD, notWR, A1, A0);
+	if (ym2612Ptr->debugFlags & LJ_YM2612_DEBUG)
+	{
+		fprintf(stderr, "LJ_YM2612_setAddressPinsCSRDWRA1A0:unknown combination of pins !CS:%d !RD:%d !WR:%d A1:%d A0:%d\n",
+			notCS, notRD, notWR, A1, A0);
+	}
 
 	return LJ_YM2612_ERROR;
+}
+
+int LJ_YM2612_getTimerA(LJ_YM2612* const ym2612Ptr)
+{
+	return ym2612Ptr ? ym2612Ptr->aTimer.count : 0;
+}
+
+int LJ_YM2612_getTimerB(LJ_YM2612* const ym2612Ptr)
+{
+	return ym2612Ptr ? ym2612Ptr->bTimer.count : 0;
 }
 
 /*

@@ -1,8 +1,7 @@
 #pragma once
 
 #include <ion/core/thread/Thread.h>
-#include <ion/core/thread/Semaphore.h>
-#include <ion/core/thread/CriticalSection.h>
+#include <ion/core/thread/Event.h>
 #include <ion/core/time/Time.h>
 
 #include "emulator.h"
@@ -38,6 +37,7 @@ public:
 	}
 
 	float GetLastFPS() const { return m_lastFPS; }
+	u64 GetFrame() const { return m_frameCount; }
 
 private:
 	u64 m_frameCount;
@@ -45,28 +45,26 @@ private:
 	float m_lastFPS;
 };
 
-class EmulatorThread_Z80_PSG_FM
+class EmulatorThread_Z80_PSG_FM_DAC
 #if EMU_THREADED
 	: public ion::thread::Thread
 #endif
 {
 public:
-	EmulatorThread_Z80_PSG_FM(EmulatorThread& emuThread68K);
+	EmulatorThread_Z80_PSG_FM_DAC();
+	virtual ~EmulatorThread_Z80_PSG_FM_DAC();
 
-	void Tick_Z80_PSG_FM();
+	void Tick_Z80_PSG_FM_DAC(double deltaTime);
 
 protected:
 	virtual void Entry();
 
 private:
-	EmulatorThread& m_emuThread68K;
-
-	double m_prevAudioClock;
-	double m_accumTime;
-
 	u64 m_clockZ80;
 	u64 m_clockFM;
 	u64 m_clockPSG;
+
+	bool m_running;
 };
 
 class EmulatorThread
@@ -76,39 +74,30 @@ class EmulatorThread
 {
 public:
 	EmulatorThread();
+	virtual ~EmulatorThread();
 
-	void TickEmulator(float deltaTime);
+	void TickEmulator(double deltaTime);
+
+	u64 Get68KCycle() const;
 
 	void Pause();
 	void Resume();
 	bool IsPaused() const;
 
-	FPSCounter m_fpsCounterEmulator;
 	FPSCounter m_fpsCounterRender;
-	FPSCounter m_fpsCounterAudio;
-
-	ion::thread::CriticalSection m_renderCritSec;
-
-	u32 m_tickCount_68K;
-	u32 m_tickCount_Z80_PSG_FM;
 
 protected:
 	virtual void Entry();
 
 private:
 
-	EmulatorThread_Z80_PSG_FM m_emuThread_Z80_PSG_FM;
-
-	EmulatorState m_lastEmulatorState;
-
-	double m_prevAudioClock;
-	double m_accumTime;
-	int m_prevFramesBehind;
-	u64 m_emulatorFrameCount;
+	EmulatorThread_Z80_PSG_FM_DAC m_emuThread_Z80_PSG_FM_DAC;
 	
 	u64 m_clock68K;
+	u64 m_cycle68K;
 
 	u32 m_lineCounter;
 
 	bool m_paused;
+	bool m_running;
 };

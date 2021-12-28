@@ -3,6 +3,7 @@
 #include "MenuCommon.h"
 
 #include <ion/core/utils/STL.h>
+#include <ion/engine/Engine.h>
 
 #include <algorithm>
 #include <cctype>
@@ -95,12 +96,12 @@ void MenuVideo::SyncSettings()
 	}
 
 	m_comboBorder->SetSelection((int)m_settings.videoBorder);
-	m_checkBoxFullscreen->SetChecked(m_settings.fullscreen);
+	m_checkBoxFullscreen->SetChecked(ion::engine.render.window->GetFullscreen());
 	m_checkBoxVSync->SetChecked(m_settings.vsync);
 	m_checkBoxPixelBuffer->SetChecked(m_settings.pixelBuffer);
 	m_sliderScanlines->SetValue(m_settings.scanlineAlpha);
-	m_comboDisplays->SetEnabled(m_settings.fullscreen);
-	m_comboResolution->SetEnabled(!m_settings.fullscreen);
+	m_comboDisplays->SetEnabled(ion::engine.render.window->GetFullscreen());
+	m_comboResolution->SetEnabled(!ion::engine.render.window->GetFullscreen());
 }
 
 void MenuVideo::PopulateResolutions(int displayIdx)

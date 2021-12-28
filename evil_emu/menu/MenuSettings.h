@@ -8,7 +8,11 @@
 #include <ion/gui/ComboBox.h>
 #include <ion/gui/TextBox.h>
 #include <ion/gui/MessageBox.h>
-#include <ion/io/FileSystem.h>
+#include <ion/core/io/FileSystem.h>
+
+#include "constants.h"
+
+#if EVIL_EMU_USE_UTILITY_MENUS
 
 #include "settings.h"
 #include "MenuCommon.h"
@@ -38,9 +42,10 @@ private:
 	ion::gui::GUI& m_gui;
 	ion::gui::Font& m_font;
 
-	ion::io::FileSystem& m_fileSystem;
-
+#if defined ION_PLATFORM_MACOSX
 	Settings& m_settings;
+#endif
+
 	ion::render::Window& m_appWindow;
 
 	MenuManual* m_menuManual;
@@ -51,9 +56,17 @@ private:
 	DlgROMDisclaimer* m_dlgROMDisclaimer;
 	ion::gui::MessageBox* m_msgROMInstructions;
 
+#if EVIL_EMU_USE_MANUAL
 	ion::gui::Button* m_buttonManual;
+#endif
+
+#if EVIL_EMU_ROM_DOWNLOAD
 	ion::gui::Button* m_buttonCopyROM;
+#endif
+
 	ion::gui::Button* m_buttonVideo;
 	ion::gui::Button* m_buttonKeyboard;
 	ion::gui::Button* m_buttonGamepad;
 };
+
+#endif

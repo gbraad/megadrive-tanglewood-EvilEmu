@@ -1,17 +1,79 @@
-#include "vdp.h"
-#include "memory.h"
-#include "callbacks.h"
+#include "megaex/vdp/vdp.h"
+#include "megaex/memory.h"
+#include "megaex/callbacks.h"
 
 #include <string.h>
 
 int VDP::cramCacheDirty;
 U8 VDP::VDP_Registers[0x20];
+U8* VDP::videoMemory = nullptr;
+U8* VDP::videoBuffers[VDP_NUM_BUFFERS];
+int VDP::writeBufferIdx = 1;
+int VDP::readBufferIdx = 0;
+bool VDP::drawPlaneB = true;
+bool VDP::transparentBG = false;
+ion::thread::Event VDP::readBufferReady;
 
+struct Sprite
+{
+	U16 ypos;
+	U8  size;
+	U8  next;
+	U8  flags;
+	U8  tileid;
+	U16 xpos;
+};
+
+void VDP_Init()
+{
 #if VDP_SCALE_2X
-U8 VDP::videoMemory[LINE_LENGTH*HEIGHT * sizeof(U32) * 4];
+	int bufferSize = DRAW_BUFFER_WIDTH*DRAW_BUFFER_HEIGHT * sizeof(U32) * 4;
 #else
-U8 VDP::videoMemory[LINE_LENGTH*HEIGHT * sizeof(U32)];
+	int bufferSize = DRAW_BUFFER_WIDTH * DRAW_BUFFER_HEIGHT * sizeof(U32);
 #endif
+
+	for (int i = 0; i < VDP_NUM_BUFFERS; i++)
+	{
+		VDP::videoBuffers[i] = new U8[bufferSize];
+		memset(VDP::videoBuffers[i], 0, bufferSize);
+	}
+
+	VDP::videoMemory = VDP::videoBuffers[0];
+	VDP::readBufferIdx = 0;
+	VDP::writeBufferIdx = 0;
+}
+
+void VDP_Shutdown()
+{
+	for (int i = 0; i < VDP_NUM_BUFFERS; i++)
+	{
+		delete[] VDP::videoBuffers[i];
+	}
+}
+
+void VDP_WriteLock()
+{
+
+}
+
+void VDP_WriteUnlock()
+{
+	VDP::readBufferIdx = VDP::writeBufferIdx;
+	VDP::writeBufferIdx = (VDP::writeBufferIdx + 1) % VDP_NUM_BUFFERS;
+	VDP::videoMemory = VDP::videoBuffers[VDP::writeBufferIdx];
+	VDP::readBufferReady.Signal();
+}
+
+U8* VDP_ReadLock()
+{
+	VDP::readBufferReady.Wait();
+	return VDP::videoBuffers[VDP::readBufferIdx];
+}
+
+void VDP_ReadUnlock()
+{
+
+}
 
 void VDP_GetRegisterContents(U16 offset, char *buffer)
 {
@@ -127,6 +189,43 @@ const char *SMS_VDP_DumpRegisterName(U16 byte)
 	return "";
 }
 
+enum DrawPlane
+{
+	PLANE_A,
+	PLANE_B,
+	PLANE_S,
+	PLANE_W
+};
+
+inline unsigned int GetVRAMBankTiles(int plane)
+{
+#if VRAM_128KB_MODE
+	// Reg 1 bit 7 = 128KB VRAM enable
+	if ((VDP::VDP_Registers[1] & (1 << 7)) == 0)
+	{
+		// 64KB VRAM mode
+		return 0;
+	}
+
+	switch (plane)
+	{
+	case PLANE_A:
+		// Reg E bit 0 = plane A tile data in upper 64kb VRAM
+		return (VDP::VDP_Registers[14] & 1) ? 0x10000 : 0;
+	case PLANE_B:
+		// Reg E bits 0 and 4 = plane B tile data in upper 64kb VRAM
+		return ((VDP::VDP_Registers[14] & 1) && (VDP::VDP_Registers[14] & (1 << 4))) ? 0x10000 : 0;
+	case PLANE_S:
+		// Reg 6 bit 5 = sprite tile data in upper 64kb VRAM
+		return (VDP::VDP_Registers[6] & (1 << 5)) ? 0x10000 : 0;
+	default:
+		return 0;
+	}
+#else
+	return 0;
+#endif
+}
+
 void DisplayFillBGColourHiLoLine(U8 colHi, U8 colLo, U32 *pixelPos, int w)
 {
 	int a;
@@ -135,7 +234,7 @@ void DisplayFillBGColourHiLoLine(U8 colHi, U8 colLo, U32 *pixelPos, int w)
 	U8 g = (colLo & 0xF0);
 	U8 b = (colLo & 0x0F) << 4;
 
-	colour = (r << 16) | (g << 8) | (b << 0);
+	colour = (0xFF << 24) | (r << 16) | (g << 8) | (b << 0);
 
 	for (a = 0; a<w; a++)
 	{
@@ -161,6 +260,15 @@ U32 VDP_GetBackgroundColourRGBA()
 	U32 colour = (r << 24) | (g << 16) | (b << 8);
 
 	return colour;
+}
+
+void DisplayFillTransparent(U32* pixelPos, int w)
+{
+	memset(pixelPos, 0, w * sizeof(U32));
+
+#if VDP_SCALE_2X
+	memset(pixelPos + w, 0, w * sizeof(U32));
+#endif
 }
 
 void DisplayFillBGColourLine(U32 *pixelPos, int w)
@@ -239,14 +347,14 @@ static inline int ComputeTilePixelColourXY(int tx, int ty, U32 address, U32 flip
 	return colour;
 }
 
-U8	zBuffer[40 * 8];
+U8	zBuffer[VDP_SCREEN_WIDTH_TILES * 8];
 
-void doPixelZ(int x, int y, U8 colHi, U8 colLo, U8 zValue)
+void doPixelSprite(int x, int y, U8 colHi, U8 colLo, U8 zValue)
 {
-	if (zBuffer[x - 128]<zValue)
+	if (zBuffer[x]<zValue)
 	{
-		zBuffer[x - 128] = zValue;
-		doPixel(x, y, colHi, colLo);
+		zBuffer[x] = zValue;
+		doPixel(x, y - 128, colHi, colLo);
 	}
 }
 
@@ -263,10 +371,45 @@ void UpdatePaletteCache()
 
 			// 0x0000BR0G
 			// to
-			// 0x00RRBBGG;
-			paletteCache[(pal * 16) + colour] = ((cramWord & 0x0E00) << 12) | (cramWord & 0xE000) | ((cramWord & 0x000E) << 4);
+			// 0xAARRBBGG;
+			paletteCache[(pal * 16) + colour] = (0xFF << 24) | ((cramWord & 0x0E00) << 12) | (cramWord & 0xE000) | ((cramWord & 0x000E) << 4);
 		}
 	}
+}
+
+U32 VDP_GetPlaneWidthPx()
+{
+	return ((VDP::VDP_Registers[12] & 0x01) ? VDP_SCREEN_WIDTH_TILES : 32) * 8;
+}
+
+S32 VDP_GetScrollX_PlaneB(int y)
+{
+	U32 scrollHTable = (VDP::VDP_Registers[13] & 0x3F) << 10;
+
+	S32 b_scrollAmountX;
+
+	if ((VDP::VDP_Registers[11] & 0x03) == 0x03)
+	{
+		b_scrollAmountX = ((Memory::vRam[scrollHTable + 2 + y * 4] & 0x07) << 8) | Memory::vRam[scrollHTable + 3 + y * 4];
+	}
+	else
+	{
+		if ((VDP::VDP_Registers[11] & 0x03) == 0x02)
+		{
+			b_scrollAmountX = ((Memory::vRam[scrollHTable + 2 + (y / 8) * 32] & 0x07) << 8) | Memory::vRam[scrollHTable + 3 + (y / 8) * 32];
+		}
+		else
+		{
+			b_scrollAmountX = ((Memory::vRam[scrollHTable + 2] & 0x07) << 8) | Memory::vRam[scrollHTable + 3];
+		}
+	}
+
+	return b_scrollAmountX;
+}
+
+S32 VDP_GetScrollY_PlaneB()
+{
+	return ((Memory::vsRam[2] & 0x0F) << 8) | (Memory::vsRam[3]);
 }
 
 void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
@@ -282,8 +425,8 @@ void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
 		VDP::cramCacheDirty = 0;
 	}
 
-	//Get display width
-	int displaySizeX = (VDP::VDP_Registers[12] & 0x01) ? 40 : 32;
+	//Get plane width (H40 == H56 if VDP_H54_MODE defined)
+	int planeWidthX = (VDP::VDP_Registers[12] & 0x01) ? VDP_SCREEN_WIDTH_TILES : 32;
 
 	//If display enabled
 	if (VDP::VDP_Registers[1] & 0x40)
@@ -294,18 +437,21 @@ void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
 		//Get plane A scroll mode
 		S32 a_scrollAmountX;
 
-		if ((VDP::VDP_Registers[11] & 0x03) == 0x03)			/* do pixel scroll */
+		if ((VDP::VDP_Registers[11] & 0x03) == 0x03)
 		{
+			//Pixel scroll
 			a_scrollAmountX = ((Memory::vRam[scrollHTable + 0 + ty * 4] & 0x07) << 8) | Memory::vRam[scrollHTable + 1 + ty * 4];
 		}
 		else
 		{
-			if ((VDP::VDP_Registers[11] & 0x03) == 0x02)			/* do cell scroll */
+			if ((VDP::VDP_Registers[11] & 0x03) == 0x02)
 			{
+				//Cell scroll
 				a_scrollAmountX = ((Memory::vRam[scrollHTable + 0 + (ty / 8) * 32] & 0x07) << 8) | Memory::vRam[scrollHTable + 1 + (ty / 8) * 32];
 			}
 			else
 			{
+				//Plane scroll
 				a_scrollAmountX = ((Memory::vRam[scrollHTable + 0] & 0x07) << 8) | Memory::vRam[scrollHTable + 1];
 			}
 		}
@@ -368,9 +514,6 @@ void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
 		}
 #endif
 
-		U32 a_baseAddress = a_map_data_addr;
-		U32 b_baseAddress = b_map_data_addr;
-
 		//Get plane size
 		int planeSizeX;
 		int planeSizeY;
@@ -417,7 +560,7 @@ void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
 		int a_ty = (ty + a_scrollAmountY) & (planeSizeY * 8 - 1);
 		int b_ty = (ty + b_scrollAmountY) & (planeSizeY * 8 - 1);
 
-		int widthPixels = displaySizeX * 8;
+		int widthPixels = planeWidthX * 8;
 
 		for (int pixelX = 0; pixelX < widthPixels; pixelX++)			/* base address is vertical adjusted..  */
 		{
@@ -426,8 +569,13 @@ void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
 			int b_tx = (pixelX - b_scrollAmountX) & (planeSizeX * 8 - 1);
 
 			//Get VRAM address of tile ID
+#if VRAM_128KB_MODE
+			U16 a_tile_addr = (a_map_data_addr + (a_tx / 8) * 2 + (a_ty / 8)*planeSizeX * 2) & 0x1FFFF;
+			U16 b_tile_addr = (b_map_data_addr + (b_tx / 8) * 2 + (b_ty / 8)*planeSizeX * 2) & 0x1FFFF;
+#else
 			U16 a_tile_addr = (a_map_data_addr + (a_tx / 8) * 2 + (a_ty / 8)*planeSizeX * 2) & 0xFFFF;
 			U16 b_tile_addr = (b_map_data_addr + (b_tx / 8) * 2 + (b_ty / 8)*planeSizeX * 2) & 0xFFFF;
+#endif
 
 			//Get tile ID and flags
 			U16 a_tile = (Memory::vRam[a_tile_addr] << 8) | Memory::vRam[a_tile_addr + 1];
@@ -460,7 +608,7 @@ void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
 			}
 
 			// Draw pixel plane B
-			if (*zPos < b_prio)
+			if (VDP::drawPlaneB && (*zPos < b_prio))
 			{
 				//Get tile VRAM address
 				U16 b_tileAddress = (b_tile & 0x07FF) << 5;	// pccv hnnn nnnn nnnn << 5 = tileId to bytes
@@ -494,7 +642,7 @@ void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
 	else
 	{
 		//Display disabled, draw BG colour
-		int widthPixels = displaySizeX * 8;
+		int widthPixels = planeWidthX * 8;
 
 		U16 bgColourPal = (VDP::VDP_Registers[7] & 0xF0) >> 4;
 		U16 bgColourIdx = VDP::VDP_Registers[7] & 0x0F;
@@ -508,18 +656,18 @@ void DrawScreenRow(int ty, U32* pixelPos, U8* zPos)
 }
 
 /* we need at least : pcc0XXXX			(p priority - cc colour palette - XXXX colour from tile) */
-const int spriteTempBufferSize = 40 * 8;
+const int spriteTempBufferSize = VDP_SCREEN_WIDTH_TILES * 8;
 U8	spriteTempBuffer[spriteTempBufferSize];		/* 1 Full width line		(VDP must compute this or similar buffer a line ahead?) */
 
 void ProcessSpritePixel(int x, int y, U8 attributes, int ScreenY)
 {
 	if (y == ScreenY)
 	{
-		if (x >= 128 && x<128 + 40 * 8)
+		if (x >= VDP_SPRITE_BORDER_X && x < VDP_SPRITE_BORDER_Y + VDP_SCREEN_WIDTH_TILES * 8)
 		{
-			if (spriteTempBuffer[x - 128] == 0)
+			if (spriteTempBuffer[x - VDP_SPRITE_BORDER_X] == 0)
 			{
-				spriteTempBuffer[x - 128] = attributes;
+				spriteTempBuffer[x - VDP_SPRITE_BORDER_X] = attributes;
 			}
 		}
 	}
@@ -533,7 +681,11 @@ void ProcessSpriteTile(int xx, int yy, U32 address, int pal, U32 flipH, U32 flip
 
 	UNUSED_ARGUMENT(pal);
 
+#if VRAM_128KB_MODE
+	address &= 0x1FFFF;
+#else
 	address &= 0xFFFF;
+#endif
 
 	for (y = 0; y<8; y++)
 	{
@@ -575,7 +727,12 @@ void ProcessSpriteTile(int xx, int yy, U32 address, int pal, U32 flipH, U32 flip
 void ProcessSpriteTileLine(int drawX, U32 tileAddress, U32 tileLine, U32 flipH, U8 highNibbleOfSpriteInfo)
 {
 	int colour;
+
+#if VRAM_128KB_MODE
+	tileAddress &= 0x1FFFF;
+#else
 	tileAddress &= 0xFFFF;
+#endif
 
 	for (int x = 0; x<8; x++)
 	{
@@ -602,11 +759,11 @@ void ProcessSpriteTileLine(int drawX, U32 tileAddress, U32 tileLine, U32 flipH, 
 				pixelX = x + drawX;
 			}
 
-			if (pixelX >= 128 && pixelX<128 + 40 * 8)
+			if (pixelX >= VDP_SPRITE_BORDER_X && pixelX < VDP_SPRITE_BORDER_X + VDP_SCREEN_WIDTH_TILES * 8)
 			{
-				if (spriteTempBuffer[pixelX - 128] == 0)
+				if (spriteTempBuffer[pixelX - VDP_SPRITE_BORDER_X] == 0)
 				{
-					spriteTempBuffer[pixelX - 128] = colour;
+					spriteTempBuffer[pixelX - VDP_SPRITE_BORDER_X] = colour;
 				}
 			}
 		}
@@ -620,11 +777,11 @@ void ComputeSpritesForNextLine(int nextLine)
 	{
 		int xTile, yTile;
 		U16 baseSpriteAddress = (VDP::VDP_Registers[5] & 0x7F) << 9;
-		int displaySizeX = (VDP::VDP_Registers[12] & 0x01) ? 40 : 32;
+		U32 baseTilesAddress = GetVRAMBankTiles(PLANE_S);
+		int displaySizeX = (VDP::VDP_Registers[12] & 0x01) ? VDP_SCREEN_WIDTH_TILES : 32;
 		U16 spriteAddress;
 		U16 totSpritesScreen = (VDP::VDP_Registers[12] & 0x01) ? 80 : 64;
 		U16 totSpritesScan = (VDP::VDP_Registers[12] & 0x01) ? 20 : 16;
-		U16 totPixelsScan = (VDP::VDP_Registers[12] & 0x01) ? 20 * 16 : 16 * 16;
 		U16 curLink = 0;
 
 		int	bailOut = 80;			/* bug in sprite stuff - infinite loop this will clear after 80  */
@@ -655,18 +812,23 @@ void ComputeSpritesForNextLine(int nextLine)
 																NB : sprite with x coord=0 masks off lower sprites for scanlines this sprite would occupy
 
 																*/
+
 		spriteAddress = baseSpriteAddress;
 		while (totSpritesScan && bailOut)
 		{
+#if VDP_H50_MODE || VDP_H54_MODE|| VDP_H106_MODE
+			U16 xPosPixels = ((Memory::vRam[spriteAddress + 6] << 8) | (Memory::vRam[spriteAddress + 7])) & 0x03FF;
+#else
+			U16 xPosPixels = ((Memory::vRam[spriteAddress + 6] << 8) | (Memory::vRam[spriteAddress + 7])) & 0x01FF;
+#endif
 			U16 yPosPixels = ((Memory::vRam[spriteAddress + 0] << 8) | (Memory::vRam[spriteAddress + 1])) & 0x01FF;
 			U16 size = Memory::vRam[spriteAddress + 2] & 0x0F;
-			U16 link = Memory::vRam[spriteAddress + 3] & 0x3F;
+			U16 link = Memory::vRam[spriteAddress + 3] & 0x7F;
 			U16 ctrl = ((Memory::vRam[spriteAddress + 4] << 8) | (Memory::vRam[spriteAddress + 5])) & 0xFFFF;
-			U16 xPosPixels = ((Memory::vRam[spriteAddress + 6] << 8) | (Memory::vRam[spriteAddress + 7])) & 0x01FF;
 			int vSizeTiles = (size & 0x03) + 1;
 			int hSizeTiles = ((size & 0x0C) >> 2) + 1;
 			U8 attributeHighNibble = (ctrl & 0xE000) >> 8;
-			U32 firstTileAddress = (ctrl & 0x07FF) << 5;
+			U32 firstTileAddress = ((ctrl & 0x07FF) << 5) + baseTilesAddress;
 
 			bailOut--;
 
@@ -682,17 +844,14 @@ void ComputeSpritesForNextLine(int nextLine)
 
 				bool flipX = (ctrl & 0x0800) != 0;
 				bool flipY = (ctrl & 0x1000) != 0;
-				U8 palette = (ctrl & 0x6000) >> 13;
 
 				const int bytesPerTile = 32;
-				const int bytesPerTileLine = 4;
 				const int tileWidth = 8;
 				const int tileHeight = 8;
 
 				for (xTile = 0; xTile < hSizeTiles; xTile++)
 				{
 					U32 tileStartAddress = 0;
-					U32 tileLineAddress = 0;
 					U32 lineDrawPosX = 0;
 					U32 lineDrawPosY = 0;
 					U32 tileLine = 0;
@@ -719,7 +878,7 @@ void ComputeSpritesForNextLine(int nextLine)
 						static bool warned = false;
 						if (!warned)
 						{
-							printf("megaEx: Sprite Y flip not implemented!\n");
+							EMU_PRINTF("megaEx: Sprite Y flip not implemented!\n");
 							warned = true;
 						}
 						#endif
@@ -775,7 +934,12 @@ void ComputeSpritesForNextLine(int nextLine)
 				break;
 
 			spriteAddress = baseSpriteAddress + link * 8;
+
+#if VRAM_128KB_MODE
+			spriteAddress &= 0x1FFFF;
+#else
 			spriteAddress &= 0xFFFF;
+#endif
 		}
 	}
 	else
@@ -788,7 +952,7 @@ void ComputeSpritesForNextLine(int nextLine)
 void DrawSpritesForLine(int curLine, U8 zValue)
 {
 	int x;
-	int displaySizeX = (VDP::VDP_Registers[12] & 0x01) ? 40 : 32;
+	int displaySizeX = (VDP::VDP_Registers[12] & 0x01) ? VDP_SCREEN_WIDTH_TILES : 32;
 
 	for (x = 0; x<displaySizeX * 8; x++)
 	{
@@ -807,11 +971,11 @@ void DrawSpritesForLine(int curLine, U8 zValue)
 
 			if (spriteInfo & 0x80)
 			{
-				doPixelZ(128 + x, curLine, r, gb, zValue << 4);
+				doPixelSprite(x, curLine, r, gb, zValue << 4);
 			}
 			else
 			{
-				doPixelZ(128 + x, curLine, r, gb, zValue);
+				doPixelSprite(x, curLine, r, gb, zValue);
 			}
 		}
 	}
@@ -955,6 +1119,16 @@ void Draw32XScreenRow(int y, U32* out, U8* zPos)
 
 #endif
 
+void VDP_SetDrawPlaneB(bool drawPlaneB)
+{
+	VDP::drawPlaneB = drawPlaneB;
+}
+
+void VDP_SetTransparentBG(bool transparentBG)
+{
+	VDP::transparentBG = transparentBG;
+}
+
 void VID_BeginFrame()
 {
 	//Clear sprite line cache
@@ -964,31 +1138,37 @@ void VID_BeginFrame()
 #if !SMS_MODE
 void VID_DrawScreenRow(int y)
 {
-	{
-		//Pixel output buffer + border
-		U32 *pixel = pixelPosition(128, 128 + y);
+	//Pixel output buffer
+	U32* lineAddr = pixelPosition(0, 0 + y);
 
-		U8 *zPos = zBuffer;
+	//Z output buffer
+	U8* pixelDepth = zBuffer;
 
-		DisplayFillBGColourLine(pixel, 320);
+	//Clear with BG colour
+	if (VDP::transparentBG)
+		DisplayFillTransparent(lineAddr, VDP_SCREEN_WIDTH);
+	else
+		DisplayFillBGColourLine(lineAddr, VDP_SCREEN_WIDTH);
 
-		memset(zBuffer, 0, 40 * 8);
+	//Clear Z buffer
+	memset(zBuffer, 0, VDP_SCREEN_WIDTH_TILES * 8);
+
 #if ENABLE_32X_MODE
-		Draw32XScreenRow(y, pixel, zPos);
+	Draw32XScreenRow(y, pixel, zPos);
 #endif
 
-		//Draw plane A/B row
-		DrawScreenRow(y, pixel, zPos);
+	//Draw plane A/B row
+	DrawScreenRow(y, lineAddr, pixelDepth);
 
-		//Draw sprite row (at Y pos + sprite border)
-		DrawSpritesForLine(128 + y, 0x04);
-		ComputeSpritesForNextLine(128 + y + 1);
+	//Draw sprite row (at Y pos + sprite border)
+	DrawSpritesForLine(y + VDP_SPRITE_BORDER_Y, 0x04);
+	ComputeSpritesForNextLine(y + VDP_SPRITE_BORDER_Y + 1);
 
 #if VDP_SCALE_2X
-		U32* lineB = pixel + (LINE_LENGTH * 2);
-		memcpy(lineB, pixel, LINE_LENGTH * sizeof(U32) * 2);
+	//If scaling x2, duplicate line
+	U32* lineB = lineAddr + (DRAW_BUFFER_WIDTH * 2);
+	memcpy(lineB, lineAddr, DRAW_BUFFER_WIDTH * sizeof(U32) * 2);
 #endif
-	}
 }
 #else
 

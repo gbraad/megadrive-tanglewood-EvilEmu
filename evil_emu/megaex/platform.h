@@ -27,6 +27,8 @@ THE SOFTWARE.
 #ifndef _PLATFORM_H
 #define _PLATFORM_H
 
+#if !defined ION_ENGINE	// ion handles all of this
+
 #if defined _WIN32
 
 #define GLFW_DLL
@@ -71,5 +73,6 @@ THE SOFTWARE.
 #define __int64 int64_t
 #endif
 
+#endif // !ION_ENGINE
 
 #endif/*_PLATFORM_H*/

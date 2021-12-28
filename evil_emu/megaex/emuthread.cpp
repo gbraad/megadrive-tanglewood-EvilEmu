@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <ion/engine/Engine.h>
 #include <ion/core/time/Time.h>
 #include <ion/core/thread/Sleep.h>
+#include <ion/core/debug/Debug.h>
 #include <ion/maths/Maths.h>
 
 #include "emuthread.h"
@@ -42,46 +44,52 @@
 EmulatorThread::EmulatorThread()
 #if EMU_THREADED
 	: ion::thread::Thread("Emulator_68K")
-	, m_emuThread_Z80_PSG_FM(*this)
-#else
-    : m_emuThread_Z80_PSG_FM(*this)
 #endif
 {
-	m_prevAudioClock = 0.0f;
-	m_accumTime = 0.0f;
-	m_prevFramesBehind = 0;
-
-	m_tickCount_68K = 0;
-	m_tickCount_Z80_PSG_FM = 0;
-
 	m_clock68K = 0;
+	m_cycle68K = 0;
 
 	m_lineCounter = 0xFF;
 
-	m_emulatorFrameCount = 0;
-
 	m_paused = false;
+	m_running = true;
+}
+
+EmulatorThread::~EmulatorThread()
+{
+	m_running = false;
 }
 
 void EmulatorThread::Entry()
 {
 #if EMU_THREADED
-	m_emuThread_Z80_PSG_FM.Run();
-	m_emuThread_Z80_PSG_FM.SetPriority(ion::thread::Thread::Priority::Critical);
+	m_emuThread_Z80_PSG_FM_DAC.Run();
+	m_emuThread_Z80_PSG_FM_DAC.SetPriority(ion::thread::Thread::Priority::Critical);
 
-	float deltaTime = 0.0f;
-	bool run = true;
-	while (run)
+#if defined ION_PLATFORM_SWITCH
+	m_emuThread_Z80_PSG_FM_DAC.SetCoreAffinity(1 << EMU_THREAD_CORE_Z80);
+	ion::engine.audio.thread->SetCoreAffinity(1 << EMU_THREAD_CORE_AUDIO);
+#endif
+
+	double prevTime = 0.0f;
+
+	while (m_running)
 	{
-		u64 startTicks = ion::time::GetSystemTicks();
+		//Get audio clock
+		double targetTime = AudioGetClock();
+		double deltaTime = targetTime - prevTime;
 
 		TickEmulator(deltaTime);
-		ion::thread::Sleep(1);
+		Yield();
 
-		u64 endTicks = ion::time::GetSystemTicks();
-		deltaTime = (float)ion::time::TicksToSeconds(endTicks - startTicks);
+		prevTime = targetTime;
 	}
 #endif
+}
+
+u64 EmulatorThread::Get68KCycle() const
+{
+	return m_cycle68K;
 }
 
 void EmulatorThread::Pause()
@@ -98,224 +106,185 @@ void EmulatorThread::Resume()
 
 bool EmulatorThread::IsPaused() const
 {
-	return m_paused;
+	return m_paused || Globals::g_pause;
 }
 
-void EmulatorThread::TickEmulator(float deltaTime)
+void EmulatorThread::TickEmulator(double deltaTime)
 {
-	int debuggerRunning = false;
-
-	const int cyclesPerFrame = CYCLES_PER_FRAME_68K;
-	const int cyclesPerLine = CYCLES_PER_LINE_68K;
-
-	int framesBehind = 0;
-
-	if (!debuggerRunning && !m_paused)
+	if (!m_paused && !Globals::g_pause)
 	{
-		//Begin audio playback
-		AudioBeginPlayback();
+		//Calculate cycles to process
+		u64 num68kCycles = ion::maths::Round(deltaTime * CYCLES_PER_SECOND_68K);
 
-		//Get audio clock
-		const double audioClock = AudioGetClock();
-		const double audioClockDelta = audioClock - m_prevAudioClock;
-		m_prevAudioClock = audioClock;
-		m_accumTime += audioClockDelta;
-
-		framesBehind = (int)ion::maths::Floor(m_accumTime / EMU_TIMESTEP);
-
-		//If lagging behind, only draw even frames
-		bool drawFrame = (framesBehind <= 1) || ((m_emulatorFrameCount & 1) == 0);
-
-		if(framesBehind > 0)
-		{
-			ion::thread::atomic::Increment(m_tickCount_68K);
-
-			m_renderCritSec.Begin();
-
-			//Calculate emulator tick FPS
-			m_fpsCounterEmulator.Update();
-
-			//Calculate render FPS
-			if (drawFrame)
-			{
-				m_fpsCounterRender.Update();
-			}
-
-			m_accumTime = 0.0f;
-
-			//Begin frame
-			VID_BeginFrame();
-
-			//Process one frame at a time
-			int videoCycle = 0;
 #if CPU_COMBINE_STAGES
-			int prevCycle = 0;
-			int currCycle = 0;
-			for (int i = 0; i < cyclesPerFrame;)
+		for (u64 i = 0; i < num68kCycles && !Globals::g_pause;)
 #else
-			for (int i = 0; i < cyclesPerFrame; i++)
+		for (u64 i = 0; i < cyclesPerFrame && !Globals::g_pause; i++)
 #endif
-			{
-				m_clock68K += EMU_CLOCK_DIV_68K;
+		{
+			m_clock68K += EMU_CLOCK_DIV_68K;
 
 #if CPU_COMBINE_STAGES
-				prevCycle = i;
-				i += CPU_Step();
-				currCycle = i;
+			u64 prevCycle = m_cycle68K;
+			u64 cyclesStepped = CPU_Step();
+			m_cycle68K += cyclesStepped;
+			i += cyclesStepped;
 #else
-				CPU_Step();
+			CPU_Step();
+#endif
+
+#if EMU_ENABLE_68K_DEBUGGER
+			DebuggerStep();
 #endif
 
 #if !EMU_THREADED
-				//Tick Z80, PSG, and FM
-				m_emuThread_Z80_PSG_FM.Tick_Z80_PSG_FM();
+			//Tick Z80, PSG, and FM
+			m_emuThread_Z80_PSG_FM_DAC.Tick_Z80_PSG_FM_DAC();
 #endif
+
+			//Emulate latch capacitor drain in 6-button controller
+			IO_UpdateControllerLatch(cyclesStepped);
 
 #if CPU_COMBINE_STAGES
-				for(videoCycle = prevCycle; videoCycle < currCycle; videoCycle++)
+			for(u64 videoCycle = prevCycle; videoCycle < m_cycle68K; videoCycle++)
 #else
-				videoCycle = i;
+			videoCycle = i;
 #endif
+			{
+				u64 frameCycle = (videoCycle % CYCLES_PER_FRAME_68K);
+
+				if (frameCycle == 0)
 				{
-					Globals::lineNo = videoCycle / cyclesPerLine;
-					int colNo = videoCycle % cyclesPerLine;
+					VDP_WriteLock();
+					VID_BeginFrame();
+				}
 
-					Globals::inVBlank = (Globals::lineNo > 223);
-					Globals::inHBlank = (colNo > ((cyclesPerLine * 3) / 4));
+				Globals::lineNo = frameCycle / CYCLES_PER_LINE_68K;
+				Globals::colNo = frameCycle % CYCLES_PER_LINE_68K;
 
-					if (colNo == ((cyclesPerLine * 3) / 4))
+				bool vblank = (Globals::lineNo > (VDP_SCREEN_HEIGHT - 1));
+				bool hblank = (Globals::colNo > ((CYCLES_PER_LINE_68K * 3) / 4));
+
+				bool exitedActiveScan = vblank && !Globals::inVBlank;
+
+				Globals::inVBlank = vblank;
+				Globals::inHBlank = hblank;
+
+				if (Globals::colNo == ((CYCLES_PER_LINE_68K * 3) / 4))
+				{
+					if (Globals::lineNo > VDP_SCREEN_HEIGHT)
 					{
-						if (Globals::lineNo > 224)
+						m_lineCounter = VDP::VDP_Registers[0x0A];
+					}
+					else
+					{
+						m_lineCounter--;
+						if (m_lineCounter == 0xFFFFFFFF)
 						{
 							m_lineCounter = VDP::VDP_Registers[0x0A];
-						}
-						else
-						{
-							m_lineCounter--;
-							if (m_lineCounter == 0xFFFFFFFF)
-							{
-								m_lineCounter = VDP::VDP_Registers[0x0A];
-								CPU_SignalInterrupt(4);
-							}
-						}
-
-						if (drawFrame)
-						{
-							int displaySizeY = (VDP::VDP_Registers[1] & 0x08) ? 30 * 8 : 28 * 8;
-							if (Globals::lineNo < displaySizeY)
-							{
-								VID_DrawScreenRow(Globals::lineNo);
-							}
+							CPU_SignalInterrupt(4);
 						}
 					}
 
-					if ((Globals::lineNo == 225) && (colNo == 8))
+					int displaySizeY = (VDP::VDP_Registers[1] & 0x08) ? 30 * 8 : 28 * 8;
+					if (Globals::lineNo < (u32)displaySizeY)
 					{
-						CPU_SignalInterrupt(6);
-						Z80_SignalInterrupt(0);
+						VID_DrawScreenRow(Globals::lineNo);
 					}
 				}
+
+				if ((Globals::lineNo == (VDP_SCREEN_HEIGHT+1)) && (Globals::colNo == 8))
+				{
+					CPU_SignalInterrupt(6);
+					Z80_SignalInterrupt(0);
+				}
+
+				if (exitedActiveScan)
+				{
+					VDP_WriteUnlock();
+					m_fpsCounterRender.Update();
+				}
 			}
-
-			m_renderCritSec.End();
 		}
-
-#if EMU_THREADED
-		//Wait for audio
-		while (m_tickCount_68K > m_tickCount_Z80_PSG_FM)
-		{
-			ion::thread::Sleep(1);
-		}
-#endif
 	}
-
-	m_lastEmulatorState = debuggerRunning ? eState_Debugger : eState_Running;
 }
 
-EmulatorThread_Z80_PSG_FM::EmulatorThread_Z80_PSG_FM(EmulatorThread& emuThread68K)
+EmulatorThread_Z80_PSG_FM_DAC::EmulatorThread_Z80_PSG_FM_DAC()
 #if EMU_THREADED
-	: ion::thread::Thread("Emulator_Z80_PSG_FM")
-	, m_emuThread68K(emuThread68K)
-#else
-    : m_emuThread68K(emuThread68K)
+	: ion::thread::Thread("Emulator_Z80_PSG_FM_DAC")
 #endif
 {
-	m_prevAudioClock = 0.0f;
-	m_accumTime = 0.0f;
-
 	m_clockZ80 = 0;
 	m_clockFM = 0;
 	m_clockPSG = 0;
+
+	m_running = true;
 }
 
-void EmulatorThread_Z80_PSG_FM::Entry()
+EmulatorThread_Z80_PSG_FM_DAC::~EmulatorThread_Z80_PSG_FM_DAC()
 {
-	float deltaTime = 0.0f;
-	bool run = true;
-	while (run)
+	AudioStopPlayback();
+	m_running = false;
+}
+
+void EmulatorThread_Z80_PSG_FM_DAC::Entry()
+{
+	//Start audio playback
+	AudioBeginPlayback();
+
+	double prevTime = 0.0f;
+
+	while (m_running)
 	{
-		Tick_Z80_PSG_FM();
-		ion::thread::Sleep(1);
+		//Get audio clock
+		double targetTime = AudioGetClock();
+		double deltaTime = targetTime - prevTime;
+
+		Tick_Z80_PSG_FM_DAC(deltaTime);
+
+		Yield();
+
+		prevTime = targetTime;
 	}
 }
 
-void EmulatorThread_Z80_PSG_FM::Tick_Z80_PSG_FM()
+void EmulatorThread_Z80_PSG_FM_DAC::Tick_Z80_PSG_FM_DAC(double deltaTime)
 {
 #if EMU_THREADED
-	//Get audio clock
-	const double audioClock = AudioGetClock();
-	const double audioClockDelta = audioClock - m_prevAudioClock;
-	m_prevAudioClock = audioClock;
-	m_accumTime += audioClockDelta;
+	u64 numDACCycles = ion::maths::Round(deltaTime * AUDIO_SAMPLE_RATE_HZ);
+	u64 num68kCyclesPerDAC = CYCLES_PER_SECOND_68K / AUDIO_SAMPLE_RATE_HZ;
 
-	int framesBehind = (int)ion::maths::Floor(m_accumTime / EMU_TIMESTEP);
-
-#if defined _DEBUG
-	if (framesBehind > 1)
-	{
-		printf("Audio %i frames behind\n", framesBehind);
-	}
+	for (int i = 0; i < numDACCycles; i++)
 #endif
-
-	for (int frame = 0; frame < framesBehind; frame++)
 	{
-		ion::thread::atomic::Increment(m_emuThread68K.m_tickCount_Z80_PSG_FM);
-		m_emuThread68K.m_fpsCounterAudio.Update();
-		m_accumTime -= EMU_TIMESTEP;
-
-		for (int i = 0; i < CYCLES_PER_FRAME_68K; i++)
-#endif
+		if (!Globals::g_pause)
 		{
-			m_clockZ80 += EMU_CLOCK_DIV_68K;
-			m_clockFM += EMU_CLOCK_DIV_68K;
-			m_clockPSG += EMU_CLOCK_DIV_68K;
-
-			if (m_clockZ80 >= EMU_CLOCK_DIV_Z80)
+			for (int j = 0; j < num68kCyclesPerDAC; j++)
 			{
-				Z80_Step();
-				m_clockZ80 -= EMU_CLOCK_DIV_Z80;
-			}
+				m_clockZ80 += EMU_CLOCK_DIV_68K;
+				m_clockFM += EMU_CLOCK_DIV_68K;
+				m_clockPSG += EMU_CLOCK_DIV_68K;
 
-			if (m_clockFM >= EMU_CLOCK_DIV_FM)
-			{
-				AudioFMUpdate();
-				m_clockFM -= EMU_CLOCK_DIV_FM;
-			}
+				if (m_clockZ80 >= EMU_CLOCK_DIV_Z80)
+				{
+					Z80_Step();
+					m_clockZ80 -= EMU_CLOCK_DIV_Z80;
+				}
 
-			if (m_clockPSG >= EMU_CLOCK_DIV_PSG)
-			{
-				AudioPSGUpdate();
-				m_clockPSG -= EMU_CLOCK_DIV_PSG;
-			}
+				if (m_clockFM >= EMU_CLOCK_DIV_FM)
+				{
+					AudioFMUpdate();
+					m_clockFM -= EMU_CLOCK_DIV_FM;
+				}
 
-#if EMU_THREADED
-			if (frame == 0)
-#endif
-			{
-				AudioTick();
+				if (m_clockPSG >= EMU_CLOCK_DIV_PSG)
+				{
+					AudioPSGUpdate();
+					m_clockPSG -= EMU_CLOCK_DIV_PSG;
+				}
 			}
 		}
-#if EMU_THREADED
+
+		AudioDACUpdate();
 	}
-#endif
 }

@@ -2,6 +2,8 @@
 
 #include "constants.h"
 
+#if EVIL_EMU_ROM_SOURCE==EVIL_EMU_ROM_SOURCE_EMBEDDED
+
 #if EVIL_EMU_GAME_TYPE==EVIL_EMU_GAME_TYPE_DEMO
 #include "roms/tanglewd_demo_rom.h"
 #include "roms/tanglewd_demo_vars.h"
@@ -11,4 +13,6 @@
 #elif EVIL_EMU_GAME_TYPE==EVIL_EMU_GAME_TYPE_AUTOTEST
 #include "roms/tanglewd_test_rom.h"
 #include "roms/tanglewd_test_vars.h"
+#endif
+
 #endif

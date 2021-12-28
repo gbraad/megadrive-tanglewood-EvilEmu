@@ -27,18 +27,41 @@ THE SOFTWARE.
 
 #include "mytypes.h"
 #include "config.h"
+#include <ion/input/Keyboard.h>
 
-#define DEB_Mode_68000				(0)
-#define DEB_Mode_Z80					(3)
-#define DEB_Mode_SH2_Master		(6)
-#define DEB_Mode_SH2_Slave		(9)
+enum class DebugState
+{
+	Idle,
+	Step68K,
+	StepFrame68K,
+	Continue68K,
+	StepZ80,
+	StepFrameZ80,
+	ContinueZ80,
+	StepHardware
+};
 
-#if ENABLE_DEBUGGER
+enum class DebugMode
+{
+	Off,
+	M68K,
+	M68K_History,
+	Sprites,
+	Z80,
+	SH2Master = 6,
+	SH2Slave = 9
+};
+
+DebugMode DEB_GetDebugMode();
+DebugState DEB_GetDebugState();
+
+#if EMU_ENABLE_68K_DEBUGGER
 
 void DisplayDebugger();
-int UpdateDebugger();
+int UpdateDebugger(const ion::input::Keyboard& keyboard);
+void DebuggerStep();
 
-void DEB_PauseEmulation(int mode,const char *reason);
+void DEB_PauseEmulation(DebugMode pauseMode,const char *reason);
 
 #else
 

@@ -27,10 +27,10 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 
-#include "config.h"
-#include "cpu.h"
-#include "cpu_dis.h"
-#include "memory.h"
+#include "megaex/config.h"
+#include "megaex/cpu/m68k/cpu.h"
+#include "megaex/cpu/m68k/cpu_dis.h"
+#include "megaex/memory.h"
 
 //#include "memory.inl"
 

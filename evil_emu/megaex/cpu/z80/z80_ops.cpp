@@ -406,7 +406,7 @@ U16 GetRP(U16 op1)
 		rp = Z80::Z80_regs.SP;
 		break;
 	default:
-		DEB_PauseEmulation(DEB_Mode_Z80,"Something gone wrong");
+		DEB_PauseEmulation(DebugMode::Z80,"Something gone wrong");
 		rp=0;
 		break;
 	}
@@ -447,7 +447,7 @@ U16 GetRPAF(U16 op1)
 		rp|=Z80::Z80_regs.R[Z80_REG_F]&0xFF;
 		break;
 	default:
-		DEB_PauseEmulation(DEB_Mode_Z80,"Something gone wrong");
+		DEB_PauseEmulation(DebugMode::Z80,"Something gone wrong");
 		rp=0;
 		break;
 	}
@@ -524,7 +524,7 @@ void SetR(U16 op1,int IXIYPossible,U8 value)
 {
 	if (op1>7)
 	{
-		DEB_PauseEmulation(DEB_Mode_Z80,"Something gone wrong");
+		DEB_PauseEmulation(DebugMode::Z80,"Something gone wrong");
 		return;
 	}
 	if (IXIYPossible && ((op1==4) || (op1==5)))
@@ -568,7 +568,7 @@ U8 GetR(U16 op1,int IXIYPossible)
 {
 	if (op1>7)
 	{
-		DEB_PauseEmulation(DEB_Mode_Z80,"Something gone wrong");
+		DEB_PauseEmulation(DebugMode::Z80,"Something gone wrong");
 		return 0;
 	}
 
@@ -2218,8 +2218,12 @@ U32 Z80_EI(U32 stage,U16* operands)
 	
 	
 	
-	
-	Z80::Z80_regs.delayedInterruptEnable=2;		/* will enable AFTER next instruction cycle */
+#if Z80_DELAYED_INTERRUPTS
+	Z80::Z80_regs.delayedInterruptEnable = 2;		/* will enable AFTER next instruction cycle */
+#else
+	Z80::Z80_regs.IFF1 = 1;
+	Z80::Z80_regs.IFF2 = 1;
+#endif
 
 	Z80Cycles=4;
 
@@ -2376,7 +2380,7 @@ U32 Z80_ED_SBCHL(U32 stage,U16* operands)
 		src = Z80::Z80_regs.SP;
 		break;
 	default:
-		DEB_PauseEmulation(DEB_Mode_Z80,"Something gone wrong");
+		DEB_PauseEmulation(DebugMode::Z80,"Something gone wrong");
 		src=0;
 		break;
 	}
@@ -2987,7 +2991,7 @@ U32 Z80_HALT(U32 stage,U16* operands)
 	
 	
 	
-	Z80::Z80_regs.stopped=1;
+	Z80::Z80_regs.halted = 1;
 
 	Z80Cycles=4;
 
@@ -3557,7 +3561,7 @@ U32 Z80_ED_ADCHL(U32 stage,U16* operands)
 		src = Z80::Z80_regs.SP;
 		break;
 	default:
-		DEB_PauseEmulation(DEB_Mode_Z80,"Something gone wrong");
+		DEB_PauseEmulation(DebugMode::Z80,"Something gone wrong");
 		src=0;
 		break;
 	}

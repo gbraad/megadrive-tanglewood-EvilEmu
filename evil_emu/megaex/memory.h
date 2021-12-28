@@ -28,6 +28,7 @@ THE SOFTWARE.
 
 #include "mytypes.h"
 #include "stdio.h"
+#include "config.h"
 
 U8 Z80_MEM_getByte(U16 address);
 void Z80_MEM_setByte(U16 address, U8 data);
@@ -41,6 +42,7 @@ void MEM_LoadState(FILE *inStream);
 void MEM_Initialise(unsigned char *_romPtr, U32 romSize, unsigned int num64Banks);
 
 void IO_GetRegisterContents(U16 offset, char *buffer);
+void IO_UpdateControllerLatch(U32 cycles);
 
 typedef U8(*MEM_ReadByteMap)(U32 address, U32 upper24, U32 lower16);
 typedef void(*MEM_WriteByteMap)(U32 address, U32 upper24, U32 lower16, U8 byte);

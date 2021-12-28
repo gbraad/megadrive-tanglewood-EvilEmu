@@ -2,14 +2,14 @@
 
 const char* DlgROMDisclaimer::s_disclaimerText =
 	"DISCLAIMER\n\n" \
-	"The EVIL_EMU Mega Drive ROM file and its content is protected\n" \
+	"The TANGLEWOOD Mega Drive ROM file and its content is protected\n" \
 	"by both national and international copyright law.\n\n" \
 	"Copying, reproduction, distribution, and modification of the software is\n" \
 	"prohibited without express permission of Big Evil Corporation Ltd.\n\n" \
-	"The EVIL_EMU ROM is included in the refund policy. If you are\n" \
-	"refunded for your purchase of EVIL_EMU, you must discontinue use of\n" \
+	"The TANGLEWOOD ROM is included in the refund policy. If you are\n" \
+	"refunded for your purchase of TANGLEWOOD, you must discontinue use of\n" \
 	"the ROM file and delete all copies.\n\n" \
-	"EVIL_EMU is not licensed, sponsored, published, or endorsed by\n" \
+	"TANGLEWOOD is not licensed, sponsored, published, or endorsed by\n" \
 	"SEGA Enterprises Ltd, SEGA Corporation, SEGA Holdings Co, or their affiliates.\n\n" \
 	"Big Evil Corporation Ltd is an independent games development studio. This title\n" \
 	"is an unofficial and unlicensed release for the SEGA Mega Drive console, and is not\n" \

@@ -13,6 +13,7 @@
 #include <ion/input/Keyboard.h>
 #include <ion/input/Mouse.h>
 #include <ion/input/Gamepad.h>
+#include <ion/engine/Engine.h>
 
 #include <sstream>
 
@@ -41,23 +42,24 @@ std::string MakeVersionString()
 	versionText << "d";
 #endif
 
-#if EVIL_EMU_DISTRIBUTION==EVIL_EMU_DISTRIBUTION_STEAM
+#if defined ION_SERVICES_STEAM
 	versionText << "s";
-#endif
-
-#if EVIL_EMU_DISTRIBUTION==EVIL_EMU_DISTRIBUTION_GALAXY
+#elif defined ION_SERVICES_GALAXY
 	versionText << "g";
+#elif defined ION_PLATFORM_SWITCH
+	versionText << "nx";
 #endif
 
 	return versionText.str();
 }
 
 StatePause::StatePause(EvilEmu& mainApp, Settings& settings, ion::gamekit::StateManager& stateManager, ion::io::ResourceManager& resourceManager, ion::io::FileSystem& fileSystem, ion::render::Window& window)
-	: m_mainApp(mainApp)
+	: ion::gamekit::State("pause", stateManager, resourceManager)
+	, m_mainApp(mainApp)
 	, m_settings(settings)
-	, ion::gamekit::State("pause", stateManager, resourceManager)
 	, m_appWindow(window)
 {
+#if EVIL_EMU_USE_UTILITY_MENUS
 	m_windowMain = NULL;
 	m_buttonResumeGame = NULL;
 	m_buttonQuitGame = NULL;
@@ -68,6 +70,18 @@ StatePause::StatePause(EvilEmu& mainApp, Settings& settings, ion::gamekit::State
 
 	//Load font
 	m_font = m_gui->LoadFontTTF(EVIL_EMU_FONT_FILE, EVIL_EMU_FONT_SIZE);
+
+	//Load shader
+#if defined ION_RENDERER_SHADER
+	m_shaderFlatTextured = m_resourceManager.GetResource<ion::render::Shader>("flattextured",
+		[this](ion::render::Shader& shader)
+	{
+		if(m_gui)
+			m_gui->SetShader(&shader);
+		if(m_font)
+			m_font->SetShader(&shader);
+	});
+#endif
 
 	//Set GUI style
 	m_gui->StyleSetTitleAlignment(ion::Vector2(0.5f, 0.5f));
@@ -92,30 +106,26 @@ StatePause::StatePause(EvilEmu& mainApp, Settings& settings, ion::gamekit::State
 
 	//Hide GUI
 	m_gui->SetVisible(false);
+#endif
 }
 
 StatePause::~StatePause()
 {
+#if EVIL_EMU_USE_UTILITY_MENUS
 	delete m_windowMain;
 	delete m_buttonResumeGame;
 	delete m_buttonQuitGame;
 	delete m_textVersion;
 	delete m_font;
 	delete m_gui;
+#endif
 }
 
 void StatePause::OnEnterState()
 {
+#if EVIL_EMU_USE_UTILITY_MENUS
 	//Update GUI size
-	ion::Vector2i resolution = m_settings.resolution;
-
-	if (m_settings.fullscreen)
-	{
-		//Fullscreen uses desktop resolution
-		resolution.x = m_appWindow.GetDesktopWidth(m_settings.displayIdx);
-		resolution.y = m_appWindow.GetDesktopHeight(m_settings.displayIdx);
-	}
-
+	ion::Vector2i resolution(ion::engine.render.window->GetClientAreaWidth(), ion::engine.render.window->GetClientAreaHeight());
 	m_gui->SetSize(resolution);
 
 	//Sync settings
@@ -123,12 +133,15 @@ void StatePause::OnEnterState()
 
 	//Show GUI
 	m_gui->SetVisible(true);
+#endif
 }
 
 void StatePause::OnLeaveState()
 {
+#if EVIL_EMU_USE_UTILITY_MENUS
 	//Hide GUI
 	m_gui->SetVisible(false);
+#endif
 }
 
 void StatePause::OnPauseState()
@@ -143,11 +156,13 @@ void StatePause::OnResumeState()
 
 void StatePause::OnButtonResumeGame(const ion::gui::Button& button)
 {
+#if EVIL_EMU_USE_UTILITY_MENUS
 	//Apply new settings
 	m_mainApp.ApplySettings();
 
 	//Pop state
 	m_stateManager.PopState();
+#endif
 }
 
 void StatePause::OnButtonQuitGame(const ion::gui::Button& button)
@@ -155,13 +170,26 @@ void StatePause::OnButtonQuitGame(const ion::gui::Button& button)
 	m_running = false;
 }
 
-bool StatePause::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, ion::input::Gamepad* gamepad)
+bool StatePause::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::input::Mouse* mouse, const std::vector<ion::input::Gamepad*>& gamepads)
 {
-	m_gui->Update(deltaTime, keyboard, mouse, gamepad);
+#if EVIL_EMU_USE_UTILITY_MENUS
+	m_gui->Update(deltaTime, keyboard, mouse, gamepads[0]);
 
 	if (m_appWindow.HasFocus())
 	{
-		if (keyboard->KeyPressedThisFrame(ion::input::Keycode::ESCAPE) || gamepad->ButtonPressedThisFrame(ion::input::GamepadButtons::SELECT))
+		bool unpause = false;
+
+		for (auto gamepad : gamepads)
+		{
+			unpause |= gamepad->ButtonPressedThisFrame(ion::input::GamepadButtons::SELECT);
+		}
+
+		if (keyboard)
+		{
+			unpause |= keyboard->KeyPressedThisFrame(ion::input::Keycode::ESCAPE);
+		}
+
+		if (unpause)
 		{
 			//Apply new settings
 			m_mainApp.ApplySettings();
@@ -170,11 +198,14 @@ bool StatePause::Update(float deltaTime, ion::input::Keyboard* keyboard, ion::in
 			m_stateManager.PopState();
 		}
 	}
+#endif
 
 	return m_running;
 }
 
 void StatePause::Render(ion::render::Renderer& renderer, const ion::render::Camera& camera, ion::render::Viewport& viewport)
 {
+#if EVIL_EMU_USE_UTILITY_MENUS
 	m_gui->Render(renderer, viewport);
+#endif
 }
