@@ -23,27 +23,27 @@
     <ProjectGuid>{65F0272C-3EB3-4422-A784-B43E14F8AD61}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>tanglewoodbin2cpp</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
-    <ProjectName>snasm68k_bin2cpp</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>m68k_bin2cpp</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -131,7 +131,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -148,15 +148,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\SN68KCOFFDUMP\SN68kCoffDump\archive.h" />
-    <ClInclude Include="..\..\..\SN68KCOFFDUMP\SN68kCoffDump\atoms.h" />
-    <ClInclude Include="..\..\..\SN68KCOFFDUMP\SN68kCoffDump\timeutils.h" />
-    <ClInclude Include="..\..\snasm68k_coffdump\SN68kCoffDump\FileCOFF.h" />
-    <ClInclude Include="targetver.h" />
+    <ClCompile Include="m68k_bin2cpp.cpp" />
+    <ClCompile Include="parsers\ASM68K.cpp" />
+    <ClCompile Include="parsers\ELF32.cpp" />
+    <ClCompile Include="parsers\Parser.cpp" />
+    <ClCompile Include="parsers\Raw.cpp" />
+    <ClCompile Include="parsers\SNASM68K.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\snasm68k_coffdump\SN68kCoffDump\FileCOFF.cpp" />
-    <ClCompile Include="snasm68k_bin2cpp.cpp" />
+    <ClInclude Include="parsers\ASM68K.h" />
+    <ClInclude Include="parsers\ELF32.h" />
+    <ClInclude Include="parsers\Parser.h" />
+    <ClInclude Include="parsers\Raw.h" />
+    <ClInclude Include="parsers\Serialiser.h" />
+    <ClInclude Include="parsers\SNASM68K.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

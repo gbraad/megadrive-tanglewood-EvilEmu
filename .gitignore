@@ -1,4 +1,15 @@
+.build
 ion
 buildtools
 bigevilcorp.jamrules
 evil_emu/_Build
+evil_emu/packages
+evil_emu/roms
+.vs
+m68k_bin2cpp/.vs
+m68k_bin2cpp/m68k_bin2cpp/x64
+m68k_bin2cpp/x64
+*.filters
+*.user
+!*.dll
+!*.exe
