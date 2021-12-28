@@ -1,2 +1,2 @@
-mklink /j ion ..\ion-engine-public\ion
-mklink /j buildtools ..\ion-engine-public\buildtools
+mklink /j ion ..\ion-engine\ion
+mklink /j buildtools ..\ion-engine\buildtools
